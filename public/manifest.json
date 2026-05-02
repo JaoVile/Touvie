@@ -1,0 +1,18 @@
+{
+  "name": "Touvie",
+  "short_name": "Touvie",
+  "description": "Tudo da sua vida — rotina, metas, finanças, treino, diário e mais.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#a855f7",
+  "background_color": "#09090b",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
