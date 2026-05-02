@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Default theme — glass-purple. Overridden per [data-theme] below. */
+  --color-bg: #0a0618;
+  --color-bg-elevated: #140a2e;
+  --color-fg: #f5f3ff;
+  --color-fg-muted: #c4b5fd;
+  --color-fg-subtle: #8b7bb8;
+  --color-accent: #a855f7;
+  --color-accent-2: #ec4899;
+  --color-border: rgb(255 255 255 / 0.1);
+  --color-card: rgb(255 255 255 / 0.05);
+  --color-danger: #ef4444;
+  --color-success: #22c55e;
+
+  --gradient-brand: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  --gradient-bg: radial-gradient(ellipse at top, #2e1065 0%, #0a0618 55%);
+
+  --radius-card: 1rem;
+  --glass-blur: 20px;
+  --glass-bg: rgb(255 255 255 / 0.05);
+  --glass-border: rgb(255 255 255 / 0.1);
+  --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.37);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--gradient-bg);
+  background-attachment: fixed;
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  /* Respect safe-area on notch devices (PWA standalone) */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Prevent double-tap zoom on interactive elements */
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* Glass card utility — consumes theme variables */
+@utility glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--glass-shadow);
+}
+
+@utility gradient-brand {
+  background: var(--gradient-brand);
+}
+
+@utility gradient-text {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Theme presets */
+@import "./themes/glass-purple.css";
+@import "./themes/dark-minimal.css";
+@import "./themes/notion-clean.css";

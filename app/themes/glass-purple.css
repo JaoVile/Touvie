@@ -1,0 +1,20 @@
+[data-theme="glass-purple"] {
+  --color-bg: #0a0618;
+  --color-bg-elevated: #140a2e;
+  --color-fg: #f5f3ff;
+  --color-fg-muted: #c4b5fd;
+  --color-fg-subtle: #8b7bb8;
+  --color-accent: #a855f7;
+  --color-accent-2: #ec4899;
+  --color-border: rgb(255 255 255 / 0.1);
+  --color-card: rgb(255 255 255 / 0.05);
+
+  --gradient-brand: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  --gradient-bg: radial-gradient(ellipse at top, #2e1065 0%, #0a0618 55%);
+
+  --radius-card: 1rem;
+  --glass-blur: 20px;
+  --glass-bg: rgb(255 255 255 / 0.05);
+  --glass-border: rgb(255 255 255 / 0.1);
+  --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.37);
+}

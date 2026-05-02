@@ -1,0 +1,28 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# next.js
+.next/
+out/
+
+# env — NUNCA commitar
+.env
+.env.local
+.env.*.local
+.env.production
+
+# vercel
+.vercel/
+
+# misc
+*.log
+.DS_Store
+Thumbs.db
+
+# claude code local settings
+.claude/
+
+# scripts gerados localmente (contêm secrets)
+scripts/tasks/
+.vercel

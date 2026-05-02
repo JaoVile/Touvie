@@ -1,0 +1,239 @@
+{
+  "nav": {
+    "today": "Hoje",
+    "routine": "Rotina",
+    "goals": "Metas",
+    "diary": "Diário",
+    "finances": "Finanças",
+    "training": "Treino",
+    "diet": "Dieta",
+    "notes": "Notas",
+    "search": "Busca",
+    "notifications": "Notifs",
+    "config": "Config"
+  },
+  "dashboard": {
+    "greeting": {
+      "morning": "Bom dia",
+      "afternoon": "Boa tarde",
+      "evening": "Boa noite",
+      "night": "Boa madrugada"
+    },
+    "routine": {
+      "title": "Rotina de hoje",
+      "empty": "Nenhum bloco cadastrado.",
+      "create": "Criar",
+      "markHabits": "marcar hábitos →",
+      "consistency30": "Consistência (30 dias)",
+      "topStreaks": "Maiores sequências"
+    },
+    "goals": {
+      "title": "Metas ativas",
+      "empty": "Nenhuma meta ativa.",
+      "create": "Criar",
+      "viewAll": "ver todas →"
+    },
+    "tasks": {
+      "title": "Próximas tarefas",
+      "empty": "Nenhuma tarefa pendente.",
+      "create": "Criar"
+    },
+    "finances": {
+      "title": "Mês corrente",
+      "empty": "Nenhum lançamento.",
+      "launch": "Lançar",
+      "income": "Receitas",
+      "expenses": "Despesas",
+      "balance": "Saldo",
+      "viewCharts": "ver gráficos →"
+    }
+  },
+  "routine": {
+    "title": "Rotina",
+    "subtitle": "Seus blocos diários de foco.",
+    "addBlock": "Novo bloco",
+    "empty": "Nenhum bloco ainda.",
+    "active": "ativo",
+    "inactive": "inativo",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "title_field": "Título",
+    "time_slot": "Horário",
+    "emoji": "Emoji (opcional)",
+    "streak": "sequência"
+  },
+  "diary": {
+    "title": "Diário",
+    "subtitle": "Registros semanais privados.",
+    "locked": "Este diário está protegido por PIN.",
+    "enterPin": "Digite seu PIN para acessar",
+    "wrongPin": "PIN incorreto. Tente novamente.",
+    "save": "Salvar",
+    "saving": "Salvando…",
+    "saved": "Salvo",
+    "moodToday": "Como você está hoje?",
+    "moods": {
+      "1": "Muito mal",
+      "2": "Mal",
+      "3": "Neutro",
+      "4": "Bem",
+      "5": "Ótimo"
+    }
+  },
+  "finances": {
+    "title": "Finanças",
+    "subtitle": "Controle financeiro completo.",
+    "tabs": {
+      "entries": "Lançamentos",
+      "recurring": "Recorrentes",
+      "bills": "Contas",
+      "envelopes": "Caixinhas",
+      "charts": "Gráficos",
+      "setup": "Setup",
+      "import": "Importar"
+    },
+    "income": "Receita",
+    "expense": "Despesa",
+    "balance": "Saldo",
+    "add": "Novo",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "bills": {
+      "title": "Contas a pagar",
+      "empty": "Nenhuma conta cadastrada.",
+      "add": "Nova conta",
+      "paid": "Paga",
+      "overdue": "Vencida",
+      "dueToday": "Vence hoje",
+      "pending": "Pendente",
+      "markPaid": "Marcar como paga",
+      "markUnpaid": "Desfazer pagamento"
+    },
+    "envelopes": {
+      "title": "Caixinhas",
+      "empty": "Nenhuma caixinha configurada.",
+      "add": "Nova caixinha",
+      "spent": "gasto",
+      "of": "de",
+      "remaining": "restante",
+      "configure": "Configurar limite"
+    }
+  },
+  "training": {
+    "title": "Treino",
+    "subtitle": "Seus treinos e progresso.",
+    "addWorkout": "Novo treino",
+    "empty": "Nenhum treino registrado."
+  },
+  "diet": {
+    "title": "Dieta",
+    "subtitle": "Acompanhe sua alimentação.",
+    "addMeal": "Adicionar refeição",
+    "empty": "Nenhum registro hoje."
+  },
+  "goals": {
+    "title": "Metas",
+    "subtitle": "Suas metas e objetivos.",
+    "addGoal": "Nova meta",
+    "empty": "Nenhuma meta ativa.",
+    "active": "Ativa",
+    "completed": "Concluída",
+    "archived": "Arquivada"
+  },
+  "notes": {
+    "title": "Notas",
+    "subtitle": "Anotações livres e referências.",
+    "addNote": "Nova nota",
+    "empty": "Nenhuma nota ainda.",
+    "untitled": "Sem título",
+    "pinned": "Fixadas",
+    "saving": "Salvando…",
+    "saved": "Salvo",
+    "tags": "Tags (separadas por vírgula)",
+    "pin": "Fixar",
+    "unpin": "Desafixar",
+    "delete": "Excluir",
+    "deleteConfirm": "Excluir esta nota? Esta ação não pode ser desfeita."
+  },
+  "search": {
+    "title": "Busca",
+    "subtitle": "Encontre qualquer coisa no app.",
+    "placeholder": "Buscar…",
+    "minChars": "Digite pelo menos 2 caracteres para buscar.",
+    "results": "{count} resultado{count, plural, one {} other {s}} para",
+    "noResults": "Nenhum resultado para",
+    "transactions": "Transações",
+    "diary": "Diário",
+    "notes": "Notas",
+    "hints": {
+      "title": "O que você pode buscar:",
+      "transactions": "Descrição de transações",
+      "diary": "Conteúdo do diário",
+      "notes": "Títulos e conteúdo das notas"
+    }
+  },
+  "config": {
+    "title": "Configurações",
+    "subtitle": "Personalize o app do seu jeito.",
+    "theme": {
+      "title": "Tema visual",
+      "description": "Troca o visual do app."
+    },
+    "pin": {
+      "title": "PIN do Diário",
+      "notSet": "Você ainda não configurou um PIN. Vá em",
+      "notSetLink": "/diario",
+      "notSetSuffix": "pra criar."
+    },
+    "telegram": {
+      "title": "Telegram",
+      "description": "Lembretes às 08:00 e 20:00 (BRT). Crons rodam só em produção (Vercel)."
+    },
+    "logs": {
+      "title": "Log Geral",
+      "description": "Últimos 100 eventos do sistema — crons, webhooks e APIs."
+    },
+    "account": {
+      "title": "Conta",
+      "loggedAs": "Logado como",
+      "signOut": "Sair",
+      "deleteAccount": "Excluir conta"
+    },
+    "language": {
+      "title": "Idioma",
+      "description": "Escolha o idioma da interface.",
+      "ptBR": "Português (Brasil)",
+      "en": "English"
+    }
+  },
+  "notifications": {
+    "title": "Notificações",
+    "subtitle": "Central de alertas e lembretes.",
+    "empty": "Nenhuma notificação."
+  },
+  "common": {
+    "loading": "Carregando…",
+    "error": "Erro",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "add": "Adicionar",
+    "back": "Voltar",
+    "close": "Fechar",
+    "confirm": "Confirmar",
+    "yes": "Sim",
+    "no": "Não",
+    "search": "Buscar",
+    "week": "Semana",
+    "month": "Mês",
+    "today": "Hoje",
+    "tomorrow": "Amanhã",
+    "yesterday": "Ontem",
+    "days": "dias"
+  }
+}

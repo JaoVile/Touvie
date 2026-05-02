@@ -1,0 +1,20 @@
+[data-theme="dark-minimal"] {
+  --color-bg: #0a0a0a;
+  --color-bg-elevated: #141414;
+  --color-fg: #ededed;
+  --color-fg-muted: #a1a1a1;
+  --color-fg-subtle: #666;
+  --color-accent: #22c55e;
+  --color-accent-2: #10b981;
+  --color-border: rgb(255 255 255 / 0.08);
+  --color-card: rgb(255 255 255 / 0.02);
+
+  --gradient-brand: linear-gradient(135deg, #22c55e 0%, #10b981 100%);
+  --gradient-bg: #0a0a0a;
+
+  --radius-card: 0.5rem;
+  --glass-blur: 0px;
+  --glass-bg: #141414;
+  --glass-border: rgb(255 255 255 / 0.08);
+  --glass-shadow: none;
+}

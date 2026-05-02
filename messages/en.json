@@ -1,0 +1,239 @@
+{
+  "nav": {
+    "today": "Today",
+    "routine": "Routine",
+    "goals": "Goals",
+    "diary": "Diary",
+    "finances": "Finances",
+    "training": "Training",
+    "diet": "Diet",
+    "notes": "Notes",
+    "search": "Search",
+    "notifications": "Notifs",
+    "config": "Settings"
+  },
+  "dashboard": {
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening",
+      "night": "Good night"
+    },
+    "routine": {
+      "title": "Today's routine",
+      "empty": "No blocks added yet.",
+      "create": "Create",
+      "markHabits": "mark habits →",
+      "consistency30": "Consistency (30 days)",
+      "topStreaks": "Top streaks"
+    },
+    "goals": {
+      "title": "Active goals",
+      "empty": "No active goals.",
+      "create": "Create",
+      "viewAll": "view all →"
+    },
+    "tasks": {
+      "title": "Upcoming tasks",
+      "empty": "No pending tasks.",
+      "create": "Create"
+    },
+    "finances": {
+      "title": "Current month",
+      "empty": "No entries.",
+      "launch": "Add",
+      "income": "Income",
+      "expenses": "Expenses",
+      "balance": "Balance",
+      "viewCharts": "view charts →"
+    }
+  },
+  "routine": {
+    "title": "Routine",
+    "subtitle": "Your daily focus blocks.",
+    "addBlock": "New block",
+    "empty": "No blocks yet.",
+    "active": "active",
+    "inactive": "inactive",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "title_field": "Title",
+    "time_slot": "Time",
+    "emoji": "Emoji (optional)",
+    "streak": "streak"
+  },
+  "diary": {
+    "title": "Diary",
+    "subtitle": "Private weekly entries.",
+    "locked": "This diary is PIN-protected.",
+    "enterPin": "Enter your PIN to access",
+    "wrongPin": "Incorrect PIN. Try again.",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "moodToday": "How are you feeling today?",
+    "moods": {
+      "1": "Very bad",
+      "2": "Bad",
+      "3": "Neutral",
+      "4": "Good",
+      "5": "Great"
+    }
+  },
+  "finances": {
+    "title": "Finances",
+    "subtitle": "Complete financial control.",
+    "tabs": {
+      "entries": "Entries",
+      "recurring": "Recurring",
+      "bills": "Bills",
+      "envelopes": "Envelopes",
+      "charts": "Charts",
+      "setup": "Setup",
+      "import": "Import"
+    },
+    "income": "Income",
+    "expense": "Expense",
+    "balance": "Balance",
+    "add": "New",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "bills": {
+      "title": "Bills",
+      "empty": "No bills added.",
+      "add": "New bill",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "dueToday": "Due today",
+      "pending": "Pending",
+      "markPaid": "Mark as paid",
+      "markUnpaid": "Undo payment"
+    },
+    "envelopes": {
+      "title": "Budget envelopes",
+      "empty": "No envelopes configured.",
+      "add": "New envelope",
+      "spent": "spent",
+      "of": "of",
+      "remaining": "remaining",
+      "configure": "Set limit"
+    }
+  },
+  "training": {
+    "title": "Training",
+    "subtitle": "Your workouts and progress.",
+    "addWorkout": "New workout",
+    "empty": "No workouts logged."
+  },
+  "diet": {
+    "title": "Diet",
+    "subtitle": "Track your nutrition.",
+    "addMeal": "Add meal",
+    "empty": "No entries today."
+  },
+  "goals": {
+    "title": "Goals",
+    "subtitle": "Your goals and objectives.",
+    "addGoal": "New goal",
+    "empty": "No active goals.",
+    "active": "Active",
+    "completed": "Completed",
+    "archived": "Archived"
+  },
+  "notes": {
+    "title": "Notes",
+    "subtitle": "Free-form notes and references.",
+    "addNote": "New note",
+    "empty": "No notes yet.",
+    "untitled": "Untitled",
+    "pinned": "Pinned",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "tags": "Tags (comma-separated)",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this note? This action cannot be undone."
+  },
+  "search": {
+    "title": "Search",
+    "subtitle": "Find anything in the app.",
+    "placeholder": "Search…",
+    "minChars": "Type at least 2 characters to search.",
+    "results": "{count} result{count, plural, one {} other {s}} for",
+    "noResults": "No results for",
+    "transactions": "Transactions",
+    "diary": "Diary",
+    "notes": "Notes",
+    "hints": {
+      "title": "What you can search:",
+      "transactions": "Transaction descriptions",
+      "diary": "Diary content",
+      "notes": "Note titles and content"
+    }
+  },
+  "config": {
+    "title": "Settings",
+    "subtitle": "Customize the app your way.",
+    "theme": {
+      "title": "Visual theme",
+      "description": "Change the app's look."
+    },
+    "pin": {
+      "title": "Diary PIN",
+      "notSet": "You haven't set a PIN yet. Go to",
+      "notSetLink": "/diario",
+      "notSetSuffix": "to create one."
+    },
+    "telegram": {
+      "title": "Telegram",
+      "description": "Reminders at 08:00 and 20:00 (BRT). Crons only run in production (Vercel)."
+    },
+    "logs": {
+      "title": "General Log",
+      "description": "Last 100 system events — crons, webhooks and APIs."
+    },
+    "account": {
+      "title": "Account",
+      "loggedAs": "Logged in as",
+      "signOut": "Sign out",
+      "deleteAccount": "Delete account"
+    },
+    "language": {
+      "title": "Language",
+      "description": "Choose the interface language.",
+      "ptBR": "Português (Brasil)",
+      "en": "English"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Alerts and reminders hub.",
+    "empty": "No notifications."
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "back": "Back",
+    "close": "Close",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "search": "Search",
+    "week": "Week",
+    "month": "Month",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "yesterday": "Yesterday",
+    "days": "days"
+  }
+}
