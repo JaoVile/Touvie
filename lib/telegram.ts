@@ -74,6 +74,18 @@ export async function deleteWebhook(): Promise<void> {
   await call("deleteWebhook", { drop_pending_updates: true });
 }
 
+export interface WebhookInfo {
+  url: string;
+  has_custom_certificate: boolean;
+  pending_update_count: number;
+  last_error_date?: number;
+  last_error_message?: string;
+}
+
+export async function getWebhookInfo(): Promise<WebhookInfo> {
+  return call<WebhookInfo>("getWebhookInfo");
+}
+
 // Tipos mínimos do payload de webhook que usamos
 export interface TelegramUpdate {
   update_id: number;

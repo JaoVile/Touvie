@@ -1,4 +1,5 @@
 import { logEvent } from "@/lib/logger";
+import { WORK_CLOCK_FALLBACK } from "@/lib/notification-defaults";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage } from "@/lib/telegram";
 import { NextResponse } from "next/server";
@@ -12,13 +13,6 @@ function authorized(req: Request): boolean {
   return false;
 }
 
-const MESSAGES: Record<string, string> = {
-  "clock-in-morning": "⏰ <b>BATER PONTO</b>\n\nBom dia! Hora de iniciar o expediente.",
-  "lunch-break": "🍽️ <b>PAUSAR PARA O ALMOÇO</b>\n\nHora do almoço — bater ponto de saída.",
-  "clock-in-afternoon": "⏰ <b>BATER PONTO NOVAMENTE</b>\n\nVolta do almoço — bater ponto de entrada.",
-  "clock-out": "🏁 <b>FINALIZAR PONTO</b>\n\nFim do expediente — bater ponto de saída.",
-};
-
 export async function GET(req: Request) {
   if (!authorized(req)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
@@ -26,9 +20,20 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const type = url.searchParams.get("type") ?? "";
-  const text = MESSAGES[type];
-  if (!text) {
+  if (!WORK_CLOCK_FALLBACK[type]) {
     return NextResponse.json({ error: "invalid_type", type }, { status: 400 });
+  }
+
+  const admin = createAdminClient();
+  const { data: tpl } = await admin
+    .from("notification_templates")
+    .select("content, is_active")
+    .eq("key", `work-clock:${type}`)
+    .maybeSingle();
+
+  const text = tpl?.is_active ? tpl.content : (WORK_CLOCK_FALLBACK[type] ?? "");
+  if (!text) {
+    return NextResponse.json({ ok: true, sent: 0, reason: "template_inactive" });
   }
 
   const admin = createAdminClient();
