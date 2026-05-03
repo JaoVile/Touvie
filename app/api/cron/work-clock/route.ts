@@ -36,7 +36,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, sent: 0, reason: "template_inactive" });
   }
 
-  const admin = createAdminClient();
   const { data: profiles } = await admin
     .from("profiles")
     .select("id, telegram_chat_id")
