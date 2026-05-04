@@ -1,5 +1,6 @@
 import { guessCategory } from "@/lib/importers/csv";
 import { logEvent } from "@/lib/logger";
+import { TRAINING_FALLBACK } from "@/lib/notification-defaults";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   type TelegramUpdate,
@@ -7,7 +8,7 @@ import {
   sendMessage,
   verifyWebhookSecret,
 } from "@/lib/telegram";
-import { todayBRTISO } from "@/lib/datetime";
+import { todayBRT, todayBRTISO } from "@/lib/datetime";
 import { formatBRL } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
@@ -43,6 +44,8 @@ export async function POST(req: Request) {
     userId = await handleReceita(chatId, text);
   } else if (text === "/saldo") {
     userId = await handleSaldo(chatId);
+  } else if (text === "/treino") {
+    userId = await handleTreino(chatId);
   }
 
   logEvent({
@@ -71,7 +74,7 @@ async function resolveProfile(
   if (!profile) return null;
 
   const { data: account } = await admin
-    .from("accounts")
+    .from("finance_accounts")
     .select("id")
     .eq("user_id", profile.id)
     .eq("archived", false)
@@ -133,7 +136,7 @@ async function handleStart(chatId: number): Promise<string | null> {
 
   await sendMessage(
     chatId,
-    `✅ <b>Conectado!</b>\n\nVocê vai receber lembretes às <b>08:00</b> e <b>20:00</b>.\n\nComandos:\n• /ping — testar\n• /gasto 45,90 iFood — registrar gasto\n• /receita 500 Freela — registrar receita\n• /saldo — ver resumo do mês\n• /stop — desconectar`,
+    `✅ <b>Conectado!</b>\n\nVocê vai receber lembretes às <b>08:00</b> e <b>20:00</b>.\n\nComandos:\n• /ping — testar\n• /treino — ver treino do dia\n• /gasto 45,90 iFood — registrar gasto\n• /receita 500 Freela — registrar receita\n• /saldo — ver resumo do mês\n• /stop — desconectar`,
   );
   return profile.id;
 }
@@ -229,6 +232,34 @@ async function handleReceita(chatId: number, text: string): Promise<string | nul
   return profile.userId;
 }
 
+const WEEKDAY_KEYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+
+async function handleTreino(chatId: number): Promise<string | null> {
+  const profile = await resolveProfile(chatId);
+  if (!profile) {
+    await sendMessage(chatId, "❌ Conta não vinculada. Mande /start primeiro.");
+    return null;
+  }
+
+  const weekday = todayBRT().getUTCDay();
+  const admin = createAdminClient();
+
+  const { data: tpl } = await admin
+    .from("notification_templates")
+    .select("content, is_active")
+    .eq("key", `training:${WEEKDAY_KEYS[weekday]}`)
+    .maybeSingle();
+
+  const text = tpl?.is_active ? tpl.content : (TRAINING_FALLBACK[weekday] ?? null);
+  if (!text) {
+    await sendMessage(chatId, "😴 Sem treino programado pra hoje.");
+    return profile.userId;
+  }
+
+  await sendMessage(chatId, text);
+  return profile.userId;
+}
+
 async function handleSaldo(chatId: number): Promise<string | null> {
   const profile = await resolveProfile(chatId);
   if (!profile) {
@@ -242,7 +273,7 @@ async function handleSaldo(chatId: number): Promise<string | null> {
 
   const { data: txs } = await admin
     .from("transactions")
-    .select("kind, amount_cents, category_id, categories(name)")
+    .select("kind, amount_cents, category_id, finance_categories(name)")
     .eq("user_id", profile.userId)
     .gte("occurred_on", firstDay);
 
@@ -255,7 +286,7 @@ async function handleSaldo(chatId: number): Promise<string | null> {
       income += tx.amount_cents;
     } else {
       expense += tx.amount_cents;
-      const cat = tx.categories as unknown as { name: string } | null;
+      const cat = tx.finance_categories as unknown as { name: string } | null;
       const catName = cat?.name ?? "Outros";
       byCategory[catName] = (byCategory[catName] ?? 0) + tx.amount_cents;
     }
