@@ -1,9 +1,10 @@
-import { GlassCard } from "@/components/glass/GlassCard";
-import { GradientHeader } from "@/components/glass/GradientHeader";
-import { addDaysISO, formatDateBRT, greetingForHour, todayBRTISO, todayWeekday } from "@/lib/datetime";
+import { Reveal } from "@/components/Reveal";
+import { FoldCard } from "@/components/glass/FoldCard";
+import { addDaysISO, formatDateBRT, greetingForHour, todayBRTISO } from "@/lib/datetime";
 import { createClient } from "@/lib/supabase/server";
 import { formatBRL } from "@/lib/utils";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,6 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   const userId = user!.id;
 
-  const weekday = todayWeekday();
   const today = todayBRTISO();
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
@@ -82,6 +82,7 @@ export default async function DashboardPage() {
 
   const totalHabits = routine.length;
   const doneCount = routine.filter((r) => completedToday.has(r.id)).length;
+  const allDone = totalHabits > 0 && doneCount === totalHabits;
 
   const topStreaks = routine
     .map((r) => ({ title: r.title, emoji: r.emoji, streak: streaks[r.id] ?? 0 }))
@@ -92,223 +93,376 @@ export default async function DashboardPage() {
   // Consistency score: completions in last 30 days / (30 × habits)
   const since30 = addDaysISO(today, -30);
   const last30 = completions.filter((c) => c.completed_on >= since30);
-  const consistencyScore = totalHabits > 0
-    ? Math.min(100, Math.round((last30.length / (30 * totalHabits)) * 100))
-    : 0;
+  const consistencyScore =
+    totalHabits > 0 ? Math.min(100, Math.round((last30.length / (30 * totalHabits)) * 100)) : 0;
+  const consistencyColor = scoreColor(consistencyScore);
+
+  const stats = [
+    {
+      label: "Hábitos hoje",
+      value: totalHabits > 0 ? `${doneCount}/${totalHabits}` : "—",
+      color: "var(--color-fg)",
+    },
+    { label: "Consistência", value: `${consistencyScore}%`, color: consistencyColor },
+    {
+      label: "Saldo do mês",
+      value: formatBRL(monthNet),
+      color: monthNet >= 0 ? "var(--color-success)" : "var(--color-danger)",
+    },
+  ];
 
   return (
     <>
-      <GradientHeader
-        emoji={greetingEmoji()}
-        title={`${greetingForHour()}, ${displayName(user?.email ?? "")}`}
-        subtitle={formatDateBRT(new Date())}
-      />
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        {/* Rotina + Streak */}
-        <GlassCard>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 font-semibold">📅 Rotina de hoje</h2>
-            {totalHabits > 0 ? (
-              <span
-                className="rounded-full px-2 py-0.5 text-xs font-semibold"
-                style={{
-                  background: doneCount === totalHabits ? "var(--color-success)" : "var(--color-card)",
-                  color: doneCount === totalHabits ? "white" : "var(--color-fg-muted)",
-                  border: "1px solid var(--color-border)",
-                }}
-              >
-                {doneCount}/{totalHabits}
-              </span>
-            ) : null}
+      {/* ── Hero ─────────────────────────────────────────── */}
+      <Reveal>
+        <header className="mb-9">
+          <div className="flex items-center gap-2">
+            <span className="float-note text-lg" style={{ color: "var(--color-accent)" }}>
+              ♪
+            </span>
+            <span
+              className="text-[0.7rem] font-bold uppercase tracking-[0.32em]"
+              style={{ color: "var(--color-fg-subtle)" }}
+            >
+              Touvie
+            </span>
           </div>
 
-          {routine.length === 0 ? (
-            <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-              Nenhum bloco cadastrado.{" "}
-              <Link className="underline" href="/rotina">
-                Criar
-              </Link>
-            </p>
-          ) : (
-            <ul className="space-y-1.5 text-sm">
-              {routine.slice(0, 6).map((r) => {
-                const done = completedToday.has(r.id);
-                const streak = streaks[r.id] ?? 0;
-                return (
-                  <li key={r.id} className="flex items-center justify-between gap-2">
-                    <span style={{ textDecoration: done ? "line-through" : "none", opacity: done ? 0.6 : 1 }}>
-                      {done ? "✅" : "⬜"}{" "}
-                      {r.emoji ? <span className="mr-1">{r.emoji}</span> : null}
-                      {r.title}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      {streak > 0 ? (
-                        <span className="text-xs font-semibold">🔥 {streak}</span>
-                      ) : null}
-                      <span className="font-mono text-xs" style={{ color: "var(--color-fg-subtle)" }}>
-                        {r.time_slot.slice(0, 5)}
-                      </span>
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          <h1 className="display mt-3 text-5xl sm:text-6xl">
+            {greetingForHour()},{" "}
+            <span className="display-i gradient-text-anim">{displayName(user?.email ?? "")}</span>
+          </h1>
+          <p
+            className="mt-2 text-sm first-letter:uppercase"
+            style={{ color: "var(--color-fg-muted)" }}
+          >
+            {formatDateBRT(now)}
+          </p>
 
-          {totalHabits > 0 ? (
-            <div className="mt-3 border-t pt-2" style={{ borderColor: "var(--color-border)" }}>
-              <div className="mb-1.5 flex items-center justify-between">
-                <p className="text-xs font-medium" style={{ color: "var(--color-fg-muted)" }}>
-                  Consistência (30 dias)
-                </p>
-                <span className="text-xs font-semibold" style={{ color: consistencyScore >= 70 ? "var(--color-success)" : consistencyScore >= 40 ? "var(--color-accent)" : "var(--color-danger)" }}>
-                  {consistencyScore}%
-                </span>
+          {/* Stat strip */}
+          <dl className="glass mt-6 flex overflow-hidden">
+            {stats.map((s, i) => (
+              <div
+                key={s.label}
+                className="flex-1 px-4 py-3.5 sm:px-6"
+                style={i > 0 ? { borderLeft: "1px solid var(--color-border)" } : undefined}
+              >
+                <dt
+                  className="text-[0.62rem] font-semibold uppercase tracking-[0.13em]"
+                  style={{ color: "var(--color-fg-subtle)" }}
+                >
+                  {s.label}
+                </dt>
+                <dd
+                  className="mt-1 font-mono text-lg font-semibold leading-none sm:text-xl"
+                  style={{ color: s.color }}
+                >
+                  {s.value}
+                </dd>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ background: "var(--color-border)" }}>
-                <div className="h-full rounded-full transition-all" style={{
-                  width: `${consistencyScore}%`,
-                  background: consistencyScore >= 70 ? "var(--color-success)" : consistencyScore >= 40 ? "var(--color-accent)" : "var(--color-danger)",
-                }} />
-              </div>
-            </div>
-          ) : null}
+            ))}
+          </dl>
+        </header>
+      </Reveal>
 
-          {topStreaks.length > 0 ? (
-            <div className="mt-3 border-t pt-2" style={{ borderColor: "var(--color-border)" }}>
-              <p className="mb-1 text-xs font-medium" style={{ color: "var(--color-fg-muted)" }}>
-                🏆 Maiores sequências
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {topStreaks.map((s) => {
-                  const badge = s.streak >= 100 ? "🥇" : s.streak >= 30 ? "🥈" : s.streak >= 7 ? "🥉" : null;
+      {/* ── Cards ────────────────────────────────────────── */}
+      <div className="grid gap-5 lg:grid-cols-3">
+        {/* Rotina + streaks */}
+        <Reveal className="lg:col-span-2">
+          <FoldCard>
+            <CardHead
+              icon="📅"
+              title="Rotina de hoje"
+              badge={
+                totalHabits > 0 ? (
+                  <span
+                    className="rounded-full px-2.5 py-0.5 font-mono text-[11px] font-semibold"
+                    style={{
+                      background: allDone ? "var(--color-success)" : "var(--color-card)",
+                      color: allDone ? "#fff" : "var(--color-fg-muted)",
+                      border: "1px solid var(--color-border)",
+                    }}
+                  >
+                    {doneCount}/{totalHabits}
+                  </span>
+                ) : undefined
+              }
+            />
+
+            {routine.length === 0 ? (
+              <EmptyState href="/rotina" label="Criar bloco">
+                Nenhum bloco de rotina cadastrado.
+              </EmptyState>
+            ) : (
+              <ul className="space-y-2.5">
+                {routine.slice(0, 6).map((r) => {
+                  const done = completedToday.has(r.id);
+                  const streak = streaks[r.id] ?? 0;
                   return (
-                    <span key={s.title} className="rounded-full px-2 py-0.5 text-xs"
-                      style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}>
-                      {s.emoji ?? "🔥"} {s.title} · {s.streak}d{badge ? ` ${badge}` : ""}
-                    </span>
+                    <li key={r.id} className="flex items-center justify-between gap-3 text-sm">
+                      <span
+                        className="flex min-w-0 items-center gap-2"
+                        style={{ opacity: done ? 0.5 : 1 }}
+                      >
+                        <span>{done ? "✅" : "⬜"}</span>
+                        {r.emoji ? <span>{r.emoji}</span> : null}
+                        <span className={done ? "truncate line-through" : "truncate"}>
+                          {r.title}
+                        </span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2">
+                        {streak > 0 ? (
+                          <span
+                            className="rounded-md px-1.5 py-0.5 text-[11px] font-semibold"
+                            style={{ background: "var(--color-card)" }}
+                          >
+                            🔥 {streak}
+                          </span>
+                        ) : null}
+                        <span
+                          className="font-mono text-xs"
+                          style={{ color: "var(--color-fg-subtle)" }}
+                        >
+                          {r.time_slot.slice(0, 5)}
+                        </span>
+                      </span>
+                    </li>
                   );
                 })}
-              </div>
-            </div>
-          ) : null}
+              </ul>
+            )}
 
-          <Link
-            href="/rotina"
-            className="mt-4 block text-right text-xs font-medium"
-            style={{ color: "var(--color-accent)" }}
-          >
-            marcar hábitos →
-          </Link>
-        </GlassCard>
-
-        <GlassCard>
-          <h2 className="mb-3 flex items-center gap-2 font-semibold">🎯 Metas ativas</h2>
-          {goals.length === 0 ? (
-            <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-              Nenhuma meta ativa.{" "}
-              <Link className="underline" href="/metas">
-                Criar
-              </Link>
-            </p>
-          ) : (
-            <ul className="space-y-2 text-sm">
-              {goals.slice(0, 5).map((g) => (
-                <li key={g.id}>→ {g.title}</li>
-              ))}
-            </ul>
-          )}
-          <Link
-            href="/metas"
-            className="mt-4 block text-right text-xs font-medium"
-            style={{ color: "var(--color-accent)" }}
-          >
-            ver todas →
-          </Link>
-        </GlassCard>
-
-        <GlassCard>
-          <h2 className="mb-3 flex items-center gap-2 font-semibold">✅ Próximas tarefas</h2>
-          {tasks.length === 0 ? (
-            <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-              Nenhuma tarefa pendente.{" "}
-              <Link className="underline" href="/metas">
-                Criar
-              </Link>
-            </p>
-          ) : (
-            <ul className="space-y-2 text-sm">
-              {tasks.map((t) => (
-                <li key={t.id} className="flex items-center justify-between gap-2">
-                  <span>○ {t.title}</span>
-                  {t.due_date ? (
-                    <span className="text-xs" style={{ color: "var(--color-fg-subtle)" }}>
-                      {t.due_date}
-                    </span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-        </GlassCard>
-
-        <GlassCard>
-          <h2 className="mb-3 flex items-center gap-2 font-semibold">💰 Mês corrente</h2>
-          {txs.length === 0 ? (
-            <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-              Nenhum lançamento.{" "}
-              <Link className="underline" href="/financas">
-                Lançar
-              </Link>
-            </p>
-          ) : (
-            <div className="space-y-1.5 text-sm">
-              <div className="flex justify-between">
-                <span style={{ color: "var(--color-fg-muted)" }}>Receitas</span>
-                <span className="font-mono" style={{ color: "var(--color-success)" }}>
-                  {formatBRL(monthIncome)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span style={{ color: "var(--color-fg-muted)" }}>Despesas</span>
-                <span className="font-mono" style={{ color: "var(--color-danger)" }}>
-                  {formatBRL(monthExpense)}
-                </span>
-              </div>
-              <div
-                className="mt-2 flex justify-between border-t pt-2"
-                style={{ borderColor: "var(--color-border)" }}
-              >
-                <span className="font-semibold">Saldo</span>
-                <span
-                  className="font-mono font-semibold"
-                  style={{
-                    color: monthNet >= 0 ? "var(--color-success)" : "var(--color-danger)",
-                  }}
+            {totalHabits > 0 ? (
+              <div className="mt-4 border-t pt-3" style={{ borderColor: "var(--color-border)" }}>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <p
+                    className="text-[0.68rem] font-semibold uppercase tracking-[0.1em]"
+                    style={{ color: "var(--color-fg-subtle)" }}
+                  >
+                    Consistência · 30 dias
+                  </p>
+                  <span
+                    className="font-mono text-xs font-semibold"
+                    style={{ color: consistencyColor }}
+                  >
+                    {consistencyScore}%
+                  </span>
+                </div>
+                <div
+                  className="h-2 w-full overflow-hidden rounded-full"
+                  style={{ background: "var(--color-border)" }}
                 >
-                  {formatBRL(monthNet)}
-                </span>
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${consistencyScore}%`, background: consistencyColor }}
+                  />
+                </div>
               </div>
+            ) : null}
+
+            {topStreaks.length > 0 ? (
+              <div className="mt-3.5">
+                <p
+                  className="mb-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.1em]"
+                  style={{ color: "var(--color-fg-subtle)" }}
+                >
+                  🏆 Maiores sequências
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {topStreaks.map((s) => {
+                    const badge =
+                      s.streak >= 100 ? "🥇" : s.streak >= 30 ? "🥈" : s.streak >= 7 ? "🥉" : null;
+                    return (
+                      <span
+                        key={s.title}
+                        className="rounded-full px-2.5 py-1 text-xs"
+                        style={{
+                          background: "var(--color-card)",
+                          border: "1px solid var(--color-border)",
+                        }}
+                      >
+                        {s.emoji ?? "🔥"} {s.title} ·{" "}
+                        <span className="font-mono font-semibold">{s.streak}d</span>
+                        {badge ? ` ${badge}` : ""}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            <CardLink href="/rotina">Marcar hábitos</CardLink>
+          </FoldCard>
+        </Reveal>
+
+        {/* Metas */}
+        <Reveal delay={80}>
+          <FoldCard>
+            <CardHead icon="🎯" title="Metas ativas" />
+            {goals.length === 0 ? (
+              <EmptyState href="/metas" label="Criar meta">
+                Nenhuma meta ativa.
+              </EmptyState>
+            ) : (
+              <ul className="space-y-2.5 text-sm">
+                {goals.slice(0, 5).map((g) => (
+                  <li key={g.id} className="flex items-center gap-2">
+                    <span style={{ color: "var(--color-accent)" }}>→</span>
+                    <span className="truncate">{g.title}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <CardLink href="/metas">Ver todas</CardLink>
+          </FoldCard>
+        </Reveal>
+
+        {/* Tarefas */}
+        <Reveal delay={160}>
+          <FoldCard>
+            <CardHead icon="✅" title="Próximas tarefas" />
+            {tasks.length === 0 ? (
+              <EmptyState href="/metas" label="Criar tarefa">
+                Nenhuma tarefa pendente.
+              </EmptyState>
+            ) : (
+              <ul className="space-y-2.5 text-sm">
+                {tasks.map((t) => (
+                  <li key={t.id} className="flex items-center justify-between gap-3">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span style={{ color: "var(--color-fg-subtle)" }}>○</span>
+                      <span className="truncate">{t.title}</span>
+                    </span>
+                    {t.due_date ? (
+                      <span
+                        className="shrink-0 font-mono text-xs"
+                        style={{ color: "var(--color-fg-subtle)" }}
+                      >
+                        {t.due_date.slice(5)}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <CardLink href="/metas">Gerenciar</CardLink>
+          </FoldCard>
+        </Reveal>
+
+        {/* Finanças */}
+        <Reveal className="lg:col-span-2" delay={240}>
+          <FoldCard>
+            <CardHead icon="💰" title="Mês corrente" />
+            {txs.length === 0 ? (
+              <EmptyState href="/financas" label="Lançar">
+                Nenhum lançamento neste mês.
+              </EmptyState>
+            ) : (
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span style={{ color: "var(--color-fg-muted)" }}>Receitas</span>
+                  <span className="font-mono" style={{ color: "var(--color-success)" }}>
+                    {formatBRL(monthIncome)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span style={{ color: "var(--color-fg-muted)" }}>Despesas</span>
+                  <span className="font-mono" style={{ color: "var(--color-danger)" }}>
+                    {formatBRL(monthExpense)}
+                  </span>
+                </div>
+                <div
+                  className="flex justify-between border-t pt-2"
+                  style={{ borderColor: "var(--color-border)" }}
+                >
+                  <span className="font-semibold">Saldo</span>
+                  <span
+                    className="font-mono font-semibold"
+                    style={{
+                      color: monthNet >= 0 ? "var(--color-success)" : "var(--color-danger)",
+                    }}
+                  >
+                    {formatBRL(monthNet)}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-auto">
+              <CardLink href="/financas?t=graficos">Ver gráficos</CardLink>
+              <p
+                className="mt-3 border-t pt-3 text-[0.7rem] italic"
+                style={{ borderColor: "var(--color-border)", color: "var(--color-fg-subtle)" }}
+              >
+                "A maneira mais confiável de prever o futuro é criá-lo."
+              </p>
             </div>
-          )}
-          <Link
-            href="/financas?t=graficos"
-            className="mt-3 block text-right text-xs font-medium"
-            style={{ color: "var(--color-accent)" }}
-          >
-            ver gráficos →
-          </Link>
-          <p
-            className="mt-3 border-t pt-2 text-[10px] italic"
-            style={{ borderColor: "var(--color-border)", color: "var(--color-fg-subtle)" }}
-          >
-            "A maneira mais confiável de prever o futuro é criá-lo." —{" "}
-            {["dom", "seg", "ter", "qua", "qui", "sex", "sáb"][weekday]}
-          </p>
-        </GlassCard>
+          </FoldCard>
+        </Reveal>
       </div>
     </>
+  );
+}
+
+/* ── Local presentation helpers ─────────────────────────────── */
+
+function CardHead({
+  icon,
+  title,
+  badge,
+}: {
+  icon: string;
+  title: string;
+  badge?: ReactNode;
+}) {
+  return (
+    <div className="mb-4 flex items-center gap-2.5">
+      <span
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-[0.6rem] text-sm"
+        style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
+      >
+        {icon}
+      </span>
+      <h2
+        className="text-[0.78rem] font-bold uppercase tracking-[0.13em]"
+        style={{ color: "var(--color-fg-muted)" }}
+      >
+        {title}
+      </h2>
+      {badge}
+    </div>
+  );
+}
+
+function CardLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="group/lnk mt-auto flex items-center justify-end gap-1 pt-4 text-[0.7rem] font-semibold uppercase tracking-[0.1em] transition-colors"
+      style={{ color: "var(--color-accent)" }}
+    >
+      {children}
+      <span className="transition-transform group-hover/lnk:translate-x-0.5">→</span>
+    </Link>
+  );
+}
+
+function EmptyState({
+  href,
+  label,
+  children,
+}: {
+  href: string;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
+      {children}{" "}
+      <Link className="font-medium underline underline-offset-2" href={href}>
+        {label}
+      </Link>
+    </p>
   );
 }
 
@@ -323,12 +477,10 @@ function computeStreak(dates: Set<string>, today: string): number {
   return streak;
 }
 
-function greetingEmoji() {
-  const h = new Date().getHours();
-  if (h < 6) return "🌙";
-  if (h < 12) return "☀️";
-  if (h < 18) return "⛅";
-  return "🌆";
+function scoreColor(score: number): string {
+  if (score >= 70) return "var(--color-success)";
+  if (score >= 40) return "var(--color-accent)";
+  return "var(--color-danger)";
 }
 
 function displayName(email: string): string {

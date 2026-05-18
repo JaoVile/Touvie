@@ -1,12 +1,47 @@
-import type { Metadata, Viewport } from "next";
-import type { ReactNode } from "react";
-import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages } from "next-intl/server";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { DEFAULT_THEME } from "@/lib/themes";
 import { createClient } from "@/lib/supabase/server";
+import { DEFAULT_THEME } from "@/lib/themes";
+import type { Metadata, Viewport } from "next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
+import { Instrument_Serif, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import type { ReactNode } from "react";
 import "./globals.css";
+
+/**
+ * Switzer — the body/UI sans. Self-hosted from Fontshare (free), it is the
+ * actual body face of our design guide, obsidianassembly.com.
+ */
+const switzer = localFont({
+  src: [
+    { path: "./fonts/Switzer-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/Switzer-Medium.woff2", weight: "500", style: "normal" },
+  ],
+  variable: "--font-switzer",
+  display: "swap",
+});
+
+/**
+ * Instrument Serif — the display serif for headings. A high-contrast
+ * editorial face standing in for the guide's (commercial) Voyage.
+ */
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-instrument-serif",
+  display: "swap",
+});
+
+/** Monospace for figures (finances, times, streaks). */
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-jetbrains",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Touvie",
@@ -37,7 +72,11 @@ async function loadUserTheme(): Promise<string> {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return DEFAULT_THEME;
-    const { data } = await supabase.from("profiles").select("theme").eq("id", user.id).maybeSingle();
+    const { data } = await supabase
+      .from("profiles")
+      .select("theme")
+      .eq("id", user.id)
+      .maybeSingle();
     return data?.theme ?? DEFAULT_THEME;
   } catch {
     return DEFAULT_THEME;
@@ -52,7 +91,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   ]);
 
   return (
-    <html lang={locale} data-theme={theme} suppressHydrationWarning>
+    <html
+      lang={locale}
+      data-theme={theme}
+      className={`${switzer.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
+    >
       <body>
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider theme={theme}>{children}</ThemeProvider>

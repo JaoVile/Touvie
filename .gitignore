@@ -26,3 +26,6 @@ Thumbs.db
 # scripts gerados localmente (contêm secrets)
 scripts/tasks/
 .vercel
+
+# typescript incremental build info
+*.tsbuildinfo

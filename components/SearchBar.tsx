@@ -16,7 +16,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
+    <form onSubmit={handleSubmit} className="flex gap-2.5">
       <input
         ref={inputRef}
         type="search"
@@ -24,7 +24,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
         defaultValue={params.get("q") ?? ""}
         autoFocus={autoFocus}
         placeholder="Buscar transações, diário…"
-        className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2"
+        className="flex-1 rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors placeholder:opacity-60 focus:border-transparent focus:ring-2"
         style={{
           borderColor: "var(--color-border)",
           background: "var(--color-card)",
@@ -33,7 +33,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
       />
       <button
         type="submit"
-        className="rounded-lg px-4 py-2 text-sm font-semibold text-white"
+        className="rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-transform active:scale-95"
         style={{ background: "var(--gradient-brand)" }}
       >
         Buscar

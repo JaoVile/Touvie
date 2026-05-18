@@ -11,6 +11,7 @@ import { LogGeral } from "./LogGeral";
 import { PinChangeForm } from "./PinChangeForm";
 import { TelegramSection } from "./TelegramSection";
 import { ThemePicker } from "./ThemePicker";
+import { TrailSizePicker } from "./TrailSizePicker";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,15 @@ export default async function ConfigPage() {
             <code>app/themes/</code>.
           </p>
           <ThemePicker currentTheme={theme} />
+        </GlassCard>
+
+        <GlassCard>
+          <h2 className="mb-3 font-semibold">🎵 Fita rítmica</h2>
+          <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+            Aumenta o rastro musical que segue o cursor — a fita e as notas
+            ficam maiores.
+          </p>
+          <TrailSizePicker />
         </GlassCard>
 
         <GlassCard>
