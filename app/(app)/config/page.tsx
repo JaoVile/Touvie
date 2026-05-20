@@ -11,6 +11,7 @@ import { LogGeral } from "./LogGeral";
 import { PinChangeForm } from "./PinChangeForm";
 import { TelegramSection } from "./TelegramSection";
 import { ThemePicker } from "./ThemePicker";
+import { TrailColorPicker } from "./TrailColorPicker";
 import { TrailSizePicker } from "./TrailSizePicker";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +54,12 @@ export default async function ConfigPage() {
             ficam maiores.
           </p>
           <TrailSizePicker />
+          <div className="mt-6">
+            <h3 className="mb-3 text-sm font-semibold" style={{ color: "var(--color-fg-muted)" }}>
+              Cor da fita
+            </h3>
+            <TrailColorPicker />
+          </div>
         </GlassCard>
 
         <GlassCard>

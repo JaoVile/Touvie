@@ -1,6 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  CURSOR_COLOR_EVENT,
+  CURSOR_COLOR_KEY,
+  type CursorColorId,
+  DEFAULT_CURSOR_COLOR,
+  getCursorColor,
+  isValidCursorColor,
+} from "@/lib/cursor-colors";
 
 /**
  * Staff-ribbon cursor trail — the pointer drags a tiny musical staff: a
@@ -79,6 +87,14 @@ const readScale = (): number => {
   return v === 2 || v === 3 ? v : 1;
 };
 
+// Trail colour — picked in /config alongside the size. Persists in
+// localStorage; the picker dispatches CURSOR_COLOR_EVENT for a live swap.
+const readColor = (): CursorColorId => {
+  if (typeof window === "undefined") return DEFAULT_CURSOR_COLOR;
+  const v = window.localStorage.getItem(CURSOR_COLOR_KEY);
+  return isValidCursorColor(v) ? v : DEFAULT_CURSOR_COLOR;
+};
+
 // Trail is desktop-only: skipped on touch/coarse pointers, narrow viewports,
 // or when the user prefers reduced motion. Listed here so the gate stays in
 // sync with the effect — both subscribe to the same queries.
@@ -91,6 +107,7 @@ const DENY_QUERIES = [
 
 export function CursorTrail() {
   const [trailScale, setTrailScale] = useState(1);
+  const [trailColor, setTrailColor] = useState<CursorColorId>(DEFAULT_CURSOR_COLOR);
   // null while SSR; a boolean once we've evaluated the media queries client-side.
   const [denied, setDenied] = useState<boolean | null>(null);
 
@@ -106,6 +123,22 @@ export function CursorTrail() {
     window.addEventListener("storage", onStorage);
     return () => {
       window.removeEventListener(SCALE_EVENT, onEvent);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
+  // Pick up the saved colour, and react live when /config changes it.
+  useEffect(() => {
+    setTrailColor(readColor());
+    const onEvent = (e: Event) => {
+      const v = (e as CustomEvent<CursorColorId>).detail;
+      if (isValidCursorColor(v)) setTrailColor(v);
+    };
+    const onStorage = () => setTrailColor(readColor());
+    window.addEventListener(CURSOR_COLOR_EVENT, onEvent);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(CURSOR_COLOR_EVENT, onEvent);
       window.removeEventListener("storage", onStorage);
     };
   }, []);
@@ -148,6 +181,9 @@ export function CursorTrail() {
     const headWidth = CONFIG.headWidth * trailScale;
     const tailWidth = CONFIG.tailWidth * trailScale;
     const glowBlur = CONFIG.glowBlur * trailScale;
+    // Resolve the colour preset once per effect run — when the user picks a
+    // new colour we re-run via the dep array (no manual swap needed inside).
+    const palette = getCursorColor(trailColor);
     const glyphSize = CONFIG.glyphSize * trailScale;
     const glyphEndRise = CONFIG.glyphEndRise * trailScale;
     const pitchSpread = CONFIG.pitchSpread * trailScale;
@@ -279,8 +315,8 @@ export function CursorTrail() {
       const now = performance.now();
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.shadowColor = "rgba(255,255,255,0.7)";
-      ctx.fillStyle = "#fff";
+      ctx.shadowColor = palette.noteShadow;
+      ctx.fillStyle = palette.noteFill;
       for (let i = glyphs.length - 1; i >= 0; i--) {
         const g = glyphs[i];
         const isLast = g.idx === SCALE.length - 1;
@@ -434,7 +470,7 @@ export function CursorTrail() {
         }
 
         // Soft bloom — breathes with pointer speed.
-        ctx.shadowColor = `rgba(255,255,255,${0.3 + speed * 0.3})`;
+        ctx.shadowColor = `rgba(${palette.glowRgb},${0.3 + speed * 0.3})`;
         ctx.shadowBlur = glowBlur * (1 + speed * 0.8);
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
@@ -448,7 +484,7 @@ export function CursorTrail() {
             const base =
               k === 0 || k === N - 1 ? CONFIG.alphaFaint : CONFIG.alphaBase;
             const alpha = base + (CONFIG.alphaEnd - base) * t;
-            ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+            ctx.strokeStyle = `rgba(${palette.ribbonRgb},${alpha})`;
             ctx.beginPath();
             ctx.moveTo(lines[k][i].x, lines[k][i].y);
             ctx.lineTo(lines[k][i + 1].x, lines[k][i + 1].y);
@@ -495,7 +531,7 @@ export function CursorTrail() {
       void audioCtx?.close();
       canvas.remove();
     };
-  }, [denied, trailScale]);
+  }, [denied, trailScale, trailColor]);
 
   return null;
 }
