@@ -327,12 +327,68 @@ a,
   }
 }
 
+/* ── Marquee / editorial ticker ─────────────────────────────────
+   Two identical groups concatenated; translating −50% slides the
+   first off-screen exactly as the second arrives at the start, so
+   the loop is seamless. Tune speed via --marquee-duration on the
+   wrapping element (see components/Marquee.tsx). */
+.marquee {
+  overflow: hidden;
+  width: 100%;
+  /* Optional fade edges — set --marquee-fade to a px value to enable. */
+  --marquee-fade: 0px;
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--marquee-fade),
+    #000 calc(100% - var(--marquee-fade)),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--marquee-fade),
+    #000 calc(100% - var(--marquee-fade)),
+    transparent 100%
+  );
+}
+
+.marquee__track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll var(--marquee-duration, 40s) linear infinite;
+  animation-direction: var(--marquee-direction, normal);
+  will-change: transform;
+}
+
+.marquee__group {
+  display: flex;
+  align-items: center;
+  gap: var(--marquee-gap, 3rem);
+  padding-right: var(--marquee-gap, 3rem);
+  white-space: nowrap;
+}
+
+.marquee--pauseable:hover .marquee__track {
+  animation-play-state: paused;
+}
+
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fold-card,
   .fold-card__flap,
   .float-note,
   .gradient-text-anim,
   .rise-in,
+  .marquee__track,
   [style*="circle-text-spin"] {
     animation: none !important;
   }

@@ -1,4 +1,6 @@
 import { CircleText } from "@/components/CircleText";
+import { Magnetic } from "@/components/Magnetic";
+import { Marquee } from "@/components/Marquee";
 import { Reveal } from "@/components/Reveal";
 import { FoldCard } from "@/components/glass/FoldCard";
 import { Col, Grid } from "@/components/grid/Grid";
@@ -175,6 +177,34 @@ export default async function DashboardPage() {
           </dl>
         </header>
       </Reveal>
+
+      {/* ── Editorial ticker — silent rhythm between hero and cards ── */}
+      <div
+        className="mb-6 border-y py-3"
+        style={{ borderColor: "var(--color-border)" }}
+      >
+        <Marquee
+          duration={48}
+          gap="2.5rem"
+          className="eyebrow"
+          style={{ color: "var(--color-accent)", "--marquee-fade": "48px" } as React.CSSProperties}
+        >
+          {[
+            "Touvie",
+            "Rotina",
+            "Metas",
+            "Tarefas",
+            "Finanças",
+            "Hábitos",
+            "Diário",
+            "Editorial · 2026",
+          ].map((label) => (
+            <span key={label}>
+              <span style={{ opacity: 0.5 }}>✦</span>&nbsp;&nbsp;{label}
+            </span>
+          ))}
+        </Marquee>
+      </div>
 
       {/* ── Cards — editorial 12-col grid, mirrored 7/5 asymmetry ── */}
       <Grid>
@@ -459,14 +489,18 @@ function CardHead({
 
 function CardLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link
-      href={href}
-      className="group/lnk mt-auto flex items-center justify-end gap-1 pt-4 text-eyebrow font-semibold uppercase tracking-[0.1em] transition-colors"
-      style={{ color: "var(--color-accent)" }}
-    >
-      {children}
-      <span className="transition-transform group-hover/lnk:translate-x-0.5">→</span>
-    </Link>
+    <div className="mt-auto flex justify-end pt-4">
+      <Magnetic strength={0.35} radius={70}>
+        <Link
+          href={href}
+          className="group/lnk flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.1em] transition-colors"
+          style={{ color: "var(--color-accent)" }}
+        >
+          {children}
+          <span className="transition-transform group-hover/lnk:translate-x-0.5">→</span>
+        </Link>
+      </Magnetic>
+    </div>
   );
 }
 

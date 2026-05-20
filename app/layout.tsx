@@ -59,7 +59,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#a855f7",
+  themeColor: "#08112e",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -77,7 +77,18 @@ async function loadUserTheme(): Promise<string> {
       .select("theme")
       .eq("id", user.id)
       .maybeSingle();
-    return data?.theme ?? DEFAULT_THEME;
+    let theme = data?.theme;
+    // One-time migration to the new visual identity (Royal Navy + Gold):
+    // any profile still pinned to the prior default (glass-purple) gets
+    // promoted to royal and the write is persisted. Picking glass-purple
+    // again from /config will trip this branch on next load — that's the
+    // intended trade-off until/unless we re-enable glass-purple as a
+    // first-class option.
+    if (theme === "glass-purple") {
+      await supabase.from("profiles").update({ theme: "royal" }).eq("id", user.id);
+      theme = "royal";
+    }
+    return theme ?? DEFAULT_THEME;
   } catch {
     return DEFAULT_THEME;
   }
