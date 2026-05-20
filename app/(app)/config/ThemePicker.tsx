@@ -67,6 +67,7 @@ export function ThemePicker({ currentTheme }: { currentTheme: string }) {
 
 function ThemeSwatch({ themeId }: { themeId: ThemeId }) {
   const presets: Record<ThemeId, { bg: string; accent: string; accent2: string }> = {
+    royal: { bg: "#08112e", accent: "#e0b83e", accent2: "#3e5bb0" },
     "glass-purple": { bg: "#0a0618", accent: "#a855f7", accent2: "#ec4899" },
     "dark-minimal": { bg: "#0a0a0a", accent: "#22c55e", accent2: "#10b981" },
     "notion-clean": { bg: "#f7f6f3", accent: "#2b6cb0", accent2: "#2c5282" },

@@ -1,0 +1,28 @@
+/* Royal — deep navy & gold piloto. Scoped to the dashboard via a
+   `data-theme="royal"` wrapper; NOT registered in lib/themes.ts yet.
+   Anchors (tune these first, derivatives follow):
+     navy-deep:      #08112E  the floor — deep marine "divino"
+     navy-elevated:  #161F4A  one step up, used in the bg gradient & flap
+     gold-text:      #F2E6C2  cream-gold body text on dark
+     gold-bright:    #E0B83E  the accent gold
+     sapphire:       #3E5BB0  secondary accent — a brighter royal blue */
+[data-theme="royal"] {
+  --color-bg: #08112e;
+  --color-bg-elevated: #161f4a;
+  --color-fg: #f2e6c2;
+  --color-fg-muted: #d4bc78;
+  --color-fg-subtle: #7c7050;
+  --color-accent: #e0b83e;
+  --color-accent-2: #3e5bb0;
+  --color-border: rgb(224 184 62 / 0.18);
+  --color-card: rgb(242 230 194 / 0.04);
+
+  --gradient-brand: linear-gradient(135deg, #c9a227 0%, #f5dd8e 100%);
+  --gradient-bg: radial-gradient(ellipse at top, #161f4a 0%, #08112e 55%);
+
+  --radius-card: 1.25rem;
+  --glass-blur: 20px;
+  --glass-bg: rgb(242 230 194 / 0.04);
+  --glass-border: rgb(242 230 194 / 0.14);
+  --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.6);
+}

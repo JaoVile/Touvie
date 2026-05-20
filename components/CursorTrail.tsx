@@ -79,8 +79,20 @@ const readScale = (): number => {
   return v === 2 || v === 3 ? v : 1;
 };
 
+// Trail is desktop-only: skipped on touch/coarse pointers, narrow viewports,
+// or when the user prefers reduced motion. Listed here so the gate stays in
+// sync with the effect — both subscribe to the same queries.
+const DENY_QUERIES = [
+  "(pointer: coarse)",
+  "(hover: none)",
+  "(max-width: 1024px)",
+  "(prefers-reduced-motion: reduce)",
+] as const;
+
 export function CursorTrail() {
   const [trailScale, setTrailScale] = useState(1);
+  // null while SSR; a boolean once we've evaluated the media queries client-side.
+  const [denied, setDenied] = useState<boolean | null>(null);
 
   // Pick up the saved size, and react live when /config changes it.
   useEffect(() => {
@@ -98,14 +110,21 @@ export function CursorTrail() {
     };
   }, []);
 
+  // Re-evaluate the deny gate whenever any of the relevant media queries flip.
+  // Critical for the width gate: when devtools close and the viewport crosses
+  // 1024px, the trail mounts without a page refresh.
   useEffect(() => {
-    // Desktop, fine-pointer, motion-allowed only.
-    const denied =
-      window.matchMedia("(pointer: coarse)").matches ||
-      window.matchMedia("(hover: none)").matches ||
-      window.matchMedia("(max-width: 1024px)").matches ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (denied) return;
+    const mqls = DENY_QUERIES.map((q) => window.matchMedia(q));
+    const evaluate = () => setDenied(mqls.some((m) => m.matches));
+    evaluate();
+    for (const m of mqls) m.addEventListener("change", evaluate);
+    return () => {
+      for (const m of mqls) m.removeEventListener("change", evaluate);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (denied !== false) return;
 
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d", { alpha: true, desynchronized: true });
@@ -476,7 +495,7 @@ export function CursorTrail() {
       void audioCtx?.close();
       canvas.remove();
     };
-  }, [trailScale]);
+  }, [denied, trailScale]);
 
   return null;
 }

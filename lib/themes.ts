@@ -1,4 +1,4 @@
-export type ThemeId = "glass-purple" | "dark-minimal" | "notion-clean";
+export type ThemeId = "royal" | "glass-purple" | "dark-minimal" | "notion-clean";
 
 export const THEMES: Array<{
   id: ThemeId;
@@ -6,6 +6,12 @@ export const THEMES: Array<{
   description: string;
   mode: "dark" | "light";
 }> = [
+  {
+    id: "royal",
+    name: "Royal Navy",
+    description: "Azul marinho profundo com detalhes dourados — divino, editorial.",
+    mode: "dark",
+  },
   {
     id: "glass-purple",
     name: "Glass Purple",
@@ -26,7 +32,7 @@ export const THEMES: Array<{
   },
 ];
 
-export const DEFAULT_THEME: ThemeId = "glass-purple";
+export const DEFAULT_THEME: ThemeId = "royal";
 
 export function isValidTheme(x: unknown): x is ThemeId {
   return typeof x === "string" && THEMES.some((t) => t.id === x);

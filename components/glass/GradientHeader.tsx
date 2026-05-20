@@ -30,7 +30,7 @@ export function GradientHeader({ emoji, title, subtitle, action }: GradientHeade
           </span>
         ) : null}
         <div className="min-w-0">
-          <h1 className="display truncate text-3xl sm:text-4xl">
+          <h1 className="display truncate text-h2 sm:text-h1">
             <span className="gradient-text">{title}</span>
           </h1>
           {subtitle ? (

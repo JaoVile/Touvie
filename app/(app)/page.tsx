@@ -1,5 +1,7 @@
+import { CircleText } from "@/components/CircleText";
 import { Reveal } from "@/components/Reveal";
 import { FoldCard } from "@/components/glass/FoldCard";
+import { Col, Grid } from "@/components/grid/Grid";
 import { addDaysISO, formatDateBRT, greetingForHour, todayBRTISO } from "@/lib/datetime";
 import { createClient } from "@/lib/supabase/server";
 import { formatBRL } from "@/lib/utils";
@@ -115,21 +117,30 @@ export default async function DashboardPage() {
     <>
       {/* ── Hero ─────────────────────────────────────────── */}
       <Reveal>
-        <header className="mb-9">
+        <header className="mb-9 flex flex-col items-center text-center">
           <div className="flex items-center gap-2">
             <span className="float-note text-lg" style={{ color: "var(--color-accent)" }}>
               ♪
             </span>
             <span
-              className="text-[0.7rem] font-bold uppercase tracking-[0.32em]"
+              className="text-eyebrow font-bold uppercase tracking-[0.32em]"
               style={{ color: "var(--color-fg-subtle)" }}
             >
               Touvie
             </span>
           </div>
 
-          <h1 className="display mt-3 text-5xl sm:text-6xl">
-            {greetingForHour()},{" "}
+          {/* Greeting in a circular arc, crowning the name. */}
+          <CircleText
+            text={`· ${greetingForHour().toUpperCase()} ·`}
+            radius={150}
+            arc="top"
+            fontSize={13}
+            letterSpacing="0.5em"
+            className="mt-4"
+            style={{ color: "var(--color-accent)" }}
+          />
+          <h1 className="display -mt-2 text-display sm:text-hero">
             <span className="display-i gradient-text-anim">{displayName(user?.email ?? "")}</span>
           </h1>
           <p
@@ -140,7 +151,7 @@ export default async function DashboardPage() {
           </p>
 
           {/* Stat strip */}
-          <dl className="glass mt-6 flex overflow-hidden">
+          <dl className="glass mt-6 flex w-full overflow-hidden">
             {stats.map((s, i) => (
               <div
                 key={s.label}
@@ -148,7 +159,7 @@ export default async function DashboardPage() {
                 style={i > 0 ? { borderLeft: "1px solid var(--color-border)" } : undefined}
               >
                 <dt
-                  className="text-[0.62rem] font-semibold uppercase tracking-[0.13em]"
+                  className="text-eyebrow font-semibold uppercase tracking-[0.13em]"
                   style={{ color: "var(--color-fg-subtle)" }}
                 >
                   {s.label}
@@ -165,10 +176,10 @@ export default async function DashboardPage() {
         </header>
       </Reveal>
 
-      {/* ── Cards ────────────────────────────────────────── */}
-      <div className="grid gap-5 lg:grid-cols-3">
+      {/* ── Cards — editorial 12-col grid, mirrored 7/5 asymmetry ── */}
+      <Grid>
         {/* Rotina + streaks */}
-        <Reveal className="lg:col-span-2">
+        <Col span={7} spanSm={6} reveal>
           <FoldCard>
             <CardHead
               icon="📅"
@@ -236,7 +247,7 @@ export default async function DashboardPage() {
               <div className="mt-4 border-t pt-3" style={{ borderColor: "var(--color-border)" }}>
                 <div className="mb-1.5 flex items-center justify-between">
                   <p
-                    className="text-[0.68rem] font-semibold uppercase tracking-[0.1em]"
+                    className="text-eyebrow font-semibold uppercase tracking-[0.1em]"
                     style={{ color: "var(--color-fg-subtle)" }}
                   >
                     Consistência · 30 dias
@@ -263,7 +274,7 @@ export default async function DashboardPage() {
             {topStreaks.length > 0 ? (
               <div className="mt-3.5">
                 <p
-                  className="mb-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.1em]"
+                  className="mb-1.5 text-eyebrow font-semibold uppercase tracking-[0.1em]"
                   style={{ color: "var(--color-fg-subtle)" }}
                 >
                   🏆 Maiores sequências
@@ -293,16 +304,28 @@ export default async function DashboardPage() {
 
             <CardLink href="/rotina">Marcar hábitos</CardLink>
           </FoldCard>
-        </Reveal>
+        </Col>
 
         {/* Metas */}
-        <Reveal delay={80}>
+        <Col span={5} spanSm={3} reveal delay={80}>
           <FoldCard>
             <CardHead icon="🎯" title="Metas ativas" />
             {goals.length === 0 ? (
-              <EmptyState href="/metas" label="Criar meta">
-                Nenhuma meta ativa.
-              </EmptyState>
+              <div className="flex flex-col items-center pb-1 pt-2 text-center">
+                <CircleText
+                  text="FAÇA UMA META · COMECE HOJE"
+                  radius={80}
+                  arc="top"
+                  fontSize={11}
+                  letterSpacing="0.4em"
+                  style={{ color: "var(--color-accent)" }}
+                />
+                <div className="-mt-2">
+                  <EmptyState href="/metas" label="Criar meta">
+                    Nenhuma meta ativa.
+                  </EmptyState>
+                </div>
+              </div>
             ) : (
               <ul className="space-y-2.5 text-sm">
                 {goals.slice(0, 5).map((g) => (
@@ -315,10 +338,10 @@ export default async function DashboardPage() {
             )}
             <CardLink href="/metas">Ver todas</CardLink>
           </FoldCard>
-        </Reveal>
+        </Col>
 
         {/* Tarefas */}
-        <Reveal delay={160}>
+        <Col span={5} spanSm={3} reveal delay={160}>
           <FoldCard>
             <CardHead icon="✅" title="Próximas tarefas" />
             {tasks.length === 0 ? (
@@ -347,10 +370,10 @@ export default async function DashboardPage() {
             )}
             <CardLink href="/metas">Gerenciar</CardLink>
           </FoldCard>
-        </Reveal>
+        </Col>
 
         {/* Finanças */}
-        <Reveal className="lg:col-span-2" delay={240}>
+        <Col span={7} spanSm={6} reveal delay={240}>
           <FoldCard>
             <CardHead icon="💰" title="Mês corrente" />
             {txs.length === 0 ? (
@@ -398,8 +421,8 @@ export default async function DashboardPage() {
               </p>
             </div>
           </FoldCard>
-        </Reveal>
-      </div>
+        </Col>
+      </Grid>
     </>
   );
 }
@@ -424,7 +447,7 @@ function CardHead({
         {icon}
       </span>
       <h2
-        className="text-[0.78rem] font-bold uppercase tracking-[0.13em]"
+        className="text-label font-bold uppercase tracking-[0.13em]"
         style={{ color: "var(--color-fg-muted)" }}
       >
         {title}
@@ -438,7 +461,7 @@ function CardLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link
       href={href}
-      className="group/lnk mt-auto flex items-center justify-end gap-1 pt-4 text-[0.7rem] font-semibold uppercase tracking-[0.1em] transition-colors"
+      className="group/lnk mt-auto flex items-center justify-end gap-1 pt-4 text-eyebrow font-semibold uppercase tracking-[0.1em] transition-colors"
       style={{ color: "var(--color-accent)" }}
     >
       {children}
