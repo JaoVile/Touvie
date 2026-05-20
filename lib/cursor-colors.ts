@@ -27,11 +27,11 @@ export const CURSOR_COLORS: CursorColorPreset[] = [
   {
     id: "white",
     name: "Branco",
-    description: "Fita branca, notas pretas, bordinha branca — default.",
+    description: "Fita branca, notas brancas, bordinha preta — default.",
     ribbonRgb: "255,255,255",
     glowRgb: "255,255,255",
-    noteFill: "#0a0a0a",
-    noteShadow: "rgba(255,255,255,0.85)",
+    noteFill: "#ffffff",
+    noteShadow: "rgba(0,0,0,0.9)",
   },
   {
     id: "gold",
