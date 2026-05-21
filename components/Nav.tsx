@@ -42,11 +42,12 @@ export function Nav() {
               <Link
                 href={link.href}
                 className={cn(
-                  "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1.5 text-[10px] font-medium transition-all",
+                  "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1.5 text-[10px] font-medium transition-all duration-200 ease-out",
                   "sm:flex-row sm:gap-1.5 sm:px-2 sm:py-2 sm:text-[11px]",
+                  "hover:-translate-y-0.5",
                   active
                     ? "gradient-brand text-white shadow"
-                    : "opacity-60 hover:opacity-90",
+                    : "opacity-60 hover:opacity-100",
                 )}
               >
                 <span className="text-base leading-none sm:text-sm">{link.emoji}</span>

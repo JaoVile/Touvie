@@ -162,6 +162,35 @@ a,
   animation: sheen 5s ease-in-out infinite alternate;
 }
 
+/* ── Animated link underline ─────────────────────────────────────
+   Editorial hover: a hairline wipes in from the left on hover and,
+   on leave, retreats to the right — as if it passed through. Uses
+   currentColor so it inherits the link's tone across every theme.
+   Works standalone (:hover) or driven by a `group/lnk` ancestor.
+   Apply to an inline element — the text run, not a flex container. */
+.link-underline {
+  position: relative;
+}
+
+.link-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.14em;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform var(--dur-base) var(--ease-cubic);
+}
+
+.link-underline:hover::after,
+.group\/lnk:hover .link-underline::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
 /* Gentle staggered entrance for standard glass cards. */
 .rise-in {
   animation: fold-rise 0.6s var(--ease-cubic) backwards;
@@ -393,7 +422,8 @@ a,
     animation: none !important;
   }
   .fold-card__body,
-  .fold-card__flap {
+  .fold-card__flap,
+  .link-underline::after {
     transition: none !important;
   }
 }

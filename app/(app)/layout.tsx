@@ -1,5 +1,7 @@
 import { CursorTrail } from "@/components/CursorTrail";
 import { Nav } from "@/components/Nav";
+import { ScrollProgress } from "@/components/ScrollProgress";
+import { SideLabel } from "@/components/SideLabel";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -14,6 +16,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <CursorTrail />
+      <ScrollProgress />
+      <SideLabel />
       <Nav />
       <main
         className="mx-auto w-full max-w-7xl flex-1 px-4 pt-6 sm:px-6"

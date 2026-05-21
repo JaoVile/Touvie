@@ -1,7 +1,10 @@
+import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { CircleText } from "@/components/CircleText";
 import { Magnetic } from "@/components/Magnetic";
 import { Marquee } from "@/components/Marquee";
+import { Parallax } from "@/components/Parallax";
 import { Reveal } from "@/components/Reveal";
+import { ScrollFade } from "@/components/ScrollFade";
 import { FoldCard } from "@/components/glass/FoldCard";
 import { Col, Grid } from "@/components/grid/Grid";
 import { addDaysISO, formatDateBRT, greetingForHour, todayBRTISO } from "@/lib/datetime";
@@ -11,6 +14,14 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 export const dynamic = "force-dynamic";
+
+/* Faint editorial glyphs drifting behind the dashboard, each at its
+   own scroll rhythm. Tune size / position / opacity / speed here. */
+const PARALLAX_GLYPHS = [
+  { char: "✦", size: "18rem", top: "20%", left: "6%", speed: -0.18, opacity: 0.05, color: "var(--color-accent)" },
+  { char: "♪", size: "12rem", top: "54%", left: "80%", speed: -0.34, opacity: 0.05, color: "var(--color-fg)" },
+  { char: "♫", size: "15rem", top: "82%", left: "36%", speed: -0.09, opacity: 0.04, color: "var(--color-accent)" },
+] as const;
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -101,82 +112,117 @@ export default async function DashboardPage() {
     totalHabits > 0 ? Math.min(100, Math.round((last30.length / (30 * totalHabits)) * 100)) : 0;
   const consistencyColor = scoreColor(consistencyScore);
 
-  const stats = [
+  const stats: { label: string; node: ReactNode; color: string }[] = [
     {
       label: "Hábitos hoje",
-      value: totalHabits > 0 ? `${doneCount}/${totalHabits}` : "—",
+      node:
+        totalHabits > 0 ? (
+          <AnimatedCounter to={doneCount} suffix={`/${totalHabits}`} delay={100} />
+        ) : (
+          "—"
+        ),
       color: "var(--color-fg)",
     },
-    { label: "Consistência", value: `${consistencyScore}%`, color: consistencyColor },
+    {
+      label: "Consistência",
+      node: <AnimatedCounter to={consistencyScore} suffix="%" delay={240} />,
+      color: consistencyColor,
+    },
     {
       label: "Saldo do mês",
-      value: formatBRL(monthNet),
+      node: <AnimatedCounter to={monthNet} currency delay={380} />,
       color: monthNet >= 0 ? "var(--color-success)" : "var(--color-danger)",
     },
   ];
 
   return (
     <>
-      {/* ── Hero ─────────────────────────────────────────── */}
-      <Reveal>
-        <header className="mb-9 flex flex-col items-center text-center">
-          <div className="flex items-center gap-2">
-            <span className="float-note text-lg" style={{ color: "var(--color-accent)" }}>
-              ♪
-            </span>
-            <span
-              className="text-eyebrow font-bold uppercase tracking-[0.32em]"
-              style={{ color: "var(--color-fg-subtle)" }}
-            >
-              Touvie
-            </span>
-          </div>
-
-          {/* Greeting in a circular arc, crowning the name. */}
-          <CircleText
-            text={`· ${greetingForHour().toUpperCase()} ·`}
-            radius={150}
-            arc="top"
-            fontSize={13}
-            letterSpacing="0.5em"
-            className="mt-4"
-            style={{ color: "var(--color-accent)" }}
-          />
-          <h1 className="display -mt-2 text-display sm:text-hero">
-            <span className="display-i gradient-text-anim">{displayName(user?.email ?? "")}</span>
-          </h1>
-          <p
-            className="mt-2 text-sm first-letter:uppercase"
-            style={{ color: "var(--color-fg-muted)" }}
+      {/* ── Parallax depth layer — faint glyphs drifting on scroll ── */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+      >
+        {PARALLAX_GLYPHS.map((g) => (
+          <Parallax
+            key={g.char}
+            speed={g.speed}
+            className="absolute"
+            style={{ top: g.top, left: g.left }}
           >
-            {formatDateBRT(now)}
-          </p>
+            <span
+              className="block select-none leading-none"
+              style={{ fontSize: g.size, color: g.color, opacity: g.opacity }}
+            >
+              {g.char}
+            </span>
+          </Parallax>
+        ))}
+      </div>
 
-          {/* Stat strip */}
-          <dl className="glass mt-6 flex w-full overflow-hidden">
-            {stats.map((s, i) => (
-              <div
-                key={s.label}
-                className="flex-1 px-4 py-3.5 sm:px-6"
-                style={i > 0 ? { borderLeft: "1px solid var(--color-border)" } : undefined}
+      {/* ── Hero — recedes on scroll, handing off to the cards ── */}
+      <ScrollFade>
+        <Reveal>
+          <header className="mb-9 flex flex-col items-center text-center">
+            <div className="flex items-center gap-2">
+              <span className="float-note text-lg" style={{ color: "var(--color-accent)" }}>
+                ♪
+              </span>
+              <span
+                className="text-eyebrow font-bold uppercase tracking-[0.32em]"
+                style={{ color: "var(--color-fg-subtle)" }}
               >
-                <dt
-                  className="text-eyebrow font-semibold uppercase tracking-[0.13em]"
-                  style={{ color: "var(--color-fg-subtle)" }}
+                Touvie
+              </span>
+            </div>
+
+            {/* Greeting in a circular arc, crowning the name. */}
+            <CircleText
+              text={`· ${greetingForHour().toUpperCase()} ·`}
+              radius={150}
+              arc="top"
+              fontSize={13}
+              letterSpacing="0.5em"
+              className="mt-4"
+              style={{ color: "var(--color-accent)" }}
+            />
+            <h1 className="display -mt-2 text-display sm:text-hero">
+              <span className="display-i gradient-text-anim">
+                {displayName(user?.email ?? "")}
+              </span>
+            </h1>
+            <p
+              className="mt-2 text-sm first-letter:uppercase"
+              style={{ color: "var(--color-fg-muted)" }}
+            >
+              {formatDateBRT(now)}
+            </p>
+
+            {/* Stat strip */}
+            <dl className="glass mt-6 flex w-full overflow-hidden">
+              {stats.map((s, i) => (
+                <div
+                  key={s.label}
+                  className="flex-1 px-4 py-3.5 sm:px-6"
+                  style={i > 0 ? { borderLeft: "1px solid var(--color-border)" } : undefined}
                 >
-                  {s.label}
-                </dt>
-                <dd
-                  className="mt-1 font-mono text-lg font-semibold leading-none sm:text-xl"
-                  style={{ color: s.color }}
-                >
-                  {s.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </header>
-      </Reveal>
+                  <dt
+                    className="text-eyebrow font-semibold uppercase tracking-[0.13em]"
+                    style={{ color: "var(--color-fg-subtle)" }}
+                  >
+                    {s.label}
+                  </dt>
+                  <dd
+                    className="mt-1 font-mono text-lg font-semibold leading-none sm:text-xl"
+                    style={{ color: s.color }}
+                  >
+                    {s.node}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </header>
+        </Reveal>
+      </ScrollFade>
 
       {/* ── Editorial ticker — silent rhythm between hero and cards ── */}
       <div
@@ -496,7 +542,7 @@ function CardLink({ href, children }: { href: string; children: ReactNode }) {
           className="group/lnk flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.1em] transition-colors"
           style={{ color: "var(--color-accent)" }}
         >
-          {children}
+          <span className="link-underline">{children}</span>
           <span className="transition-transform group-hover/lnk:translate-x-0.5">→</span>
         </Link>
       </Magnetic>
@@ -516,7 +562,11 @@ function EmptyState({
   return (
     <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
       {children}{" "}
-      <Link className="font-medium underline underline-offset-2" href={href}>
+      <Link
+        className="link-underline font-medium"
+        href={href}
+        style={{ color: "var(--color-accent)" }}
+      >
         {label}
       </Link>
     </p>
