@@ -51,8 +51,8 @@ const CONFIG = {
   melodyVolume: 0.07, // peak gain — "bem sutil"
   attack: 0.012, // s — note onset
   release: 0.6, // s — note tail; short = esmaece rapidamente
-  glyphLife: 1150, // ms — long enough to ride the ribbon head → tail
-  glyphLifeLast: 700, // ms — the last note (si) rides + fades extra fast
+  glyphLife: 2300, // ms — rides the longer, slower-collapsing ribbon head → tail
+  glyphLifeLast: 1400, // ms — the last note (si) rides + fades extra fast
   glyphSize: 15, // px
   glyphStartScale: 0.7, // scale when the note joins the ribbon
   glyphEndScale: 1.35, // scale at the tail — the note grows as it rides
