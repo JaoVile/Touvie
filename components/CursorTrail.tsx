@@ -26,7 +26,8 @@ import {
 const CONFIG = {
   // --- spine: the chain the staff rides on --------------------------------
   length: 40, // chain segments — keep high for a smooth, unfaceted curve
-  damping: 0.57, // higher = shorter, tighter ribbon
+  damping: 0.34, // segment catch-up per frame — lower = ribbon takes
+  //                longer to collapse once the pointer stops (~2× here)
   inertiaRetention: 0.95, // how much velocity carries frame to frame
   inertiaInfluence: 0.2, // loose, ribbon-like whip
   inertiaStrength: 0.06, // overshoot — the flick/curl of the tail
