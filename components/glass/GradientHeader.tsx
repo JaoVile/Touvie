@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 
 interface GradientHeaderProps {
   emoji?: string;
+  /** Small uppercase tracked label above the title — editorial eyebrow. */
+  eyebrow?: string;
   title: string;
   subtitle?: string;
   action?: ReactNode;
@@ -11,7 +13,7 @@ interface GradientHeaderProps {
  * Page header — emoji in a rounded chip, gradient title, optional action.
  * Shares the chip + uppercase-tracking language of the dashboard cards.
  */
-export function GradientHeader({ emoji, title, subtitle, action }: GradientHeaderProps) {
+export function GradientHeader({ emoji, eyebrow, title, subtitle, action }: GradientHeaderProps) {
   return (
     <header
       className="mb-7 flex items-center justify-between gap-4"
@@ -30,6 +32,14 @@ export function GradientHeader({ emoji, title, subtitle, action }: GradientHeade
           </span>
         ) : null}
         <div className="min-w-0">
+          {eyebrow ? (
+            <p
+              className="eyebrow mb-1 truncate"
+              style={{ color: "var(--color-fg-subtle)" }}
+            >
+              {eyebrow}
+            </p>
+          ) : null}
           <h1 className="display truncate text-h2 sm:text-h1">
             <span className="gradient-text">{title}</span>
           </h1>
