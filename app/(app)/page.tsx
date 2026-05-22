@@ -219,8 +219,10 @@ export default async function DashboardPage() {
                 letterSpacing="0.44em"
                 style={{
                   color: "var(--color-accent)",
-                  // rotate the arc 9° clockwise and lift it up
-                  transform: "translateY(-2.25rem) rotate(9deg)",
+                  // shift the arc onto the "T" of the background wordmark,
+                  // then rotate. translate(x,y) is screen-space (applied
+                  // after rotate). Tune x/y to land the leading "·" on the T.
+                  transform: "translate(-2.5rem, 0.75rem) rotate(9deg)",
                 }}
               />
               <h1 className="display -mt-[7rem] text-[3.25rem] leading-[1.05] sm:text-[4.75rem]">
