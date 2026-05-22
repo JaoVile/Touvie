@@ -206,7 +206,7 @@ export default async function DashboardPage() {
             <div className="mt-8 flex flex-col items-center">
               <CircleText
                 text={`· ${greetingForHour().toUpperCase()} ·`}
-                radius={140}
+                radius={115}
                 arc="top"
                 startOffset={0.06}
                 fontSize={13}
@@ -217,7 +217,7 @@ export default async function DashboardPage() {
                   transform: "translateY(-1.5rem) rotate(15deg)",
                 }}
               />
-              <h1 className="display -mt-[6.5rem] text-[3.25rem] leading-[1.05] sm:text-[4.75rem]">
+              <h1 className="display -mt-[5.5rem] text-[3.25rem] leading-[1.05] sm:text-[4.75rem]">
                 <span className="display-i gradient-text-anim">{heroName}</span>
               </h1>
             </div>
