@@ -211,7 +211,11 @@ export default async function DashboardPage() {
                 startOffset={0.06}
                 fontSize={13}
                 letterSpacing="0.44em"
-                style={{ color: "var(--color-accent)" }}
+                style={{
+                  color: "var(--color-accent)",
+                  // rotate the arc ~15° clockwise and lift it a touch
+                  transform: "translateY(-1.5rem) rotate(15deg)",
+                }}
               />
               <h1 className="display -mt-[6.5rem] text-[3.25rem] leading-[1.05] sm:text-[4.75rem]">
                 <span className="display-i gradient-text-anim">{heroName}</span>
