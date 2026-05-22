@@ -213,8 +213,8 @@ export default async function DashboardPage() {
                 letterSpacing="0.44em"
                 style={{
                   color: "var(--color-accent)",
-                  // rotate the arc 13° clockwise and lift it a touch
-                  transform: "translateY(-1.5rem) rotate(13deg)",
+                  // rotate the arc 11° clockwise and lift it a touch
+                  transform: "translateY(-1.5rem) rotate(11deg)",
                 }}
               />
               <h1 className="display -mt-[7rem] text-[3.25rem] leading-[1.05] sm:text-[4.75rem]">
