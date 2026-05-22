@@ -186,14 +186,14 @@ export default async function DashboardPage() {
             ghosting on the right. Hairline gold stroke, transparent
             fill: the eye traces the letterforms without it competing
             with the hero. Tune stroke / opacity / fontSize / top. */}
-        <Parallax speed={-0.12} className="absolute right-0 top-[10%]">
+        <Parallax speed={-0.1} className="absolute right-0 top-[26%]">
           <span
             className="display block select-none whitespace-nowrap leading-none"
             style={{
               fontSize: "clamp(4.9rem, 11.9vw, 10.5rem)",
               color: "transparent",
-              WebkitTextStroke: "2px var(--color-accent)",
-              opacity: 0.3,
+              WebkitTextStroke: "1.25px var(--color-accent)",
+              opacity: 0.14,
               transform: "translateX(0%)",
             }}
           >
