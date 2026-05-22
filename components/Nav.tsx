@@ -1,6 +1,19 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import {
+  Bell,
+  CalendarDays,
+  Dumbbell,
+  House,
+  Lock,
+  Salad,
+  Search,
+  Settings,
+  StickyNote,
+  Target,
+  Wallet,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -10,17 +23,17 @@ export function Nav() {
   const t = useTranslations("nav");
 
   const LINKS = [
-    { href: "/",             label: t("today"),         emoji: "🏠" },
-    { href: "/rotina",       label: t("routine"),       emoji: "📅" },
-    { href: "/metas",        label: t("goals"),         emoji: "🎯" },
-    { href: "/diario",       label: t("diary"),         emoji: "🔒" },
-    { href: "/financas",     label: t("finances"),      emoji: "💰" },
-    { href: "/treino",       label: t("training"),      emoji: "💪" },
-    { href: "/dieta",        label: t("diet"),          emoji: "🥗" },
-    { href: "/notas",        label: t("notes"),         emoji: "📝" },
-    { href: "/busca",        label: t("search"),        emoji: "🔍" },
-    { href: "/notificacoes", label: t("notifications"), emoji: "🔔" },
-    { href: "/config",       label: t("config"),        emoji: "⚙️" },
+    { href: "/",             label: t("today"),         Icon: House },
+    { href: "/rotina",       label: t("routine"),       Icon: CalendarDays },
+    { href: "/metas",        label: t("goals"),         Icon: Target },
+    { href: "/diario",       label: t("diary"),         Icon: Lock },
+    { href: "/financas",     label: t("finances"),      Icon: Wallet },
+    { href: "/treino",       label: t("training"),      Icon: Dumbbell },
+    { href: "/dieta",        label: t("diet"),          Icon: Salad },
+    { href: "/notas",        label: t("notes"),         Icon: StickyNote },
+    { href: "/busca",        label: t("search"),        Icon: Search },
+    { href: "/notificacoes", label: t("notifications"), Icon: Bell },
+    { href: "/config",       label: t("config"),        Icon: Settings },
   ] as const;
 
   return (
@@ -50,7 +63,7 @@ export function Nav() {
                     : "opacity-60 hover:opacity-100",
                 )}
               >
-                <span className="text-base leading-none sm:text-sm">{link.emoji}</span>
+                <link.Icon size={17} strokeWidth={1.75} className="shrink-0" />
                 <span className="truncate max-w-full text-center leading-tight">{link.label}</span>
               </Link>
             </li>

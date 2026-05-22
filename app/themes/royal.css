@@ -17,6 +17,12 @@
   --color-border: rgb(224 184 62 / 0.18);
   --color-card: rgb(242 230 194 / 0.04);
 
+  /* Status hues retuned for navy+gold — the generic neon green/red
+     clashed. A refined jade and a warm clay-red, both readable on
+     the deep navy floor. */
+  --color-success: #6fb58e;
+  --color-danger: #d6705f;
+
   --gradient-brand: linear-gradient(135deg, #c9a227 0%, #f5dd8e 100%);
   --gradient-bg: radial-gradient(ellipse at top, #161f4a 0%, #08112e 55%);
 
