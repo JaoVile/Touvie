@@ -217,7 +217,7 @@ export default async function DashboardPage() {
                   transform: "translateY(-1.5rem) rotate(15deg)",
                 }}
               />
-              <h1 className="display -mt-[5.5rem] text-[3.25rem] leading-[1.05] sm:text-[4.75rem]">
+              <h1 className="display -mt-[7rem] text-[3.25rem] leading-[1.05] sm:text-[4.75rem]">
                 <span className="display-i gradient-text-anim">{heroName}</span>
               </h1>
             </div>
