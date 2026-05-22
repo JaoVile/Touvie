@@ -199,21 +199,21 @@ export default async function DashboardPage() {
               </span>
             </div>
 
-            {/* Greeting arc centred over the name, crowning it. The
-                negative margin nests the name into the arc's bowl —
-                retune it if the name font scale changes. */}
+            {/* Greeting arc hugging the name's upper-left — asymmetric,
+                editorial. The big name is pulled up into the arc's curve.
+                Tune together: radius (arc size), startOffset (where the
+                phrase sits on the arc), the -mt overlap, and the name size. */}
             <div className="mt-8 flex flex-col items-center">
               <CircleText
                 text={`· ${greetingForHour().toUpperCase()} ·`}
-                radius={150}
+                radius={140}
                 arc="top"
-                textAnchor="middle"
-                startOffset={0.5}
+                startOffset={0.06}
                 fontSize={13}
-                letterSpacing="0.5em"
+                letterSpacing="0.44em"
                 style={{ color: "var(--color-accent)" }}
               />
-              <h1 className="display -mt-[5.5rem] text-display sm:text-hero">
+              <h1 className="display -mt-[6.5rem] text-[3.25rem] leading-[1.05] sm:text-[4.75rem]">
                 <span className="display-i gradient-text-anim">{heroName}</span>
               </h1>
             </div>
