@@ -182,19 +182,22 @@ export default async function DashboardPage() {
           </Parallax>
         ))}
 
-        {/* Editorial signature — big faint serif wordmark bleeding off
-            the right edge. Tune fontSize / opacity / translateX / top. */}
-        <Parallax speed={-0.12} className="absolute right-0 top-[12%]">
+        {/* Editorial signature — a magnificent outlined serif "Touvie"
+            ghosting on the right. Hairline gold stroke, transparent
+            fill: the eye traces the letterforms without it competing
+            with the hero. Tune stroke / opacity / fontSize / top. */}
+        <Parallax speed={-0.12} className="absolute right-0 top-[10%]">
           <span
             className="display block select-none whitespace-nowrap leading-none"
             style={{
               fontSize: "clamp(4.9rem, 11.9vw, 10.5rem)",
-              color: "var(--color-accent)",
-              opacity: 0.06,
+              color: "transparent",
+              WebkitTextStroke: "2px var(--color-accent)",
+              opacity: 0.3,
               transform: "translateX(0%)",
             }}
           >
-            Touvie ♪
+            Touvie
           </span>
         </Parallax>
       </div>
