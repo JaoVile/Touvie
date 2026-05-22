@@ -191,7 +191,7 @@ export default async function DashboardPage() {
             className="display block select-none whitespace-nowrap leading-none"
             style={{
               fontSize: "clamp(4.9rem, 11.9vw, 10.5rem)",
-              color: "var(--color-fg)",
+              color: "var(--color-accent)",
               opacity: 0.07,
               transform: "translateX(-50%)",
             }}
