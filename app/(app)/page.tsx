@@ -186,7 +186,7 @@ export default async function DashboardPage() {
             the right edge. Tune fontSize / opacity / translateX / top. */}
         <Parallax speed={-0.12} className="absolute right-0 top-[12%]">
           <span
-            className="display-i block select-none whitespace-nowrap leading-none"
+            className="display block select-none whitespace-nowrap leading-none"
             style={{
               fontSize: "clamp(7rem, 17vw, 15rem)",
               color: "var(--color-accent)",
@@ -194,7 +194,7 @@ export default async function DashboardPage() {
               transform: "translateX(20%)",
             }}
           >
-            Touvie<span className="not-italic"> ♪</span>
+            Touvie ♪
           </span>
         </Parallax>
       </div>
@@ -203,18 +203,6 @@ export default async function DashboardPage() {
       <ScrollFade>
         <Reveal>
           <header className="mb-9 flex flex-col items-center text-center">
-            <div className="flex items-center gap-2">
-              <span className="float-note text-lg" style={{ color: "var(--color-accent)" }}>
-                ♪
-              </span>
-              <span
-                className="text-eyebrow font-bold uppercase tracking-[0.32em]"
-                style={{ color: "var(--color-fg-subtle)" }}
-              >
-                Touvie
-              </span>
-            </div>
-
             {/* Greeting arc hugging the name's upper-left — asymmetric,
                 editorial. The big name is pulled up into the arc's curve.
                 Tune together: radius (arc size), startOffset (where the
