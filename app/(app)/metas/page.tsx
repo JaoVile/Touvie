@@ -1,5 +1,9 @@
-import { GlassCard } from "@/components/glass/GlassCard";
+import { PageGlyphs } from "@/components/PageGlyphs";
+import { Reveal } from "@/components/Reveal";
+import { CardHead } from "@/components/glass/CardHead";
+import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
+import { Col, Grid } from "@/components/grid/Grid";
 import { createClient } from "@/lib/supabase/server";
 import { GoalsPanel } from "./GoalsPanel";
 import { TasksPanel } from "./TasksPanel";
@@ -31,21 +35,31 @@ export default async function MetasPage() {
 
   return (
     <>
-      <GradientHeader
-        emoji="🎯"
-        title="Metas & Tarefas"
-        subtitle="O que você quer conquistar, e o que precisa fazer hoje pra chegar lá."
-      />
-      <div className="grid gap-4 lg:grid-cols-2">
-        <GlassCard>
-          <h2 className="mb-3 font-semibold">🎯 Metas</h2>
-          <GoalsPanel goals={goals} />
-        </GlassCard>
-        <GlassCard>
-          <h2 className="mb-3 font-semibold">✅ Tarefas</h2>
-          <TasksPanel tasks={tasks} goals={goals} />
-        </GlassCard>
-      </div>
+      <PageGlyphs variant="goals" />
+
+      <Reveal>
+        <GradientHeader
+          emoji="🎯"
+          eyebrow="Foco · 2026"
+          title="Metas & Tarefas"
+          subtitle="O que você quer conquistar, e o que precisa fazer hoje pra chegar lá."
+        />
+      </Reveal>
+
+      <Grid>
+        <Col span={7} spanSm={6} reveal>
+          <FoldCard>
+            <CardHead icon="🎯" title="Metas" />
+            <GoalsPanel goals={goals} />
+          </FoldCard>
+        </Col>
+        <Col span={5} spanSm={6} reveal delay={80}>
+          <FoldCard>
+            <CardHead icon="✅" title="Tarefas" />
+            <TasksPanel tasks={tasks} goals={goals} />
+          </FoldCard>
+        </Col>
+      </Grid>
     </>
   );
 }

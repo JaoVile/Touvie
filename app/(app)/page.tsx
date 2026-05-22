@@ -5,6 +5,7 @@ import { Marquee } from "@/components/Marquee";
 import { Parallax } from "@/components/Parallax";
 import { Reveal } from "@/components/Reveal";
 import { ScrollFade } from "@/components/ScrollFade";
+import { CardHead } from "@/components/glass/CardHead";
 import { FoldCard } from "@/components/glass/FoldCard";
 import { Col, Grid } from "@/components/grid/Grid";
 import { addDaysISO, formatDateBRT, greetingForHour, todayBRTISO } from "@/lib/datetime";
@@ -504,34 +505,6 @@ export default async function DashboardPage() {
 }
 
 /* ── Local presentation helpers ─────────────────────────────── */
-
-function CardHead({
-  icon,
-  title,
-  badge,
-}: {
-  icon: string;
-  title: string;
-  badge?: ReactNode;
-}) {
-  return (
-    <div className="mb-4 flex items-center gap-2.5">
-      <span
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-[0.6rem] text-sm"
-        style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
-      >
-        {icon}
-      </span>
-      <h2
-        className="text-label font-bold uppercase tracking-[0.13em]"
-        style={{ color: "var(--color-fg-muted)" }}
-      >
-        {title}
-      </h2>
-      {badge}
-    </div>
-  );
-}
 
 function CardLink({ href, children }: { href: string; children: ReactNode }) {
   return (
