@@ -206,15 +206,15 @@ export default async function DashboardPage() {
             <div className="mt-8 flex flex-col items-center">
               <CircleText
                 text={`· ${greetingForHour().toUpperCase()} ·`}
-                radius={115}
+                radius={127}
                 arc="top"
                 startOffset={0.06}
                 fontSize={13}
                 letterSpacing="0.44em"
                 style={{
                   color: "var(--color-accent)",
-                  // rotate the arc 9° clockwise and lift it a touch
-                  transform: "translateY(-1.5rem) rotate(9deg)",
+                  // rotate the arc 9° clockwise and lift it up
+                  transform: "translateY(-2.25rem) rotate(9deg)",
                 }}
               />
               <h1 className="display -mt-[7rem] text-[3.25rem] leading-[1.05] sm:text-[4.75rem]">
