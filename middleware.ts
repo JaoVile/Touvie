@@ -39,7 +39,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && MUTATING_METHODS.has(request.method)) {
+  // Trusted-device guard — production only. In local dev the notebook
+  // is implicitly trusted, so Server Actions aren't blocked by 403.
+  if (
+    process.env.NODE_ENV === "production" &&
+    user &&
+    MUTATING_METHODS.has(request.method)
+  ) {
     const trustBypass = TRUST_BYPASS_PREFIXES.some((p) => pathname.startsWith(p));
     if (!trustBypass) {
       const cookie = request.cookies.get(TRUSTED_COOKIE)?.value;

@@ -36,9 +36,13 @@ function NamesForm({ fullName, displayName }: { fullName: string; displayName: s
     setError(undefined);
     setSuccess(false);
     start(async () => {
-      const res = await updateProfileNames(fd);
-      if (res?.error) setError(res.error);
-      else setSuccess(true);
+      try {
+        const res = await updateProfileNames(fd);
+        if (res?.error) setError(res.error);
+        else setSuccess(true);
+      } catch {
+        setError(READ_ONLY_MSG);
+      }
     });
   }
 
@@ -86,9 +90,13 @@ function EmailForm({ email }: { email: string }) {
     setError(undefined);
     setSuccess(false);
     start(async () => {
-      const res = await updateEmail(fd);
-      if (res?.error) setError(res.error);
-      else setSuccess(true);
+      try {
+        const res = await updateEmail(fd);
+        if (res?.error) setError(res.error);
+        else setSuccess(true);
+      } catch {
+        setError(READ_ONLY_MSG);
+      }
     });
   }
 
@@ -133,12 +141,16 @@ function PasswordForm() {
     setError(undefined);
     setSuccess(false);
     start(async () => {
-      const res = await updatePassword(fd);
-      if (res?.error) {
-        setError(res.error);
-      } else {
-        setSuccess(true);
-        formRef.current?.reset();
+      try {
+        const res = await updatePassword(fd);
+        if (res?.error) {
+          setError(res.error);
+        } else {
+          setSuccess(true);
+          formRef.current?.reset();
+        }
+      } catch {
+        setError(READ_ONLY_MSG);
       }
     });
   }
@@ -190,6 +202,13 @@ function PasswordForm() {
 }
 
 /* ── shared bits ─────────────────────────────────────────────── */
+
+// Shown when a Server Action is blocked before it runs — e.g. the
+// trusted-device guard returning 403. React surfaces only a generic
+// transport error, so we translate it into something actionable.
+const READ_ONLY_MSG =
+  "Não foi possível salvar — este dispositivo pode estar em modo só-leitura. " +
+  "Faça login no notebook marcando “Confiar neste dispositivo”.";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
