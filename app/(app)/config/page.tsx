@@ -9,6 +9,7 @@ import { DeleteAccountButton } from "./DeleteAccountButton";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { LogGeral } from "./LogGeral";
 import { PinChangeForm } from "./PinChangeForm";
+import { ProfileSection } from "./ProfileSection";
 import { TelegramSection } from "./TelegramSection";
 import { ThemePicker } from "./ThemePicker";
 import { TrailColorPicker } from "./TrailColorPicker";
@@ -21,10 +22,18 @@ export default async function ConfigPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [profile, locale] = await Promise.all([
+  const [profile, names, locale] = await Promise.all([
     supabase
       .from("profiles")
       .select("theme, telegram_chat_id, pin_hash, locale")
+      .eq("id", user!.id)
+      .maybeSingle()
+      .then((r) => r.data),
+    // Separate query so a missing 0013 migration degrades only the
+    // profile names — not the theme / PIN / telegram config below.
+    supabase
+      .from("profiles")
+      .select("full_name, display_name")
       .eq("id", user!.id)
       .maybeSingle()
       .then((r) => r.data),
@@ -38,6 +47,18 @@ export default async function ConfigPage() {
     <>
       <GradientHeader emoji="⚙️" title="Configurações" subtitle="Personalize o app do seu jeito." />
       <div className="grid gap-4">
+        <GlassCard>
+          <h2 className="mb-3 font-semibold">👤 Perfil</h2>
+          <p className="mb-4 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+            Seu nome, o apelido que aparece no dashboard, e os dados de acesso.
+          </p>
+          <ProfileSection
+            fullName={names?.full_name ?? ""}
+            displayName={names?.display_name ?? ""}
+            email={user?.email ?? ""}
+          />
+        </GlassCard>
+
         <GlassCard>
           <h2 className="mb-3 font-semibold">🎨 Tema visual</h2>
           <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>

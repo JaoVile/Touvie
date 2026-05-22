@@ -47,7 +47,7 @@ export default async function DashboardPage() {
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
   const since90 = addDaysISO(today, -90);
 
-  const [dailyRes, goalsRes, tasksRes, txRes, completionsRes] = await Promise.all([
+  const [dailyRes, goalsRes, tasksRes, txRes, completionsRes, profileRes] = await Promise.all([
     supabase
       .from("routine_daily")
       .select("id, time_slot, title, emoji")
@@ -80,6 +80,11 @@ export default async function DashboardPage() {
       .eq("user_id", userId)
       .gte("completed_on", since90)
       .order("completed_on", { ascending: false }),
+    supabase
+      .from("profiles")
+      .select("display_name, full_name")
+      .eq("id", userId)
+      .maybeSingle(),
   ]);
 
   const routine = dailyRes.data ?? [];
@@ -87,6 +92,14 @@ export default async function DashboardPage() {
   const tasks = tasksRes.data ?? [];
   const txs = txRes.data ?? [];
   const completions = completionsRes.data ?? [];
+  const profile = profileRes.data;
+
+  // Hero name: the chosen nickname wins, then full name, then the
+  // email handle as a last resort.
+  const heroName =
+    profile?.display_name?.trim() ||
+    profile?.full_name?.trim() ||
+    displayName(user?.email ?? "");
 
   const monthIncome = txs.reduce((s, t) => (t.kind === "income" ? s + t.amount_cents : s), 0);
   const monthExpense = txs.reduce((s, t) => (t.kind === "expense" ? s + t.amount_cents : s), 0);
@@ -197,9 +210,7 @@ export default async function DashboardPage() {
               style={{ color: "var(--color-accent)" }}
             />
             <h1 className="display -mt-2 text-display sm:text-hero">
-              <span className="display-i gradient-text-anim">
-                {displayName(user?.email ?? "")}
-              </span>
+              <span className="display-i gradient-text-anim">{heroName}</span>
             </h1>
             <p
               className="mt-2 text-sm first-letter:uppercase"

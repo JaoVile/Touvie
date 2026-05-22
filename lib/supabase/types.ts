@@ -12,10 +12,12 @@ export type Database = {
         Row: {
           id: string;
           display_name: string | null;
+          full_name: string | null;
           telegram_chat_id: string | null;
           pin_hash: string | null;
           pin_salt: string | null;
           theme: string;
+          locale: string;
           created_at: Timestamptz;
           updated_at: Timestamptz;
         };

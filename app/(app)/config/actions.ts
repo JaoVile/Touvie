@@ -3,6 +3,7 @@
 import { hashPin, verifyPin } from "@/lib/pin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { deleteWebhook, getMe, sendMessage, setWebhook } from "@/lib/telegram";
 import { isValidTheme } from "@/lib/themes";
 import { revalidatePath } from "next/cache";
@@ -142,6 +143,88 @@ export async function updateLocale(locale: string): Promise<{ ok?: boolean; erro
   });
 
   revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+// --- PROFILE -------------------------------------------------------
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const PW_MIN = 8;
+
+/** Update the formal name + the dashboard nickname (apelido). */
+export async function updateProfileNames(
+  fd: FormData,
+): Promise<{ error?: string; ok?: boolean }> {
+  const fullName = fd.get("full_name")?.toString().trim() ?? "";
+  const displayName = fd.get("display_name")?.toString().trim() ?? "";
+
+  if (fullName.length > 80) return { error: "Nome muito longo (máx. 80 caracteres)" };
+  if (displayName.length > 40) return { error: "Apelido muito longo (máx. 40 caracteres)" };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "unauthenticated" };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ full_name: fullName || null, display_name: displayName || null })
+    .eq("id", user.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Change the account email — Supabase sends a confirmation link. */
+export async function updateEmail(fd: FormData): Promise<{ error?: string; ok?: boolean }> {
+  const email = fd.get("email")?.toString().trim().toLowerCase() ?? "";
+  if (!EMAIL_RE.test(email)) return { error: "Email inválido" };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "unauthenticated" };
+  if (email === user.email) return { error: "Esse já é o seu email atual" };
+
+  const { error } = await supabase.auth.updateUser({ email });
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+/** Change the password — re-authenticates with the current one first. */
+export async function updatePassword(fd: FormData): Promise<{ error?: string; ok?: boolean }> {
+  const current = fd.get("current")?.toString() ?? "";
+  const next = fd.get("next")?.toString() ?? "";
+  const confirm = fd.get("confirm")?.toString() ?? "";
+
+  if (next.length < PW_MIN) return { error: `Nova senha precisa de ao menos ${PW_MIN} caracteres` };
+  if (next !== confirm) return { error: "As novas senhas não conferem" };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return { error: "unauthenticated" };
+
+  // Verify the current password on a throwaway client so the
+  // sign-in attempt never touches the real session cookies.
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) return { error: "Configuração do Supabase ausente" };
+  const checker = createSupabaseClient(url, anon, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { error: signInErr } = await checker.auth.signInWithPassword({
+    email: user.email,
+    password: current,
+  });
+  if (signInErr) return { error: "Senha atual incorreta" };
+
+  const { error } = await supabase.auth.updateUser({ password: next });
+  if (error) return { error: error.message };
   return { ok: true };
 }
 
