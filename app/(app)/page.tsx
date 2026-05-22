@@ -191,7 +191,7 @@ export default async function DashboardPage() {
               fontSize: "clamp(4.9rem, 11.9vw, 10.5rem)",
               color: "var(--color-accent)",
               opacity: 0.06,
-              transform: "translateX(20%)",
+              transform: "translateX(0%)",
             }}
           >
             Touvie ♪
