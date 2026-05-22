@@ -1,3 +1,4 @@
+import { ListChecks, Target } from "lucide-react";
 import { PageGlyphs } from "@/components/PageGlyphs";
 import { Reveal } from "@/components/Reveal";
 import { CardHead } from "@/components/glass/CardHead";
@@ -39,7 +40,7 @@ export default async function MetasPage() {
 
       <Reveal>
         <GradientHeader
-          emoji="🎯"
+          icon={Target}
           eyebrow="Foco · 2026"
           title="Metas & Tarefas"
           subtitle="O que você quer conquistar, e o que precisa fazer hoje pra chegar lá."
@@ -49,13 +50,13 @@ export default async function MetasPage() {
       <Grid>
         <Col span={7} spanSm={6} reveal>
           <FoldCard>
-            <CardHead icon="🎯" title="Metas" />
+            <CardHead icon={Target} title="Metas" />
             <GoalsPanel goals={goals} />
           </FoldCard>
         </Col>
         <Col span={5} spanSm={6} reveal delay={80}>
           <FoldCard>
-            <CardHead icon="✅" title="Tarefas" />
+            <CardHead icon={ListChecks} title="Tarefas" />
             <TasksPanel tasks={tasks} goals={goals} />
           </FoldCard>
         </Col>

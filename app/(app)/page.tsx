@@ -1,3 +1,13 @@
+import {
+  CalendarDays,
+  CheckCircle2,
+  Circle,
+  Flame,
+  ListChecks,
+  Target,
+  Trophy,
+  Wallet,
+} from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { CircleText } from "@/components/CircleText";
 import { Magnetic } from "@/components/Magnetic";
@@ -259,7 +269,7 @@ export default async function DashboardPage() {
         <Col span={7} spanSm={6} reveal>
           <FoldCard>
             <CardHead
-              icon="📅"
+              icon={CalendarDays}
               title="Rotina de hoje"
               badge={
                 totalHabits > 0 ? (
@@ -292,7 +302,19 @@ export default async function DashboardPage() {
                         className="flex min-w-0 items-center gap-2"
                         style={{ opacity: done ? 0.5 : 1 }}
                       >
-                        <span>{done ? "✅" : "⬜"}</span>
+                        {done ? (
+                          <CheckCircle2
+                            size={15}
+                            strokeWidth={1.75}
+                            style={{ color: "var(--color-success)" }}
+                          />
+                        ) : (
+                          <Circle
+                            size={15}
+                            strokeWidth={1.75}
+                            style={{ color: "var(--color-fg-subtle)" }}
+                          />
+                        )}
                         {r.emoji ? <span>{r.emoji}</span> : null}
                         <span className={done ? "truncate line-through" : "truncate"}>
                           {r.title}
@@ -301,10 +323,11 @@ export default async function DashboardPage() {
                       <span className="flex shrink-0 items-center gap-2">
                         {streak > 0 ? (
                           <span
-                            className="rounded-md px-1.5 py-0.5 text-[11px] font-semibold"
+                            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold"
                             style={{ background: "var(--color-card)" }}
                           >
-                            🔥 {streak}
+                            <Flame size={11} strokeWidth={2} style={{ color: "var(--color-accent)" }} />
+                            {streak}
                           </span>
                         ) : null}
                         <span
@@ -351,10 +374,11 @@ export default async function DashboardPage() {
             {topStreaks.length > 0 ? (
               <div className="mt-3.5">
                 <p
-                  className="mb-1.5 text-eyebrow font-semibold uppercase tracking-[0.1em]"
+                  className="mb-1.5 flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.1em]"
                   style={{ color: "var(--color-fg-subtle)" }}
                 >
-                  🏆 Maiores sequências
+                  <Trophy size={12} strokeWidth={1.75} style={{ color: "var(--color-accent)" }} />
+                  Maiores sequências
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {topStreaks.map((s) => {
@@ -386,7 +410,7 @@ export default async function DashboardPage() {
         {/* Metas */}
         <Col span={5} spanSm={3} reveal delay={80}>
           <FoldCard>
-            <CardHead icon="🎯" title="Metas ativas" />
+            <CardHead icon={Target} title="Metas ativas" />
             {goals.length === 0 ? (
               <div className="flex flex-col items-center pb-1 pt-2 text-center">
                 <CircleText
@@ -420,7 +444,7 @@ export default async function DashboardPage() {
         {/* Tarefas */}
         <Col span={5} spanSm={3} reveal delay={160}>
           <FoldCard>
-            <CardHead icon="✅" title="Próximas tarefas" />
+            <CardHead icon={ListChecks} title="Próximas tarefas" />
             {tasks.length === 0 ? (
               <EmptyState href="/metas" label="Criar tarefa">
                 Nenhuma tarefa pendente.
@@ -452,7 +476,7 @@ export default async function DashboardPage() {
         {/* Finanças */}
         <Col span={7} spanSm={6} reveal delay={240}>
           <FoldCard>
-            <CardHead icon="💰" title="Mês corrente" />
+            <CardHead icon={Wallet} title="Mês corrente" />
             {txs.length === 0 ? (
               <EmptyState href="/financas" label="Lançar">
                 Nenhum lançamento neste mês.
