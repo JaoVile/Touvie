@@ -183,18 +183,19 @@ export default async function DashboardPage() {
         ))}
 
         {/* Editorial signature — a magnificent outlined serif "Touvie"
-            ghosting on the right. Hairline gold stroke, transparent
-            fill: the eye traces the letterforms without it competing
-            with the hero. Tune stroke / opacity / fontSize / top. */}
-        <Parallax speed={-0.1} className="absolute right-0 top-[26%]">
+            ghosting BEHIND the hero name, centred. Hairline gold stroke,
+            transparent fill: the brand cradles the personal name. The
+            span's translateX(-50%) does the centring (Parallax owns the
+            element transform, so it can't go on the wrapper). */}
+        <Parallax speed={-0.06} className="absolute left-1/2 top-[13%]">
           <span
             className="display block select-none whitespace-nowrap leading-none"
             style={{
               fontSize: "clamp(4.9rem, 11.9vw, 10.5rem)",
               color: "transparent",
               WebkitTextStroke: "1.25px var(--color-accent)",
-              opacity: 0.14,
-              transform: "translateX(0%)",
+              opacity: 0.13,
+              transform: "translateX(-50%)",
             }}
           >
             Touvie
