@@ -181,6 +181,22 @@ export default async function DashboardPage() {
             </span>
           </Parallax>
         ))}
+
+        {/* Editorial signature — big faint serif wordmark bleeding off
+            the right edge. Tune fontSize / opacity / translateX / top. */}
+        <Parallax speed={-0.12} className="absolute right-0 top-[12%]">
+          <span
+            className="display-i block select-none whitespace-nowrap leading-none"
+            style={{
+              fontSize: "clamp(7rem, 17vw, 15rem)",
+              color: "var(--color-accent)",
+              opacity: 0.06,
+              transform: "translateX(20%)",
+            }}
+          >
+            Touvie<span className="not-italic"> ♪</span>
+          </span>
+        </Parallax>
       </div>
 
       {/* ── Hero — recedes on scroll, handing off to the cards ── */}
