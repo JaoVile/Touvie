@@ -199,25 +199,36 @@ export default async function DashboardPage() {
               </span>
             </div>
 
-            {/* Greeting in a circular arc, crowning the name. */}
-            <CircleText
-              text={`· ${greetingForHour().toUpperCase()} ·`}
-              radius={150}
-              arc="top"
-              fontSize={13}
-              letterSpacing="0.5em"
-              className="mt-4"
-              style={{ color: "var(--color-accent)" }}
-            />
-            <h1 className="display -mt-2 text-display sm:text-hero">
-              <span className="display-i gradient-text-anim">{heroName}</span>
-            </h1>
-            <p
-              className="mt-2 text-sm first-letter:uppercase"
-              style={{ color: "var(--color-fg-muted)" }}
-            >
-              {formatDateBRT(now)}
-            </p>
+            {/* Greeting arc centred over the name, crowning it. The
+                negative margin nests the name into the arc's bowl —
+                retune it if the name font scale changes. */}
+            <div className="mt-8 flex flex-col items-center">
+              <CircleText
+                text={`· ${greetingForHour().toUpperCase()} ·`}
+                radius={150}
+                arc="top"
+                textAnchor="middle"
+                startOffset={0.5}
+                fontSize={13}
+                letterSpacing="0.5em"
+                style={{ color: "var(--color-accent)" }}
+              />
+              <h1 className="display -mt-[5.5rem] text-display sm:text-hero">
+                <span className="display-i gradient-text-anim">{heroName}</span>
+              </h1>
+            </div>
+
+            {/* Date framed by a pair of hairlines. */}
+            <div className="mt-3 flex items-center gap-3">
+              <span className="h-px w-10" style={{ background: "var(--color-border)" }} />
+              <p
+                className="text-sm first-letter:uppercase"
+                style={{ color: "var(--color-fg-muted)" }}
+              >
+                {formatDateBRT(now)}
+              </p>
+              <span className="h-px w-10" style={{ background: "var(--color-border)" }} />
+            </div>
 
             {/* Stat strip */}
             <dl className="glass mt-6 flex w-full overflow-hidden">

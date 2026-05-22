@@ -10,7 +10,9 @@ import { useId } from "react";
  *   - arc             "full" closed circle (rotatable) or "top" 180° arc
  *   - spin            slow rotation (only meaningful for arc="full")
  *   - spinDuration    seconds per full revolution
- *   - startOffset     0–1, where along the path the first letter sits
+ *   - startOffset     0–1, where along the path the anchor point sits
+ *   - textAnchor      how the text aligns to startOffset — "middle" with
+ *                     startOffset 0.5 centres a short label on the arc
  *   - fontSize        in px (kept in px for predictable arc fitting)
  *   - letterSpacing   CSS letter-spacing, default 0.2em (editorial feel)
  *
@@ -24,6 +26,7 @@ export interface CircleTextProps {
   spin?: boolean;
   spinDuration?: number;
   startOffset?: number;
+  textAnchor?: "start" | "middle" | "end";
   fontSize?: number;
   letterSpacing?: string;
   className?: string;
@@ -37,6 +40,7 @@ export function CircleText({
   spin = false,
   spinDuration = 18,
   startOffset = 0,
+  textAnchor = "start",
   fontSize = 11,
   letterSpacing = "0.2em",
   className,
@@ -75,7 +79,7 @@ export function CircleText({
       <defs>
         <path id={id} d={d} fill="none" />
       </defs>
-      <text fill="currentColor" style={{ fontSize, letterSpacing }}>
+      <text fill="currentColor" textAnchor={textAnchor} style={{ fontSize, letterSpacing }}>
         <textPath href={`#${id}`} startOffset={`${startOffset * 100}%`}>
           {text}
         </textPath>
