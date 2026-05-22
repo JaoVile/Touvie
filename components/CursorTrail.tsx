@@ -33,7 +33,7 @@ const CONFIG = {
   speedInfluence: 0.9, // how much pointer speed feeds the inertia
   speedMax: 600, // px/s mapped to "full" speed
   speedSmoothing: 0.2,
-  maxLengthVw: 0.4, // hard cap on total length, as a fraction of viewport w
+  maxLengthVw: 0.8, // hard cap on total length, as a fraction of viewport w
 
   // --- staff: 3 lines + 2 extremely subtle --------------------------------
   staffLines: 5, // total parallel lines: 3 visible + 2 outer faint
