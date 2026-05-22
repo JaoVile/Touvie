@@ -193,8 +193,9 @@ export default async function DashboardPage() {
             style={{
               fontSize: "clamp(4.9rem, 11.9vw, 10.5rem)",
               color: "transparent",
-              WebkitTextStroke: "1.25px var(--color-accent)",
-              opacity: 0.13,
+              // cream stroke instead of gold — neutral, no "yellow"
+              WebkitTextStroke: "1.25px var(--color-fg)",
+              opacity: 0.09,
               transform: "translateX(-50%)",
             }}
           >
