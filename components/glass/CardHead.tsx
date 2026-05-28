@@ -14,11 +14,8 @@ interface CardHeadProps {
  */
 export function CardHead({ icon: Icon, title, badge }: CardHeadProps) {
   return (
-    <div className="mb-4 flex items-center gap-2.5">
-      <span
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-[0.6rem]"
-        style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
-      >
+    <div className="card-head mb-4 flex items-center gap-2.5">
+      <span className="card-head__icon grid h-8 w-8 shrink-0 place-items-center rounded-[0.6rem]">
         <Icon size={15} strokeWidth={1.75} style={{ color: "var(--color-accent)" }} />
       </span>
       <h2

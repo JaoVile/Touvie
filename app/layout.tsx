@@ -5,7 +5,7 @@ import { DEFAULT_THEME } from "@/lib/themes";
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
-import { Instrument_Serif, JetBrains_Mono } from "next/font/google";
+import { Instrument_Serif, JetBrains_Mono, Pinyon_Script } from "next/font/google";
 import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import "./globals.css";
@@ -40,6 +40,17 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["400", "500"],
   variable: "--font-jetbrains",
+  display: "swap",
+});
+
+/**
+ * Pinyon Script — formal copperplate, used as a personal-mark signature
+ * face. Currently scoped to the hero's ghost "Touvie" wordmark.
+ */
+const pinyonScript = Pinyon_Script({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-pinyon",
   display: "swap",
 });
 
@@ -105,7 +116,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html
       lang={locale}
       data-theme={theme}
-      className={`${switzer.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
+      className={`${switzer.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} ${pinyonScript.variable}`}
       suppressHydrationWarning
     >
       <body>

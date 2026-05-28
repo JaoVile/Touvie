@@ -58,9 +58,6 @@
   --glass-border: rgb(255 255 255 / 0.1);
   --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.37);
 
-  /* Size of the folded corner on cards. */
-  --fold-size: 2rem;
-
   /* ── Motion ───────────────────────────────────────────────────
      Easing curves ported from the design guide — one language for
      every transition. --ease-cubic is the workhorse (used for ~all
@@ -213,6 +210,7 @@ a,
 
 .fold-card__body {
   position: relative;
+  overflow: hidden; /* clip content + top highlight to the rounded corners */
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -222,8 +220,6 @@ a,
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-card);
-  /* The cut corner — top-right is sliced on the diagonal. */
-  clip-path: polygon(0 0, calc(100% - var(--fold-size)) 0, 100% var(--fold-size), 100% 100%, 0 100%);
   transition: transform var(--dur-base) var(--ease-cubic);
 }
 
@@ -231,35 +227,120 @@ a,
   transform: translateY(-5px);
 }
 
-.fold-card__flap {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: var(--fold-size);
-  height: var(--fold-size);
-  /* The folded-back underside of the card. */
-  background: linear-gradient(225deg, var(--color-card), var(--color-bg-elevated));
-  clip-path: polygon(0 0, 100% 0, 100% 100%);
-  border-bottom-left-radius: 5px;
-  box-shadow: -4px 5px 11px rgb(0 0 0 / 0.32);
-  transition: transform var(--dur-base) var(--ease-cubic);
-}
-
-/* The glowing crease running along the fold. */
-.fold-card__flap::after {
+/* Glass top highlight — a faint light line catching the upper edge. */
+.fold-card__body::before {
   content: "";
   position: absolute;
+  z-index: 1;
   top: 0;
-  left: 0;
-  width: 142%;
-  height: 2px;
-  background: var(--gradient-brand);
-  transform-origin: top left;
-  transform: rotate(45deg);
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-fg) 26%, transparent),
+    transparent
+  );
 }
 
-.fold-card:hover .fold-card__flap {
-  transform: translateY(-5px) scale(1.05);
+/* Editorial figure in the top-right corner. */
+.fold-card__index {
+  position: absolute;
+  z-index: 1;
+  top: 1.5rem;
+  right: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: color-mix(in srgb, var(--color-accent) 50%, transparent);
+}
+/* Slide it left of the ribbon on bookmark cards. */
+.fold-card--bookmark .fold-card__index {
+  right: 3.4rem;
+}
+
+/* The header icon chip — gold-lit and nudged up as the card is hovered. */
+.card-head__icon {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  transition:
+    background var(--dur-base) var(--ease-cubic),
+    border-color var(--dur-base) var(--ease-cubic),
+    transform var(--dur-base) var(--ease-cubic);
+}
+.fold-card:hover .card-head__icon {
+  background: color-mix(in srgb, var(--color-accent) 16%, var(--color-card));
+  border-color: color-mix(in srgb, var(--color-accent) 50%, var(--color-border));
+  transform: scale(1.08);
+}
+
+/* A gold gradient hairline under every card's header (icon + title),
+   fading out to the right — the dashboard's shared card accent. */
+.fold-card .card-head {
+  position: relative;
+  padding-bottom: 0.85rem;
+}
+.fold-card .card-head::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--color-accent),
+    color-mix(in srgb, var(--color-accent) 8%, transparent) 92%
+  );
+}
+
+/* ── Variant: bookmark ─ a gold ribbon peeking out of the top edge near
+   the right, with a notched V tail (page-marker accent). ───────────── */
+.fold-card--bookmark::after {
+  content: "";
+  position: absolute;
+  top: -0.4rem;
+  right: 1.6rem;
+  width: 0.95rem;
+  height: 2.6rem;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-accent) 88%, white) 0%,
+    var(--color-accent) 42%,
+    color-mix(in srgb, var(--color-accent) 66%, black) 100%
+  );
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 74%, 0 100%);
+  border-radius: 3px 3px 0 0;
+  box-shadow: 0 4px 7px rgb(0 0 0 / 0.32);
+  transition: transform var(--dur-base) var(--ease-cubic);
+}
+.fold-card--bookmark:hover::after {
+  transform: translateY(-3px);
+}
+
+/* ── Variant: spine ─ a vertical gold bar on the left edge, inset from
+   the top and bottom (section-marker). ─────────────────────────────── */
+.fold-card--spine::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 1rem;
+  bottom: 1rem;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(
+    180deg,
+    var(--color-accent),
+    color-mix(in srgb, var(--color-accent) 45%, transparent)
+  );
+  transition:
+    top var(--dur-base) var(--ease-cubic),
+    bottom var(--dur-base) var(--ease-cubic);
+}
+.fold-card--spine:hover::before {
+  top: 0.5rem;
+  bottom: 0.5rem;
 }
 
 /* ── Floating note glyph ─────────────────────────────────────── */
@@ -413,7 +494,6 @@ a,
 
 @media (prefers-reduced-motion: reduce) {
   .fold-card,
-  .fold-card__flap,
   .float-note,
   .gradient-text-anim,
   .rise-in,
@@ -422,7 +502,9 @@ a,
     animation: none !important;
   }
   .fold-card__body,
-  .fold-card__flap,
+  .card-head__icon,
+  .fold-card--bookmark::after,
+  .fold-card--spine::before,
   .link-underline::after {
     transition: none !important;
   }

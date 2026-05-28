@@ -34,6 +34,35 @@ const PARALLAX_GLYPHS = [
   { char: "♫", size: "15rem", top: "82%", left: "36%", speed: -0.09, opacity: 0.04, color: "var(--color-accent)" },
 ] as const;
 
+/* Hero composition — a small greeting arc crowning the visible NAME
+   (not the ghost wordmark), with the "Touvie" ghost watermarked below,
+   floating just above the date row's golden hairlines. */
+const HERO_CONFIG = {
+  wordmarkFontSize: "9rem",
+  wordmarkOpacity: 0.07,
+  // Distance from the date row's bottom to the wordmark's bottom edge.
+  // Tune so "Touvie" floats just above the golden hairlines.
+  wordmarkBottom: "-0.5rem",
+  // Horizontal nudge from centre, in % of the wordmark's own width
+  // (negative = left). Stacked onto the -50% centring offset.
+  wordmarkOffsetX: "-5%",
+  wordmarkParallaxSpeed: -0.06,
+
+  arcRadius: 65,
+  arcStartOffset: 0.5,
+  arcFontSize: 12,
+  arcLetterSpacing: "0.3em",
+  // Arc is centred above the name via left:50% + translate(-50%, Y).
+  // arcOffsetX shifts it sideways, in % of the arc's own width
+  // (positive = right). arcTranslateY pushes it down toward the name
+  // (positive = overlap with the name top).
+  arcOffsetX: "28%",
+  arcTranslateY: "1.5rem",
+  arcRotate: 32,
+
+  nameSize: "text-[3.25rem] sm:text-[4.75rem]",
+} as const;
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
@@ -181,55 +210,68 @@ export default async function DashboardPage() {
             </span>
           </Parallax>
         ))}
-
-        {/* Editorial signature — a serif "Touvie" ghosting BEHIND the
-            hero name, centred. Soft solid fill (no outline) so it's a
-            gentle tint, not a crisp shape. The span's translateX(-50%)
-            does the centring (Parallax owns the element transform). */}
-        <Parallax speed={-0.06} className="absolute left-1/2 top-[13%]">
-          <span
-            className="display block select-none whitespace-nowrap leading-none"
-            style={{
-              fontSize: "clamp(4.9rem, 11.9vw, 10.5rem)",
-              color: "var(--color-accent)",
-              opacity: 0.07,
-              transform: "translateX(-50%)",
-            }}
-          >
-            Touvie
-          </span>
-        </Parallax>
       </div>
 
       {/* ── Hero — recedes on scroll, handing off to the cards ── */}
       <ScrollFade>
         <Reveal>
-          <header className="mb-9 flex flex-col items-center text-center">
-            {/* Greeting arc hugging the name's upper-left — asymmetric,
-                editorial. The big name is pulled up into the arc's curve.
-                Tune together: radius (arc size), startOffset (where the
-                phrase sits on the arc), the -mt overlap, and the name size. */}
-            <div className="mt-8 flex flex-col items-center">
+          <header className="relative mb-16 flex flex-col items-center pb-10 pt-16 text-center">
+            {/* Greeting arc + name — the arc crowns the visible name,
+                centred above. Both live in one `relative inline-block`
+                so the arc's absolute positioning is anchored to the h1's
+                box (centred via left:50%, sits via bottom:100%). */}
+            <div className="relative inline-block">
               <CircleText
                 text={`· ${greetingForHour().toUpperCase()} ·`}
-                radius={127}
+                radius={HERO_CONFIG.arcRadius}
                 arc="top"
-                startOffset={0.06}
-                fontSize={13}
-                letterSpacing="0.44em"
+                startOffset={HERO_CONFIG.arcStartOffset}
+                textAnchor="middle"
+                fontSize={HERO_CONFIG.arcFontSize}
+                letterSpacing={HERO_CONFIG.arcLetterSpacing}
                 style={{
                   color: "var(--color-accent)",
-                  // rotate the arc 9° clockwise and lift it up
-                  transform: "translateY(-2.25rem) rotate(9deg)",
+                  position: "absolute",
+                  bottom: "100%",
+                  left: "50%",
+                  transform: `translate(calc(-50% + ${HERO_CONFIG.arcOffsetX}), ${HERO_CONFIG.arcTranslateY}) rotate(${HERO_CONFIG.arcRotate}deg)`,
+                  pointerEvents: "none",
                 }}
               />
-              <h1 className="display -mt-[7rem] text-[3.25rem] leading-[1.05] sm:text-[4.75rem]">
+              <h1
+                className={`display relative leading-[1.05] ${HERO_CONFIG.nameSize}`}
+              >
                 <span className="display-i gradient-text-anim">{heroName}</span>
               </h1>
             </div>
 
-            {/* Date framed by a pair of hairlines. */}
-            <div className="mt-3 flex items-center gap-3">
+            {/* Date framed by a pair of hairlines, with the "Touvie"
+                ghost watermark floating just above the golden hairlines.
+                Parallax overwrites its child's transform, so the centring
+                lives on the outer wrapper, not the Parallax itself. */}
+            <div className="relative mt-3 flex items-center gap-3">
+              <div
+                className="pointer-events-none absolute left-1/2"
+                style={{
+                  bottom: HERO_CONFIG.wordmarkBottom,
+                  transform: `translateX(calc(-50% + ${HERO_CONFIG.wordmarkOffsetX}))`,
+                }}
+              >
+                <Parallax speed={HERO_CONFIG.wordmarkParallaxSpeed}>
+                  <span
+                    aria-hidden
+                    className="block select-none whitespace-nowrap leading-none"
+                    style={{
+                      fontFamily: "var(--font-pinyon), cursive",
+                      fontSize: HERO_CONFIG.wordmarkFontSize,
+                      color: "var(--color-accent)",
+                      opacity: HERO_CONFIG.wordmarkOpacity,
+                    }}
+                  >
+                    Touvie
+                  </span>
+                </Parallax>
+              </div>
               <span className="h-px w-10" style={{ background: "var(--color-border)" }} />
               <p
                 className="text-sm first-letter:uppercase"
@@ -241,7 +283,7 @@ export default async function DashboardPage() {
             </div>
 
             {/* Stat strip */}
-            <dl className="glass mt-6 flex w-full overflow-hidden">
+            <dl className="glass mt-10 flex w-full overflow-hidden">
               {stats.map((s, i) => (
                 <div
                   key={s.label}
@@ -299,7 +341,7 @@ export default async function DashboardPage() {
       <Grid>
         {/* Rotina + streaks */}
         <Col span={7} spanSm={6} reveal>
-          <FoldCard>
+          <FoldCard index={1}>
             <CardHead
               icon={CalendarDays}
               title="Rotina de hoje"
@@ -441,7 +483,7 @@ export default async function DashboardPage() {
 
         {/* Metas */}
         <Col span={5} spanSm={3} reveal delay={80}>
-          <FoldCard>
+          <FoldCard variant="bookmark" index={2}>
             <CardHead icon={Target} title="Metas ativas" />
             {goals.length === 0 ? (
               <div className="flex flex-col items-center pb-1 pt-2 text-center">
@@ -475,7 +517,7 @@ export default async function DashboardPage() {
 
         {/* Tarefas */}
         <Col span={5} spanSm={3} reveal delay={160}>
-          <FoldCard>
+          <FoldCard variant="spine" index={3}>
             <CardHead icon={ListChecks} title="Próximas tarefas" />
             {tasks.length === 0 ? (
               <EmptyState href="/metas" label="Criar tarefa">
@@ -507,7 +549,7 @@ export default async function DashboardPage() {
 
         {/* Finanças */}
         <Col span={7} spanSm={6} reveal delay={240}>
-          <FoldCard>
+          <FoldCard index={4}>
             <CardHead icon={Wallet} title="Mês corrente" />
             {txs.length === 0 ? (
               <EmptyState href="/financas" label="Lançar">

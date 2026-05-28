@@ -20,7 +20,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <SideLabel />
       <Nav />
       <main
-        className="mx-auto w-full max-w-7xl flex-1 px-4 pt-6 sm:px-6"
+        className="mx-auto w-full max-w-7xl flex-1 px-4 pt-12 sm:px-6"
         style={{ paddingBottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
       >
         {children}
