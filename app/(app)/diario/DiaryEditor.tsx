@@ -2,10 +2,11 @@
 
 import { GlassCard } from "@/components/glass/GlassCard";
 import { addWeeks, weekRangeLabelBR, weekStartISO } from "@/lib/datetime";
+import { Lock } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { saveMood, saveEntry } from "./actions";
+import { saveEntry, saveMood } from "./actions";
 
 interface Props {
   weekStart: string;
@@ -151,10 +152,11 @@ export function DiaryEditor({
         <button
           type="button"
           onClick={lockNow}
-          className="rounded px-2 py-1 text-xs transition hover:opacity-80"
-          style={{ background: "var(--color-card)", color: "var(--color-fg-muted)" }}
+          className="btn-chip text-eyebrow font-semibold uppercase tracking-[0.1em]"
+          title="Trancar o diário agora"
         >
-          🔒 trancar
+          <Lock size={12} strokeWidth={2.25} />
+          Trancar
         </button>
       </div>
 
@@ -170,11 +172,9 @@ export function DiaryEditor({
             disabled={!editable}
             onClick={() => handleMood(m.score, m.emoji)}
             title={m.label}
-            className="rounded-full p-1 text-lg leading-none transition-transform hover:scale-125 disabled:cursor-default"
-            style={{
-              outline: moodScore === m.score ? "2px solid var(--color-accent)" : "none",
-              outlineOffset: "1px",
-            }}
+            aria-pressed={moodScore === m.score}
+            className="mood-btn"
+            data-selected={moodScore === m.score || undefined}
           >
             {m.emoji}
           </button>
@@ -194,7 +194,7 @@ export function DiaryEditor({
         placeholder={
           editable
             ? "Escreva como se já tivesse acontecido. Use o presente. Sinta antes de pensar."
-            : "Modo leitura — abra no notebook pra escrever."
+            : "Somente leitura."
         }
         className="min-h-[440px] w-full resize-y rounded-lg border p-4 font-mono text-sm leading-relaxed outline-none transition focus:ring-2"
         style={{

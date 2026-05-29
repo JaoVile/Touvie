@@ -264,10 +264,8 @@ a,
 .card-head__icon {
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  transition:
-    background var(--dur-base) var(--ease-cubic),
-    border-color var(--dur-base) var(--ease-cubic),
-    transform var(--dur-base) var(--ease-cubic);
+  transition: background var(--dur-base) var(--ease-cubic), border-color var(--dur-base)
+    var(--ease-cubic), transform var(--dur-base) var(--ease-cubic);
 }
 .fold-card:hover .card-head__icon {
   background: color-mix(in srgb, var(--color-accent) 16%, var(--color-card));
@@ -334,9 +332,7 @@ a,
     var(--color-accent),
     color-mix(in srgb, var(--color-accent) 45%, transparent)
   );
-  transition:
-    top var(--dur-base) var(--ease-cubic),
-    bottom var(--dur-base) var(--ease-cubic);
+  transition: top var(--dur-base) var(--ease-cubic), bottom var(--dur-base) var(--ease-cubic);
 }
 .fold-card--spine:hover::before {
   top: 0.5rem;
@@ -566,9 +562,8 @@ input[type="week"]:hover::-webkit-calendar-picker-indicator {
   width: 1.75rem;
   border-radius: 0.5rem;
   color: var(--color-fg-muted);
-  transition:
-    background var(--dur-base, 0.2s) var(--ease-cubic, ease),
-    color var(--dur-base, 0.2s) var(--ease-cubic, ease);
+  transition: background var(--dur-base, 0.2s) var(--ease-cubic, ease), color var(--dur-base, 0.2s)
+    var(--ease-cubic, ease);
 }
 .picker-nav:hover {
   background: color-mix(in srgb, var(--color-accent) 16%, transparent);
@@ -585,9 +580,8 @@ input[type="week"]:hover::-webkit-calendar-picker-indicator {
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
   color: var(--color-fg);
-  transition:
-    background var(--dur-base, 0.2s) var(--ease-cubic, ease),
-    color var(--dur-base, 0.2s) var(--ease-cubic, ease);
+  transition: background var(--dur-base, 0.2s) var(--ease-cubic, ease), color var(--dur-base, 0.2s)
+    var(--ease-cubic, ease);
 }
 .picker-day:hover {
   background: color-mix(in srgb, var(--color-accent) 18%, transparent);
@@ -633,9 +627,8 @@ input[type="week"]:hover::-webkit-calendar-picker-indicator {
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
   color: var(--color-fg);
-  transition:
-    background var(--dur-base, 0.2s) var(--ease-cubic, ease),
-    color var(--dur-base, 0.2s) var(--ease-cubic, ease);
+  transition: background var(--dur-base, 0.2s) var(--ease-cubic, ease), color var(--dur-base, 0.2s)
+    var(--ease-cubic, ease);
 }
 .picker-opt:hover {
   background: color-mix(in srgb, var(--color-accent) 18%, transparent);
@@ -657,9 +650,8 @@ input[type="week"]:hover::-webkit-calendar-picker-indicator {
   border: 1px solid color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
   padding: 0.2rem 0.6rem;
   color: var(--color-accent);
-  transition:
-    background var(--dur-base, 0.2s) var(--ease-cubic, ease),
-    border-color var(--dur-base, 0.2s) var(--ease-cubic, ease);
+  transition: background var(--dur-base, 0.2s) var(--ease-cubic, ease), border-color
+    var(--dur-base, 0.2s) var(--ease-cubic, ease);
 }
 .btn-chip:hover {
   background: color-mix(in srgb, var(--color-accent) 14%, transparent);
@@ -687,7 +679,8 @@ input[type="week"]:hover::-webkit-calendar-picker-indicator {
 }
 .padlock__shackle {
   transform-box: fill-box;
-  transform-origin: 88% 92%;
+  /* pivot on the right leg's base — the captive leg that stays in the body */
+  transform-origin: 90% 82%;
 }
 .padlock.is-open .padlock__shackle {
   animation: padlock-shackle 0.75s var(--ease-cubic) forwards;
@@ -699,20 +692,44 @@ input[type="week"]:hover::-webkit-calendar-picker-indicator {
   animation: padlock-glow 0.9s var(--ease-cubic) forwards;
 }
 @keyframes padlock-shackle {
-  0% { transform: translateY(0) rotate(0deg); }
-  35% { transform: translateY(-7px) rotate(0deg); }
-  100% { transform: translateY(-5px) rotate(-36deg); }
+  /* lift the shackle clear of the body, then hinge it open clockwise about
+     the right leg — the free (left) leg swings up and out. */
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  40% {
+    transform: translateY(-9px) rotate(0deg);
+  }
+  100% {
+    transform: translateY(-8px) rotate(42deg);
+  }
 }
 @keyframes padlock-pop {
-  0% { transform: scale(1); }
-  30% { transform: scale(1.1); }
-  55% { transform: scale(0.96); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.1);
+  }
+  55% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 @keyframes padlock-glow {
-  0% { opacity: 0; transform: scale(0.5); }
-  35% { opacity: 0.55; }
-  100% { opacity: 0; transform: scale(1.9); }
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  35% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
 }
 
 /* ── Row action icon buttons (goal/task indicators) ──────────────────
@@ -725,9 +742,8 @@ input[type="week"]:hover::-webkit-calendar-picker-indicator {
   width: 1.75rem;
   border-radius: 0.45rem;
   color: var(--color-fg-subtle);
-  transition:
-    background var(--dur-fast, 0.18s) var(--ease-cubic, ease),
-    color var(--dur-fast, 0.18s) var(--ease-cubic, ease);
+  transition: background var(--dur-fast, 0.18s) var(--ease-cubic, ease), color
+    var(--dur-fast, 0.18s) var(--ease-cubic, ease);
 }
 .row-action:hover {
   background: color-mix(in srgb, var(--color-fg) 12%, transparent);
@@ -744,4 +760,31 @@ input[type="week"]:hover::-webkit-calendar-picker-indicator {
 }
 .row-action.is-del:hover {
   color: var(--color-danger);
+}
+
+/* ── Diary mood picker — refined segmented faces ─────────────────────
+   Full-colour faces; the chosen one is marked by a gold ring + faint
+   gold plate. Hover gives a subtle plate + lift. */
+.mood-btn {
+  display: grid;
+  place-items: center;
+  height: 2.1rem;
+  width: 2.1rem;
+  border-radius: 0.6rem;
+  font-size: 1.2rem;
+  line-height: 1;
+  transition: transform var(--dur-fast, 0.18s) var(--ease-cubic, ease), background
+    var(--dur-fast, 0.18s) var(--ease-cubic, ease), box-shadow var(--dur-fast, 0.18s)
+    var(--ease-cubic, ease);
+}
+.mood-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--color-fg) 10%, transparent);
+}
+.mood-btn[data-selected] {
+  background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--color-accent);
+}
+.mood-btn:disabled {
+  cursor: default;
 }
