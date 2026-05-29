@@ -1,5 +1,9 @@
+import { CalendarDays, CalendarPlus, CalendarRange, LayoutList, Sun, type LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { GlassCard } from "@/components/glass/GlassCard";
+import { PageGlyphs } from "@/components/PageGlyphs";
+import { Reveal } from "@/components/Reveal";
+import { CardHead } from "@/components/glass/CardHead";
+import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { addDaysISO, todayBRTISO } from "@/lib/datetime";
 import { createClient } from "@/lib/supabase/server";
@@ -57,31 +61,46 @@ export default async function RotinaPage({ searchParams }: { searchParams: Searc
 
   return (
     <>
-      <GradientHeader emoji="📅" title="Rotina" subtitle="Como o seu dia e semana devem fluir." />
+      <PageGlyphs variant="routine" />
 
-      <div className="mb-4 inline-flex gap-1 rounded-lg p-1" style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}>
-        <TabLink href="/rotina?tab=diaria" active={tab === "diaria"} label="Diária" />
-        <TabLink href="/rotina?tab=semanal" active={tab === "semanal"} label="Semanal" />
+      <Reveal>
+        <GradientHeader
+          icon={CalendarDays}
+          eyebrow="Ritmo · Semana"
+          title="Rotina"
+          subtitle="Como o seu dia e semana devem fluir."
+        />
+      </Reveal>
+
+      <div className="mb-6 flex gap-1 overflow-x-auto border-b" style={{ borderColor: "var(--color-border)" }}>
+        <TabLink href="/rotina?tab=diaria" active={tab === "diaria"} label="Diária" icon={Sun} />
+        <TabLink href="/rotina?tab=semanal" active={tab === "semanal"} label="Semanal" icon={CalendarRange} />
       </div>
 
       {tab === "diaria" ? (
         <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-          <GlassCard>
-            <h2 className="mb-3 font-semibold">Blocos do dia</h2>
-            <DailyList
-              blocks={daily.data ?? []}
-              completedToday={[...completedToday]}
-              streaks={streaks}
-              todayISO={today}
-            />
-          </GlassCard>
-          <GlassCard>
-            <h2 className="mb-3 font-semibold">Novo bloco</h2>
-            <DailyForm />
-          </GlassCard>
+          <Reveal className="h-full">
+            <FoldCard>
+              <CardHead icon={LayoutList} title="Blocos do dia" />
+              <DailyList
+                blocks={daily.data ?? []}
+                completedToday={[...completedToday]}
+                streaks={streaks}
+                todayISO={today}
+              />
+            </FoldCard>
+          </Reveal>
+          <Reveal className="h-full" delay={80}>
+            <FoldCard>
+              <CardHead icon={CalendarPlus} title="Novo bloco" />
+              <DailyForm />
+            </FoldCard>
+          </Reveal>
         </div>
       ) : (
-        <WeeklyGrid blocks={weekly.data ?? []} />
+        <Reveal>
+          <WeeklyGrid blocks={weekly.data ?? []} />
+        </Reveal>
       )}
     </>
   );
@@ -98,17 +117,29 @@ function computeStreak(dates: Set<string>, today: string): number {
   return streak;
 }
 
-function TabLink({ href, active, label }: { href: string; active: boolean; label: string }) {
+function TabLink({
+  href,
+  active,
+  label,
+  icon: Icon,
+}: { href: string; active: boolean; label: string; icon: LucideIcon }) {
   return (
     <Link
       href={href}
-      className={
-        active
-          ? "rounded-md gradient-brand px-3 py-1.5 text-sm font-semibold text-white"
-          : "rounded-md px-3 py-1.5 text-sm font-medium hover:opacity-80"
-      }
+      className="group relative flex items-center gap-2 whitespace-nowrap px-4 py-2.5 text-eyebrow font-semibold uppercase tracking-[0.1em] transition-colors"
+      style={{ color: active ? "var(--color-accent)" : "var(--color-fg-subtle)" }}
     >
+      <Icon size={14} strokeWidth={1.75} />
       {label}
+      {active ? (
+        <span
+          className="absolute inset-x-0 -bottom-px h-0.5"
+          style={{
+            background:
+              "linear-gradient(90deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 8%, transparent) 92%)",
+          }}
+        />
+      ) : null}
     </Link>
   );
 }

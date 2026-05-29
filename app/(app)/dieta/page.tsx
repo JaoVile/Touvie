@@ -1,3 +1,6 @@
+import { Salad } from "lucide-react";
+import { PageGlyphs } from "@/components/PageGlyphs";
+import { Reveal } from "@/components/Reveal";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { todayBRTISO } from "@/lib/datetime";
 import { createClient } from "@/lib/supabase/server";
@@ -35,15 +38,28 @@ export default async function DietaPage({ searchParams }: { searchParams: SP }) 
 
   return (
     <>
-      <GradientHeader emoji="🥗" title="Dieta" subtitle={subtitleByTab[tab]} />
+      <PageGlyphs variant="diet" />
+
+      <Reveal>
+        <GradientHeader
+          icon={Salad}
+          eyebrow="Nutrição · Diário"
+          title="Dieta"
+          subtitle={subtitleByTab[tab]}
+        />
+      </Reveal>
+
       <Tabs current={tab} />
-      {tab === "hoje" ? (
-        <HojeTab userId={userId} date={dateParam} />
-      ) : tab === "alimentos" ? (
-        <AlimentosTab userId={userId} />
-      ) : (
-        <MedidasTab userId={userId} />
-      )}
+
+      <Reveal delay={120}>
+        {tab === "hoje" ? (
+          <HojeTab userId={userId} date={dateParam} />
+        ) : tab === "alimentos" ? (
+          <AlimentosTab userId={userId} />
+        ) : (
+          <MedidasTab userId={userId} />
+        )}
+      </Reveal>
     </>
   );
 }

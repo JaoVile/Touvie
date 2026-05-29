@@ -1,10 +1,23 @@
-import { GlassCard } from "@/components/glass/GlassCard";
+import { Lock, NotebookPen, Search, Wallet } from "lucide-react";
+import { PageGlyphs } from "@/components/PageGlyphs";
+import { Reveal } from "@/components/Reveal";
+import { CardHead } from "@/components/glass/CardHead";
+import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { SearchBar } from "@/components/SearchBar";
 import { createClient } from "@/lib/supabase/server";
 import { formatBRL } from "@/lib/utils";
 import Link from "next/link";
 import { Suspense } from "react";
+
+/** Small muted count chip for a result-section header. */
+function CountBadge({ n }: { n: number }) {
+  return (
+    <span className="ml-auto font-mono text-xs" style={{ color: "var(--color-fg-subtle)" }}>
+      {n}
+    </span>
+  );
+}
 
 export const dynamic = "force-dynamic";
 
@@ -16,12 +29,22 @@ export default async function BuscaPage({ searchParams }: { searchParams: SP }) 
 
   return (
     <>
-      <GradientHeader emoji="🔍" title="Busca" subtitle="Encontre qualquer coisa no app." />
-      <GlassCard className="mb-4">
+      <PageGlyphs variant="system" />
+
+      <Reveal>
+        <GradientHeader
+          icon={Search}
+          eyebrow="Encontrar · App"
+          title="Busca"
+          subtitle="Encontre qualquer coisa no app."
+        />
+      </Reveal>
+
+      <FoldCard className="mb-4">
         <Suspense>
           <SearchBar autoFocus={!query} />
         </Suspense>
-      </GlassCard>
+      </FoldCard>
 
       {query.length >= 2 ? (
         <Suspense fallback={<LoadingResults />}>
@@ -76,23 +99,28 @@ async function Results({ query }: { query: string }) {
 
   if (total === 0) {
     return (
-      <GlassCard>
-        <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-          Nenhum resultado para <strong>"{query}"</strong>.
-        </p>
-      </GlassCard>
+      <Reveal>
+        <FoldCard>
+          <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
+            Nenhum resultado para <strong>"{query}"</strong>.
+          </p>
+        </FoldCard>
+      </Reveal>
     );
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-        {total} resultado{total !== 1 ? "s" : ""} para <strong>"{query}"</strong>
-      </p>
+      <Reveal>
+        <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
+          {total} resultado{total !== 1 ? "s" : ""} para <strong>"{query}"</strong>
+        </p>
+      </Reveal>
 
       {txs.length > 0 ? (
-        <GlassCard>
-          <h2 className="mb-3 font-semibold">💰 Transações ({txs.length})</h2>
+        <Reveal delay={80}>
+        <FoldCard>
+          <CardHead icon={Wallet} title="Transações" badge={<CountBadge n={txs.length} />} />
           <ul className="divide-y" style={{ borderColor: "var(--color-border)" }}>
             {txs.map((t) => {
               const cat = t.finance_categories as unknown as { name: string; emoji: string | null } | null;
@@ -122,12 +150,14 @@ async function Results({ query }: { query: string }) {
               );
             })}
           </ul>
-        </GlassCard>
+        </FoldCard>
+        </Reveal>
       ) : null}
 
       {notesList.length > 0 ? (
-        <GlassCard>
-          <h2 className="mb-3 font-semibold">📝 Notas ({notesList.length})</h2>
+        <Reveal delay={160}>
+        <FoldCard>
+          <CardHead icon={NotebookPen} title="Notas" badge={<CountBadge n={notesList.length} />} />
           <ul className="divide-y" style={{ borderColor: "var(--color-border)" }}>
             {notesList.map((n) => {
               const preview = extractPreview(n.title + " " + n.content, query);
@@ -158,12 +188,14 @@ async function Results({ query }: { query: string }) {
               );
             })}
           </ul>
-        </GlassCard>
+        </FoldCard>
+        </Reveal>
       ) : null}
 
       {diary.length > 0 ? (
-        <GlassCard>
-          <h2 className="mb-3 font-semibold">🔒 Diário ({diary.length})</h2>
+        <Reveal delay={240}>
+        <FoldCard>
+          <CardHead icon={Lock} title="Diário" badge={<CountBadge n={diary.length} />} />
           <ul className="divide-y" style={{ borderColor: "var(--color-border)" }}>
             {diary.map((e) => {
               const preview = extractPreview(e.content, query);
@@ -190,7 +222,8 @@ async function Results({ query }: { query: string }) {
               );
             })}
           </ul>
-        </GlassCard>
+        </FoldCard>
+        </Reveal>
       ) : null}
     </div>
   );
@@ -226,24 +259,26 @@ function formatWeekLabel(weekStart: string): string {
 
 function LoadingResults() {
   return (
-    <GlassCard>
+    <FoldCard>
       <p className="text-sm animate-pulse" style={{ color: "var(--color-fg-muted)" }}>
         Buscando…
       </p>
-    </GlassCard>
+    </FoldCard>
   );
 }
 
 function SearchHints() {
   return (
-    <GlassCard>
-      <p className="mb-3 text-sm font-medium" style={{ color: "var(--color-fg-muted)" }}>
-        O que você pode buscar:
-      </p>
-      <ul className="space-y-1.5 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-        <li>💰 Descrição de transações — ex: <em>"iFood"</em>, <em>"Nubank"</em></li>
-        <li>🔒 Conteúdo do diário — ex: <em>"meta"</em>, <em>"gratidão"</em></li>
-      </ul>
-    </GlassCard>
+    <Reveal>
+      <FoldCard>
+        <p className="mb-3 text-sm font-medium" style={{ color: "var(--color-fg-muted)" }}>
+          O que você pode buscar:
+        </p>
+        <ul className="space-y-1.5 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+          <li>💰 Descrição de transações — ex: <em>"iFood"</em>, <em>"Nubank"</em></li>
+          <li>🔒 Conteúdo do diário — ex: <em>"meta"</em>, <em>"gratidão"</em></li>
+        </ul>
+      </FoldCard>
+    </Reveal>
   );
 }

@@ -1,4 +1,7 @@
-import { GlassCard } from "@/components/glass/GlassCard";
+import { Lock, NotebookPen } from "lucide-react";
+import { PageGlyphs } from "@/components/PageGlyphs";
+import { Reveal } from "@/components/Reveal";
+import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { weekStartISO } from "@/lib/datetime";
 import { TRUSTED_COOKIE, verifyTrustedDevice } from "@/lib/device";
@@ -36,20 +39,26 @@ export default async function DiarioPage({ searchParams }: { searchParams: SP })
   if (!profile?.pin_hash) {
     return (
       <>
-        <GradientHeader
-          emoji="🔒"
-          title="Diário"
-          subtitle="Configure um PIN antes de começar a escrever."
-        />
-        <GlassCard>
-          {trusted ? (
-            <PinSetupForm />
-          ) : (
-            <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-              Configure o PIN no <strong>notebook</strong> primeiro. O celular fica somente leitura.
-            </p>
-          )}
-        </GlassCard>
+        <PageGlyphs variant="editorial" />
+        <Reveal>
+          <GradientHeader
+            icon={Lock}
+            eyebrow="Privado · PIN"
+            title="Diário"
+            subtitle="Configure um PIN antes de começar a escrever."
+          />
+        </Reveal>
+        <Reveal delay={120}>
+          <FoldCard>
+            {trusted ? (
+              <PinSetupForm />
+            ) : (
+              <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                Configure o PIN no <strong>notebook</strong> primeiro. O celular fica somente leitura.
+              </p>
+            )}
+          </FoldCard>
+        </Reveal>
       </>
     );
   }
@@ -59,8 +68,18 @@ export default async function DiarioPage({ searchParams }: { searchParams: SP })
   if (!unlocked) {
     return (
       <>
-        <GradientHeader emoji="🔒" title="Diário" subtitle="Digite o PIN para acessar." />
-        <PinGate />
+        <PageGlyphs variant="editorial" />
+        <Reveal>
+          <GradientHeader
+            icon={Lock}
+            eyebrow="Privado · Bloqueado"
+            title="Diário"
+            subtitle="Digite o PIN para acessar."
+          />
+        </Reveal>
+        <Reveal delay={120}>
+          <PinGate />
+        </Reveal>
       </>
     );
   }
@@ -77,17 +96,29 @@ export default async function DiarioPage({ searchParams }: { searchParams: SP })
 
   return (
     <>
-      <GradientHeader emoji="🔒" title="Diário" subtitle="Escreva como se já tivesse acontecido." />
-      <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
-        <DiaryEditor
-          weekStart={weekStart}
-          initialContent={current?.content ?? ""}
-          initialSavedAt={current?.updated_at ?? null}
-          initialMoodScore={current?.mood_score ?? null}
-          initialMoodEmoji={current?.mood_emoji ?? null}
-          editable={trusted}
+      <PageGlyphs variant="editorial" />
+      <Reveal>
+        <GradientHeader
+          icon={NotebookPen}
+          eyebrow="Privado · Semana"
+          title="Diário"
+          subtitle="Escreva como se já tivesse acontecido."
         />
-        <WeekList currentWeekStart={weekStart} entries={past} />
+      </Reveal>
+      <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
+        <Reveal className="h-full">
+          <DiaryEditor
+            weekStart={weekStart}
+            initialContent={current?.content ?? ""}
+            initialSavedAt={current?.updated_at ?? null}
+            initialMoodScore={current?.mood_score ?? null}
+            initialMoodEmoji={current?.mood_emoji ?? null}
+            editable={trusted}
+          />
+        </Reveal>
+        <Reveal className="h-full" delay={80}>
+          <WeekList currentWeekStart={weekStart} entries={past} />
+        </Reveal>
       </div>
     </>
   );

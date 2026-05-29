@@ -1,3 +1,6 @@
+import { Wallet } from "lucide-react";
+import { PageGlyphs } from "@/components/PageGlyphs";
+import { Reveal } from "@/components/Reveal";
 import { GlassCard } from "@/components/glass/GlassCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { todayBRTISO } from "@/lib/datetime";
@@ -83,7 +86,15 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
 
   return (
     <>
-      <GradientHeader emoji="💰" title="Finanças" subtitle={subtitleByTab[tab]} />
+      <PageGlyphs variant="finance" />
+      <Reveal>
+        <GradientHeader
+          icon={Wallet}
+          eyebrow="Dinheiro · Mês"
+          title="Finanças"
+          subtitle={subtitleByTab[tab]}
+        />
+      </Reveal>
       <Tabs current={tab} />
 
       {noCategories && !["setup", "importar", "contas", "caixinhas"].includes(tab) ? (

@@ -1,3 +1,6 @@
+import { Dumbbell } from "lucide-react";
+import { PageGlyphs } from "@/components/PageGlyphs";
+import { Reveal } from "@/components/Reveal";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { createClient } from "@/lib/supabase/server";
 import { HistoricoTab } from "./HistoricoTab";
@@ -35,7 +38,15 @@ export default async function TreinoPage({ searchParams }: { searchParams: SP })
 
   return (
     <>
-      <GradientHeader emoji="💪" title="Treino" subtitle={subtitleByTab[tab]} />
+      <PageGlyphs variant="fitness" />
+      <Reveal>
+        <GradientHeader
+          icon={Dumbbell}
+          eyebrow="Força · Sessão"
+          title="Treino"
+          subtitle={subtitleByTab[tab]}
+        />
+      </Reveal>
       <Tabs current={tab} />
       {tab === "hoje" ? (
         <HojeTab userId={userId} />
