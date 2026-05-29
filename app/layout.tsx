@@ -1,3 +1,4 @@
+import { NativePickerOpener } from "@/components/NativePickerOpener";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { createClient } from "@/lib/supabase/server";
@@ -124,6 +125,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <ThemeProvider theme={theme}>{children}</ThemeProvider>
         </NextIntlClientProvider>
         <ServiceWorkerRegister />
+        <NativePickerOpener />
       </body>
     </html>
   );

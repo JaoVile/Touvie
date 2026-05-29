@@ -1,5 +1,6 @@
 "use client";
 
+import { DatePicker } from "@/components/DatePicker";
 import { todayBRTISO } from "@/lib/datetime";
 import { useRef, useState, useTransition } from "react";
 import { saveMeasurement } from "./actions";
@@ -20,7 +21,14 @@ export function MeasurementForm() {
 
   return (
     <form ref={formRef} action={submit} className="space-y-2 text-xs">
-      <Field name="measured_on" type="date" defaultValue={todayBRTISO()} required label="Data" />
+      <label className="block">
+        <span className="text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
+          Data
+        </span>
+        <div className="mt-0.5">
+          <DatePicker name="measured_on" defaultValue={todayBRTISO()} compact />
+        </div>
+      </label>
       <Field name="weight_kg" type="number" step="0.1" placeholder="Ex: 78.4" label="Peso (kg)" />
       <div className="grid grid-cols-2 gap-2">
         <Field name="waist_cm" type="number" step="0.5" placeholder="cm" label="Cintura" />

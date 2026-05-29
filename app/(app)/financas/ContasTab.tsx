@@ -1,5 +1,6 @@
 "use client";
 
+import { DatePicker } from "@/components/DatePicker";
 import { formatBRL } from "@/lib/utils";
 import { useState, useTransition } from "react";
 import { deleteBill, saveBill, toggleBillPaid } from "./actions";
@@ -207,9 +208,7 @@ function BillForm({
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium" style={{ color: "var(--color-fg-muted)" }}>Vencimento *</label>
-          <input name="due_date" type="date" defaultValue={bill?.due_date ?? today} required
-            className="w-full rounded-lg border px-3 py-1.5 text-sm outline-none focus:ring-2"
-            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }} />
+          <DatePicker name="due_date" defaultValue={bill?.due_date ?? today} />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium" style={{ color: "var(--color-fg-muted)" }}>Categoria</label>

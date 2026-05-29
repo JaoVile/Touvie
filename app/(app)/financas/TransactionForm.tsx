@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { DatePicker } from "@/components/DatePicker";
 import { saveTransaction } from "./actions";
 
 interface Account {
@@ -103,14 +104,7 @@ export function TransactionForm({
           className={inputCls}
           style={inputStyle}
         />
-        <input
-          type="date"
-          name="occurred_on"
-          required
-          defaultValue={defaultValues?.occurred_on ?? today}
-          className={inputCls}
-          style={inputStyle}
-        />
+        <DatePicker name="occurred_on" defaultValue={defaultValues?.occurred_on ?? today} />
       </div>
 
       <select

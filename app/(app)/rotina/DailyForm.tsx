@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { TimePicker } from "@/components/TimePicker";
+import { EmojiPicker } from "./EmojiPicker";
 import { saveDailyBlock } from "./actions";
 
 interface Props {
@@ -30,35 +32,20 @@ export function DailyForm({ defaultValues, onDone }: Props) {
   return (
     <form action={submit} className="space-y-3 text-sm">
       {defaultValues?.id ? <input type="hidden" name="id" value={defaultValues.id} /> : null}
-      <div className="grid grid-cols-[90px_1fr] gap-2">
-        <input
-          type="time"
-          name="time_slot"
-          required
-          defaultValue={defaultValues?.time_slot?.slice(0, 5) ?? "07:00"}
-          className={inputCls}
-          style={inputStyle}
-        />
+      <div className="grid grid-cols-[110px_64px_1fr] gap-2">
+        <TimePicker name="time_slot" defaultValue={defaultValues?.time_slot?.slice(0, 5) ?? "07:00"} />
+        <EmojiPicker name="emoji" defaultValue={defaultValues?.emoji ?? ""} />
         <input
           type="text"
-          name="emoji"
-          placeholder="emoji"
-          maxLength={4}
-          defaultValue={defaultValues?.emoji ?? ""}
+          name="title"
+          placeholder="Ex: Academia…"
+          required
+          maxLength={120}
+          defaultValue={defaultValues?.title ?? ""}
           className={inputCls}
           style={inputStyle}
         />
       </div>
-      <input
-        type="text"
-        name="title"
-        placeholder="Ex: Academia, Estudos, Trabalho..."
-        required
-        maxLength={120}
-        defaultValue={defaultValues?.title ?? ""}
-        className={inputCls}
-        style={inputStyle}
-      />
       <textarea
         name="notes"
         placeholder="Notas (opcional)"

@@ -1,7 +1,10 @@
 "use client";
 
+import { Plus, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { GlassCard } from "@/components/glass/GlassCard";
+import { TimePicker } from "@/components/TimePicker";
+import { EmojiPicker } from "./EmojiPicker";
 import { deleteWeeklyBlock, saveWeeklyBlock } from "./actions";
 
 interface Block {
@@ -31,10 +34,19 @@ export function WeeklyGrid({ blocks }: { blocks: Block[] }) {
               <button
                 type="button"
                 onClick={() => setAdding(adding === weekday ? null : weekday)}
-                className="text-xs"
-                style={{ color: "var(--color-accent)" }}
+                className="btn-chip text-eyebrow font-semibold uppercase tracking-[0.1em]"
               >
-                {adding === weekday ? "fechar" : "+ adicionar"}
+                {adding === weekday ? (
+                  <>
+                    <X size={12} strokeWidth={2.25} />
+                    Fechar
+                  </>
+                ) : (
+                  <>
+                    <Plus size={12} strokeWidth={2.25} />
+                    Adicionar
+                  </>
+                )}
               </button>
             </div>
             {adding === weekday ? (
@@ -108,31 +120,18 @@ function WeeklyForm({ weekday, onDone }: { weekday: number; onDone: () => void }
   return (
     <form action={submit} className="mb-3 space-y-2 text-xs">
       <input type="hidden" name="weekday" value={weekday} />
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-[84px_56px_1fr] gap-1.5">
+        <TimePicker name="block" defaultValue="07:00" compact />
+        <EmojiPicker name="emoji" compact />
         <input
-          name="block"
-          placeholder="Manhã / Tarde..."
+          name="title"
+          placeholder="Título"
           required
-          maxLength={40}
-          className={inputCls}
-          style={inputStyle}
-        />
-        <input
-          name="emoji"
-          placeholder="emoji"
-          maxLength={4}
+          maxLength={120}
           className={inputCls}
           style={inputStyle}
         />
       </div>
-      <input
-        name="title"
-        placeholder="Título"
-        required
-        maxLength={120}
-        className={inputCls}
-        style={inputStyle}
-      />
       <input name="notes" placeholder="Notas (opcional)" className={inputCls} style={inputStyle} />
       {err ? <p style={{ color: "var(--color-danger)" }}>{err}</p> : null}
       <button
