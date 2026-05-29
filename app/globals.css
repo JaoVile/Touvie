@@ -498,6 +498,9 @@ a,
   .gradient-text-anim,
   .rise-in,
   .marquee__track,
+  .padlock.is-open .padlock__shackle,
+  .padlock.is-open .padlock__svg,
+  .padlock.is-open .padlock__glow,
   [style*="circle-text-spin"] {
     animation: none !important;
   }
@@ -508,4 +511,237 @@ a,
   .link-underline::after {
     transition: none !important;
   }
+}
+
+/* ── Selection controls — one consistent language ───────────────────
+   Native date/time pickers and <select> all read as the same dark,
+   accent-tinted control. `color-scheme`/`accent-color` (set per theme)
+   theme the popups; here we make the whole field feel clickable. The
+   full-field "click to open" for date/time lives in NativePickerOpener. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"],
+select {
+  cursor: pointer;
+}
+
+/* The calendar/clock indicator — bigger, lit on hover, clearly tappable. */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="week"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity var(--dur-base, 0.2s) var(--ease-cubic, ease);
+}
+input[type="date"]:hover::-webkit-calendar-picker-indicator,
+input[type="time"]:hover::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]:hover::-webkit-calendar-picker-indicator,
+input[type="month"]:hover::-webkit-calendar-picker-indicator,
+input[type="week"]:hover::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+
+/* ── Custom date/time picker popovers (DatePicker / TimePicker) ──────
+   Portaled to <body>, fixed-positioned under their trigger. Themed with
+   the same tokens as the cards so every chooser reads as one system. */
+.picker-pop {
+  position: fixed;
+  z-index: 10000;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 20px 44px rgb(0 0 0 / 0.5);
+}
+
+/* month-nav chevrons */
+.picker-nav {
+  display: grid;
+  place-items: center;
+  height: 1.75rem;
+  width: 1.75rem;
+  border-radius: 0.5rem;
+  color: var(--color-fg-muted);
+  transition:
+    background var(--dur-base, 0.2s) var(--ease-cubic, ease),
+    color var(--dur-base, 0.2s) var(--ease-cubic, ease);
+}
+.picker-nav:hover {
+  background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  color: var(--color-accent);
+}
+
+/* calendar day cell */
+.picker-day {
+  display: grid;
+  place-items: center;
+  height: 2rem;
+  width: 100%;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-fg);
+  transition:
+    background var(--dur-base, 0.2s) var(--ease-cubic, ease),
+    color var(--dur-base, 0.2s) var(--ease-cubic, ease);
+}
+.picker-day:hover {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+.picker-day[data-today] {
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+.picker-day[data-selected],
+.picker-day[data-selected]:hover {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: 700;
+}
+
+/* time picker scroll columns */
+.picker-col {
+  height: 11.5rem;
+  overflow-y: auto;
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-fg) 22%, transparent) transparent;
+}
+/* WebKit/Chromium — slim, themed track + thumb, gold on hover */
+.picker-col::-webkit-scrollbar {
+  width: 6px;
+}
+.picker-col::-webkit-scrollbar-track {
+  background: transparent;
+}
+.picker-col::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-fg) 20%, transparent);
+  border-radius: 999px;
+}
+.picker-col::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-accent) 60%, transparent);
+}
+.picker-opt {
+  display: block;
+  width: 100%;
+  padding: 0.3rem 0.75rem;
+  text-align: center;
+  border-radius: 0.4rem;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-fg);
+  transition:
+    background var(--dur-base, 0.2s) var(--ease-cubic, ease),
+    color var(--dur-base, 0.2s) var(--ease-cubic, ease);
+}
+.picker-opt:hover {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+.picker-opt[data-selected],
+.picker-opt[data-selected]:hover {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: 700;
+}
+
+/* ── Small editorial chip button (e.g. weekly "+ adicionar") ─────────
+   Rounded, gold-outlined pill that fills with a faint gold on hover. */
+.btn-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
+  padding: 0.2rem 0.6rem;
+  color: var(--color-accent);
+  transition:
+    background var(--dur-base, 0.2s) var(--ease-cubic, ease),
+    border-color var(--dur-base, 0.2s) var(--ease-cubic, ease);
+}
+.btn-chip:hover {
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+}
+
+/* ── Diary padlock — unlock animation (PinGate) ──────────────────────
+   The shackle lifts and swings open, the body gives a little pop, and a
+   gold glow blooms behind. Triggered by adding `.is-open`. */
+.padlock {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.padlock__glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  opacity: 0;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-accent) 60%, transparent),
+    transparent 70%
+  );
+}
+.padlock__shackle {
+  transform-box: fill-box;
+  transform-origin: 88% 92%;
+}
+.padlock.is-open .padlock__shackle {
+  animation: padlock-shackle 0.75s var(--ease-cubic) forwards;
+}
+.padlock.is-open .padlock__svg {
+  animation: padlock-pop 0.75s var(--ease-cubic);
+}
+.padlock.is-open .padlock__glow {
+  animation: padlock-glow 0.9s var(--ease-cubic) forwards;
+}
+@keyframes padlock-shackle {
+  0% { transform: translateY(0) rotate(0deg); }
+  35% { transform: translateY(-7px) rotate(0deg); }
+  100% { transform: translateY(-5px) rotate(-36deg); }
+}
+@keyframes padlock-pop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.1); }
+  55% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+@keyframes padlock-glow {
+  0% { opacity: 0; transform: scale(0.5); }
+  35% { opacity: 0.55; }
+  100% { opacity: 0; transform: scale(1.9); }
+}
+
+/* ── Row action icon buttons (goal/task indicators) ──────────────────
+   Tidy, muted icon buttons that light up to their semantic colour on
+   hover, with a faint hover plate. One language for feito/editar/apagar. */
+.row-action {
+  display: grid;
+  place-items: center;
+  height: 1.75rem;
+  width: 1.75rem;
+  border-radius: 0.45rem;
+  color: var(--color-fg-subtle);
+  transition:
+    background var(--dur-fast, 0.18s) var(--ease-cubic, ease),
+    color var(--dur-fast, 0.18s) var(--ease-cubic, ease);
+}
+.row-action:hover {
+  background: color-mix(in srgb, var(--color-fg) 12%, transparent);
+}
+.row-action:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.row-action.is-done:hover {
+  color: var(--color-success);
+}
+.row-action.is-edit:hover {
+  color: var(--color-accent);
+}
+.row-action.is-del:hover {
+  color: var(--color-danger);
 }

@@ -1,4 +1,6 @@
 [data-theme="notion-clean"] {
+  color-scheme: light; /* native controls follow the light theme */
+  accent-color: var(--color-accent); /* tint checkboxes / picker selection with the theme accent */
   --color-bg: #ffffff;
   --color-bg-elevated: #f7f6f3;
   --color-fg: #191918;

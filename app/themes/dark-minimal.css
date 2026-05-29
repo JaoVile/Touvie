@@ -1,4 +1,6 @@
 [data-theme="dark-minimal"] {
+  color-scheme: dark; /* native controls (time/date pickers, scrollbars) follow the dark theme */
+  accent-color: var(--color-accent); /* tint checkboxes / picker selection with the theme accent */
   --color-bg: #0a0a0a;
   --color-bg-elevated: #141414;
   --color-fg: #ededed;

@@ -1,4 +1,6 @@
 [data-theme="glass-purple"] {
+  color-scheme: dark; /* native controls (time/date pickers, scrollbars) follow the dark theme */
+  accent-color: var(--color-accent); /* tint checkboxes / picker selection with the theme accent */
   --color-bg: #0a0618;
   --color-bg-elevated: #140a2e;
   --color-fg: #f5f3ff;

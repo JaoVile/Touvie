@@ -7,6 +7,8 @@
      gold-bright:    #E0B83E  the accent gold
      sapphire:       #3E5BB0  secondary accent — a brighter royal blue */
 [data-theme="royal"] {
+  color-scheme: dark; /* native controls (time/date pickers, scrollbars) follow the dark theme */
+  accent-color: var(--color-accent); /* tint checkboxes / picker selection with the theme accent */
   --color-bg: #08112e;
   --color-bg-elevated: #161f4a;
   --color-fg: #f2e6c2;
