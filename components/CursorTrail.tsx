@@ -17,8 +17,10 @@ import {
  *
  * Each click sounds the next note of the C-major scale — dó ré mi fá sol lá
  * si — and drops a note glyph that *joins the ribbon*: it rides the spine
- * from head to tail, and only at the very end lifts up a little and shrinks
- * away ("apenas no final irão ter a animação delas saindo para cima").
+ * from head to tail, then streams off the tail in the ribbon's heading,
+ * drifting outward and fading like a ribbon trailing away. A faint, semi-
+ * transparent note is also auto-emitted every `autoInterval` ms so the
+ * ribbon keeps a rhythm of its own even without clicks.
  *
  * Spine physics ported from the trail on obsidianassembly.com
  * (Fiddle.Digital). Desktop + fine-pointer + motion-allowed only.
@@ -47,17 +49,26 @@ const CONFIG = {
   alphaEnd: 0, // converges + fades to nothing at the tail
   glowBlur: 1.2, // base bloom radius; breathes with pointer speed
 
-  // --- melody: a cada clique ----------------------------------------------
+  // --- melody: clique + auto-emissão rítmica ------------------------------
   melodyVolume: 0.07, // peak gain — "bem sutil"
   attack: 0.012, // s — note onset
   release: 0.6, // s — note tail; short = esmaece rapidamente
-  glyphLife: 2300, // ms — rides the longer, slower-collapsing ribbon head → tail
-  glyphLifeLast: 1400, // ms — the last note (si) rides + fades extra fast
+
+  autoInterval: 700, // ms — emite uma nota sozinha (a fita ganha um ritmo próprio)
+  autoSound: false, // auto-notas NÃO fazem barulho (só as de clique soam)
+  autoVolumeMul: 0.5, // auto-notas mais baixas que as de clique (se autoSound voltar)
+  autoMoveWindow: 180, // ms — só auto-emite se o mouse se moveu nesse intervalo
+  autoMaxAlive: 4, // no máximo 4 auto-notas vivas ao mesmo tempo
+
+  glyphRide: 2300, // ms — sobe a fita da cabeça (t=0) à cauda (t=1)
+  glyphRideLast: 1400, // ms — a última nota (si) sobe mais rápido
+  glyphExit: 500, // ms — ao chegar na cauda, sai para fora da linha e some
+  glyphExitDist: 64, // px — quanto a nota se afasta na direção da cauda
   glyphSize: 15, // px
   glyphStartScale: 0.7, // scale when the note joins the ribbon
   glyphEndScale: 1.35, // scale at the tail — the note grows as it rides
-  glyphEndStart: 0.78, // progress at which the end lift-off begins
-  glyphEndRise: 16, // px the glyph lifts upward before fading away
+  glyphAlphaClick: 0.85, // opacidade das notas de clique
+  glyphAlphaAuto: 0.42, // "meias transparentes" — as notas auto
   pitchSpread: 13, // px across the staff for low → high note placement
 } as const;
 
@@ -77,6 +88,7 @@ const GLYPH_CHARS = ["♪", "♫"] as const;
 type Glyph = {
   born: number;
   idx: number; // scale step — also picks the staff line the note rides on
+  auto?: boolean; // emitida automaticamente (mais transparente) vs. por clique
 };
 
 // Trail size — picked in /config, persisted in localStorage. 1× / 2× / 3×.
@@ -186,7 +198,7 @@ export function CursorTrail() {
     // new colour we re-run via the dep array (no manual swap needed inside).
     const palette = getCursorColor(trailColor);
     const glyphSize = CONFIG.glyphSize * trailScale;
-    const glyphEndRise = CONFIG.glyphEndRise * trailScale;
+    const glyphExitDist = CONFIG.glyphExitDist * trailScale;
     const pitchSpread = CONFIG.pitchSpread * trailScale;
     const pts = Array.from({ length }, () => ({ x: 0, y: 0, vx: 0, vy: 0 }));
     // One point array per staff line.
@@ -205,6 +217,7 @@ export function CursorTrail() {
     let lastT = 0;
     let raf = 0;
     let paused = false;
+    let lastAuto = 0; // timestamp of the last auto-emitted note
 
     const resize = () => {
       w = window.innerWidth;
@@ -232,6 +245,7 @@ export function CursorTrail() {
         lastX = x;
         lastY = y;
         lastT = now;
+        lastAuto = now; // start the beat fresh on (re-)entry, no instant dump
         speed = 1;
         return;
       }
@@ -255,7 +269,7 @@ export function CursorTrail() {
     let audioCtx: AudioContext | null = null;
     let noteIndex = 0;
 
-    const playNote = (freq: number) => {
+    const playNote = (freq: number, vol: number = CONFIG.melodyVolume) => {
       try {
         if (!audioCtx) {
           const AC =
@@ -272,7 +286,7 @@ export function CursorTrail() {
         const gain = ac.createGain();
         gain.connect(ac.destination);
         gain.gain.setValueAtTime(0.0001, t0);
-        gain.gain.linearRampToValueAtTime(CONFIG.melodyVolume, t0 + CONFIG.attack);
+        gain.gain.linearRampToValueAtTime(vol, t0 + CONFIG.attack);
         gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
 
         // Fundamental + a soft octave above for a gentle, bell-ish colour.
@@ -309,8 +323,9 @@ export function CursorTrail() {
       return [-oy * inv, ox * inv];
     };
 
-    // Each note rides the spine from head (t=0) to tail (t=1); only past
-    // glyphEndStart does it lift up and shrink away.
+    // Each note rides the spine from head (t=0) to tail (t=1), then enters an
+    // exit phase: it leaves the tail and drifts outward along the ribbon's
+    // heading, fading away — like a ribbon trailing off, not lifting up.
     const drawGlyphs = () => {
       if (!glyphs.length) return;
       const now = performance.now();
@@ -321,45 +336,68 @@ export function CursorTrail() {
       for (let i = glyphs.length - 1; i >= 0; i--) {
         const g = glyphs[i];
         const isLast = g.idx === SCALE.length - 1;
-        const life = isLast ? CONFIG.glyphLifeLast : CONFIG.glyphLife;
+        const ride = isLast ? CONFIG.glyphRideLast : CONFIG.glyphRide;
+        const total = ride + CONFIG.glyphExit;
         const age = now - g.born;
-        if (age >= life) {
+        if (age >= total) {
           glyphs.splice(i, 1);
           continue;
         }
-        const t = age / life; // 0..1 — progress along the ribbon
+        // Auto notes are half-transparent; click notes carry full presence.
+        const maxAlpha = g.auto ? CONFIG.glyphAlphaAuto : CONFIG.glyphAlphaClick;
 
-        // Sample the spine at parameter t.
-        const f = t * (length - 1);
-        const ix = Math.min(length - 1, Math.floor(f));
-        const jx = Math.min(length - 1, ix + 1);
-        const frac = f - ix;
-        const a = pts[ix];
-        const b = pts[jx];
-        let x = a.x + (b.x - a.x) * frac;
-        let y = a.y + (b.y - a.y) * frac;
-
-        // Sit on the note's own staff line (low note low, high note high);
-        // the offset tapers as the ribbon converges toward the tail.
-        const [nx, ny] = normal(b.x - a.x, b.y - a.y);
-        const pitch =
-          (g.idx / (SCALE.length - 1) - 0.5) * pitchSpread * (1 - t);
-        x += nx * pitch;
-        y += ny * pitch;
-
-        // Grows steadily as it rides the ribbon, head → tail.
-        const scale =
-          CONFIG.glyphStartScale +
-          (CONFIG.glyphEndScale - CONFIG.glyphStartScale) * t;
+        let x: number;
+        let y: number;
+        let scale: number;
         let alpha: number;
-        if (t < CONFIG.glyphEndStart) {
-          // Riding the ribbon — quick subtle settle-in, then hold.
-          alpha = (t < 0.1 ? t / 0.1 : 1) * 0.85;
+
+        if (age < ride) {
+          // Phase 1 — riding the ribbon, head → tail.
+          const t = age / ride; // 0..1 progress along the spine
+
+          const f = t * (length - 1);
+          const ix = Math.min(length - 1, Math.floor(f));
+          const jx = Math.min(length - 1, ix + 1);
+          const frac = f - ix;
+          const a = pts[ix];
+          const b = pts[jx];
+          x = a.x + (b.x - a.x) * frac;
+          y = a.y + (b.y - a.y) * frac;
+
+          // Sit on the note's own staff line; offset tapers to 0 at the tail.
+          const [nx, ny] = normal(b.x - a.x, b.y - a.y);
+          const pitch =
+            (g.idx / (SCALE.length - 1) - 0.5) * pitchSpread * (1 - t);
+          x += nx * pitch;
+          y += ny * pitch;
+
+          // Grows steadily as it rides the ribbon, head → tail.
+          scale =
+            CONFIG.glyphStartScale +
+            (CONFIG.glyphEndScale - CONFIG.glyphStartScale) * t;
+          alpha = (t < 0.1 ? t / 0.1 : 1) * maxAlpha;
         } else {
-          // The end: lift up a little and fade — "subirem para cima".
-          const e = (t - CONFIG.glyphEndStart) / (1 - CONFIG.glyphEndStart);
-          y -= glyphEndRise * e;
-          alpha = 0.85 * (1 - e);
+          // Phase 2 — exit: leave the tail and drift outward along the
+          // direction the ribbon ended, decelerating and fading away.
+          const e = (age - ride) / CONFIG.glyphExit; // 0..1
+          const ease = 1 - (1 - e) * (1 - e); // easeOut — fluid, slows as it goes
+          const tail = pts[length - 1];
+          const tb = pts[Math.max(0, length - 6)]; // a few segments back = stable heading
+          let dx = tail.x - tb.x;
+          let dy = tail.y - tb.y;
+          const dl = Math.hypot(dx, dy);
+          if (dl > 1e-3) {
+            dx /= dl;
+            dy /= dl;
+          } else {
+            // Ribbon collapsed (cursor idle): no heading — drift up faintly.
+            dx = 0;
+            dy = -1;
+          }
+          x = tail.x + dx * glyphExitDist * ease;
+          y = tail.y + dy * glyphExitDist * ease;
+          scale = CONFIG.glyphEndScale;
+          alpha = maxAlpha * (1 - e);
         }
 
         ctx.save();
@@ -382,6 +420,34 @@ export function CursorTrail() {
       raf = requestAnimationFrame(frame);
 
       if (visible) {
+        // Auto-melody: drop a faint, silent note on a steady beat — but only
+        // while the pointer is actually moving (lastT updates on each move),
+        // capped to a few notes alive at once.
+        const nowA = performance.now();
+        const moving = nowA - lastT <= CONFIG.autoMoveWindow;
+        if (moving && nowA - lastAuto >= CONFIG.autoInterval) {
+          lastAuto = nowA;
+          // Keep at most autoMaxAlive auto-notes — drop the oldest one (glyphs
+          // are stored in birth order, so the first auto found is the oldest).
+          let aliveAuto = 0;
+          let oldestAuto = -1;
+          for (let i = 0; i < glyphs.length; i++) {
+            if (glyphs[i].auto) {
+              aliveAuto++;
+              if (oldestAuto === -1) oldestAuto = i;
+            }
+          }
+          if (aliveAuto >= CONFIG.autoMaxAlive && oldestAuto !== -1) {
+            glyphs.splice(oldestAuto, 1);
+          }
+          glyphs.push({ born: nowA, idx: noteIndex, auto: true });
+          if (glyphs.length > 24) glyphs.shift();
+          if (CONFIG.autoSound && audioCtx && audioCtx.state === "running") {
+            playNote(SCALE[noteIndex].freq, CONFIG.melodyVolume * CONFIG.autoVolumeMul);
+          }
+          noteIndex = (noteIndex + 1) % SCALE.length;
+        }
+
         const te = 1 + CONFIG.speedInfluence * speed;
 
         // Head springs toward the cursor.
