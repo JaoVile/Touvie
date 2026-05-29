@@ -1,6 +1,8 @@
 "use client";
 
+import { Check, Pencil, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
+import { DatePicker } from "@/components/DatePicker";
 import { deleteGoal, saveGoal, setGoalStatus } from "./actions";
 
 interface Goal {
@@ -125,27 +127,38 @@ function GoalRow({
             </p>
           ) : null}
         </div>
-        <div className="flex shrink-0 flex-col gap-1 text-xs">
+        <div className="flex shrink-0 items-center gap-0.5">
           <button
             type="button"
             disabled={pending}
             onClick={() => start(() => setGoalStatus(goal.id, "done"))}
-            style={{ color: "var(--color-success)" }}
+            className="row-action is-done"
+            aria-label="Marcar como feita"
+            title="Feita"
           >
-            ✓ feito
-          </button>
-          <button type="button" onClick={onEdit} style={{ color: "var(--color-accent)" }}>
-            editar
+            <Check size={15} strokeWidth={2} />
           </button>
           <button
             type="button"
+            onClick={onEdit}
+            className="row-action is-edit"
+            aria-label="Editar meta"
+            title="Editar"
+          >
+            <Pencil size={14} strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            disabled={pending}
             onClick={() => {
               if (!confirm("Apagar meta?")) return;
               start(() => deleteGoal(goal.id));
             }}
-            style={{ color: "var(--color-danger)" }}
+            className="row-action is-del"
+            aria-label="Apagar meta"
+            title="Apagar"
           >
-            apagar
+            <Trash2 size={14} strokeWidth={2} />
           </button>
         </div>
       </div>
@@ -186,13 +199,7 @@ function GoalForm({ defaultValues, onDone }: { defaultValues?: Partial<Goal>; on
       />
       <div className="flex items-center gap-2 text-xs">
         <span style={{ color: "var(--color-fg-muted)" }}>Até:</span>
-        <input
-          type="date"
-          name="target_date"
-          defaultValue={defaultValues?.target_date ?? ""}
-          className={inputCls}
-          style={inputStyle}
-        />
+        <DatePicker name="target_date" defaultValue={defaultValues?.target_date ?? ""} />
       </div>
       {err ? <p style={{ color: "var(--color-danger)" }}>{err}</p> : null}
       <button

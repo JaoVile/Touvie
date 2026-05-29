@@ -1,6 +1,8 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
+import { DatePicker } from "@/components/DatePicker";
 import { deleteTask, saveTask, toggleTaskDone } from "./actions";
 
 interface Task {
@@ -96,10 +98,11 @@ function TaskRow({ task }: { task: Task }) {
           if (!confirm("Apagar?")) return;
           start(() => deleteTask(task.id));
         }}
-        className="text-xs"
-        style={{ color: "var(--color-danger)" }}
+        className="row-action is-del shrink-0"
+        aria-label="Apagar tarefa"
+        title="Apagar"
       >
-        ×
+        <Trash2 size={14} strokeWidth={2} />
       </button>
     </li>
   );
@@ -128,7 +131,7 @@ function TaskForm({ goals, onDone }: { goals: Goal[]; onDone: () => void }) {
         style={inputStyle}
       />
       <div className="grid grid-cols-2 gap-2 text-xs">
-        <input type="date" name="due_date" className={inputCls} style={inputStyle} />
+        <DatePicker name="due_date" compact />
         <select name="goal_id" defaultValue="" className={inputCls} style={inputStyle}>
           <option value="">(sem meta)</option>
           {activeGoals.map((g) => (
