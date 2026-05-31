@@ -89,7 +89,13 @@ export function PageGlyphs({ variant = "goals", glyphs }: Props) {
         >
           <span
             className="block select-none leading-none"
-            style={{ fontSize: g.size, color: g.color ?? ACCENT, opacity: g.opacity }}
+            style={{
+              fontSize: g.size,
+              // Customisable via --color-glyph (the "Desenhos" token); when
+              // unset, falls back to each glyph's designed accent/fg colour.
+              color: `var(--color-glyph, ${g.color ?? ACCENT})`,
+              opacity: g.opacity,
+            }}
           >
             {g.char}
           </span>

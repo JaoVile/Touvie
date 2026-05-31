@@ -3,7 +3,7 @@
 /* Theme presets */
 @import "./themes/glass-purple.css";
 @import "./themes/dark-minimal.css";
-@import "./themes/notion-clean.css";
+@import "./themes/personalize.css";
 @import "./themes/royal.css";
 
 @theme {
@@ -521,6 +521,15 @@ input[type="month"],
 input[type="week"],
 select {
   cursor: pointer;
+}
+
+/* The open dropdown list — force readable, theme-matched contrast instead of
+   the dim native default (unselected options were nearly invisible on the
+   dark themes). The highlighted row still uses the OS accent. */
+select option,
+select optgroup {
+  background-color: var(--color-bg-elevated);
+  color: var(--color-fg);
 }
 
 /* The calendar/clock indicator — bigger, lit on hover, clearly tappable. */

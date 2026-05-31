@@ -1,14 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   CURSOR_COLOR_EVENT,
   CURSOR_COLOR_KEY,
+  CURSOR_CUSTOM_EVENT,
+  CUSTOM_CURSOR_ID,
   type CursorColorId,
+  type CustomCursor,
   DEFAULT_CURSOR_COLOR,
+  DEFAULT_CUSTOM_CURSOR,
+  buildCursorPreset,
   getCursorColor,
   isValidCursorColor,
+  readCustomCursor,
 } from "@/lib/cursor-colors";
+import { useEffect, useState } from "react";
 
 /**
  * Staff-ribbon cursor trail — the pointer drags a tiny musical staff: a
@@ -121,6 +127,8 @@ const DENY_QUERIES = [
 export function CursorTrail() {
   const [trailScale, setTrailScale] = useState(1);
   const [trailColor, setTrailColor] = useState<CursorColorId>(DEFAULT_CURSOR_COLOR);
+  // The "Personalizar" ribbon/note colours, read live alongside the colour id.
+  const [custom, setCustom] = useState<CustomCursor>(DEFAULT_CUSTOM_CURSOR);
   // null while SSR; a boolean once we've evaluated the media queries client-side.
   const [denied, setDenied] = useState<boolean | null>(null);
 
@@ -140,18 +148,26 @@ export function CursorTrail() {
     };
   }, []);
 
-  // Pick up the saved colour, and react live when /config changes it.
+  // Pick up the saved colour (and custom palette), react live when /config
+  // changes either one.
   useEffect(() => {
     setTrailColor(readColor());
-    const onEvent = (e: Event) => {
+    setCustom(readCustomCursor());
+    const onColor = (e: Event) => {
       const v = (e as CustomEvent<CursorColorId>).detail;
       if (isValidCursorColor(v)) setTrailColor(v);
     };
-    const onStorage = () => setTrailColor(readColor());
-    window.addEventListener(CURSOR_COLOR_EVENT, onEvent);
+    const onCustom = () => setCustom(readCustomCursor());
+    const onStorage = () => {
+      setTrailColor(readColor());
+      setCustom(readCustomCursor());
+    };
+    window.addEventListener(CURSOR_COLOR_EVENT, onColor);
+    window.addEventListener(CURSOR_CUSTOM_EVENT, onCustom);
     window.addEventListener("storage", onStorage);
     return () => {
-      window.removeEventListener(CURSOR_COLOR_EVENT, onEvent);
+      window.removeEventListener(CURSOR_COLOR_EVENT, onColor);
+      window.removeEventListener(CURSOR_CUSTOM_EVENT, onCustom);
       window.removeEventListener("storage", onStorage);
     };
   }, []);
@@ -196,15 +212,14 @@ export function CursorTrail() {
     const glowBlur = CONFIG.glowBlur * trailScale;
     // Resolve the colour preset once per effect run — when the user picks a
     // new colour we re-run via the dep array (no manual swap needed inside).
-    const palette = getCursorColor(trailColor);
+    const palette =
+      trailColor === CUSTOM_CURSOR_ID ? buildCursorPreset(custom) : getCursorColor(trailColor);
     const glyphSize = CONFIG.glyphSize * trailScale;
     const glyphExitDist = CONFIG.glyphExitDist * trailScale;
     const pitchSpread = CONFIG.pitchSpread * trailScale;
     const pts = Array.from({ length }, () => ({ x: 0, y: 0, vx: 0, vy: 0 }));
     // One point array per staff line.
-    const lines = Array.from({ length: N }, () =>
-      Array.from({ length }, () => ({ x: 0, y: 0 })),
-    );
+    const lines = Array.from({ length: N }, () => Array.from({ length }, () => ({ x: 0, y: 0 })));
     const cursor = { x: 0, y: 0 };
     const glyphs: Glyph[] = [];
 
@@ -274,8 +289,7 @@ export function CursorTrail() {
         if (!audioCtx) {
           const AC =
             window.AudioContext ||
-            (window as unknown as { webkitAudioContext: typeof AudioContext })
-              .webkitAudioContext;
+            (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
           audioCtx = new AC();
         }
         if (audioCtx.state === "suspended") void audioCtx.resume();
@@ -366,15 +380,12 @@ export function CursorTrail() {
 
           // Sit on the note's own staff line; offset tapers to 0 at the tail.
           const [nx, ny] = normal(b.x - a.x, b.y - a.y);
-          const pitch =
-            (g.idx / (SCALE.length - 1) - 0.5) * pitchSpread * (1 - t);
+          const pitch = (g.idx / (SCALE.length - 1) - 0.5) * pitchSpread * (1 - t);
           x += nx * pitch;
           y += ny * pitch;
 
           // Grows steadily as it rides the ribbon, head → tail.
-          scale =
-            CONFIG.glyphStartScale +
-            (CONFIG.glyphEndScale - CONFIG.glyphStartScale) * t;
+          scale = CONFIG.glyphStartScale + (CONFIG.glyphEndScale - CONFIG.glyphStartScale) * t;
           alpha = (t < 0.1 ? t / 0.1 : 1) * maxAlpha;
         } else {
           // Phase 2 — exit: leave the tail and drift outward along the
@@ -400,13 +411,23 @@ export function CursorTrail() {
           alpha = maxAlpha * (1 - e);
         }
 
+        const char = GLYPH_CHARS[g.idx % GLYPH_CHARS.length];
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(scale, scale);
-        ctx.shadowBlur = 5;
+        ctx.shadowBlur = palette.glowBlur ?? 5;
         ctx.globalAlpha = alpha;
         ctx.font = `${glyphSize}px "Times New Roman", serif`;
-        ctx.fillText(GLYPH_CHARS[g.idx % GLYPH_CHARS.length], 0, 0);
+        ctx.fillText(char, 0, 0);
+        // Optional crisp outline ("contorno") — drawn over the fill, with the
+        // bloom switched off so the edge stays sharp.
+        if (palette.noteOutline) {
+          ctx.shadowBlur = 0;
+          ctx.lineWidth = 1.5;
+          ctx.lineJoin = "round";
+          ctx.strokeStyle = palette.noteOutline;
+          ctx.strokeText(char, 0, 0);
+        }
         ctx.restore();
       }
       ctx.shadowBlur = 0;
@@ -454,12 +475,8 @@ export function CursorTrail() {
         const headK = CONFIG.damping + 0.1;
         const gx = (cursor.x - pts[0].x) * headK;
         const gy = (cursor.y - pts[0].y) * headK;
-        pts[0].vx =
-          pts[0].vx * CONFIG.inertiaRetention +
-          gx * CONFIG.inertiaInfluence * te;
-        pts[0].vy =
-          pts[0].vy * CONFIG.inertiaRetention +
-          gy * CONFIG.inertiaInfluence * te;
+        pts[0].vx = pts[0].vx * CONFIG.inertiaRetention + gx * CONFIG.inertiaInfluence * te;
+        pts[0].vy = pts[0].vy * CONFIG.inertiaRetention + gy * CONFIG.inertiaInfluence * te;
         pts[0].x += gx + pts[0].vx * CONFIG.inertiaStrength * te;
         pts[0].y += gy + pts[0].vy * CONFIG.inertiaStrength * te;
 
@@ -548,8 +565,7 @@ export function CursorTrail() {
           const t = i / (length - 1);
           ctx.lineWidth = headWidth + (tailWidth - headWidth) * t;
           for (let k = 0; k < N; k++) {
-            const base =
-              k === 0 || k === N - 1 ? CONFIG.alphaFaint : CONFIG.alphaBase;
+            const base = k === 0 || k === N - 1 ? CONFIG.alphaFaint : CONFIG.alphaBase;
             const alpha = base + (CONFIG.alphaEnd - base) * t;
             ctx.strokeStyle = `rgba(${palette.ribbonRgb},${alpha})`;
             ctx.beginPath();
@@ -598,7 +614,7 @@ export function CursorTrail() {
       void audioCtx?.close();
       canvas.remove();
     };
-  }, [denied, trailScale, trailColor]);
+  }, [denied, trailScale, trailColor, custom]);
 
   return null;
 }

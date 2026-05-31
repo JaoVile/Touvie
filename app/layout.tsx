@@ -1,3 +1,4 @@
+import { CustomColorsBoot } from "@/components/CustomColorsBoot";
 import { NativePickerOpener } from "@/components/NativePickerOpener";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -100,6 +101,12 @@ async function loadUserTheme(): Promise<string> {
       await supabase.from("profiles").update({ theme: "royal" }).eq("id", user.id);
       theme = "royal";
     }
+    // The light "notion-clean" preset was retired (its slot became the
+    // "Personalizar" theme). Anyone still pinned to it falls back to royal.
+    if (theme === "notion-clean") {
+      await supabase.from("profiles").update({ theme: "royal" }).eq("id", user.id);
+      theme = "royal";
+    }
     return theme ?? DEFAULT_THEME;
   } catch {
     return DEFAULT_THEME;
@@ -121,6 +128,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       suppressHydrationWarning
     >
       <body>
+        <CustomColorsBoot />
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider theme={theme}>{children}</ThemeProvider>
         </NextIntlClientProvider>

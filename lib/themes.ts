@@ -1,4 +1,7 @@
-export type ThemeId = "royal" | "glass-purple" | "dark-minimal" | "notion-clean";
+export type ThemeId = "royal" | "glass-purple" | "dark-minimal" | "personalize";
+
+/** The build-your-own theme: a neutral base the user repaints token by token. */
+export const PERSONALIZE_THEME: ThemeId = "personalize";
 
 export const THEMES: Array<{
   id: ThemeId;
@@ -25,9 +28,9 @@ export const THEMES: Array<{
     mode: "dark",
   },
   {
-    id: "notion-clean",
-    name: "Notion Clean",
-    description: "Fundo claro, serifada, foco em conteúdo — estilo Notion.",
+    id: "personalize",
+    name: "Personalizar",
+    description: "Crie o seu — base clara bonita, e ajuste cada cor do app.",
     mode: "light",
   },
 ];

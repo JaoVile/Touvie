@@ -1,4 +1,11 @@
 import { signOutAction } from "@/app/(auth)/login/actions";
+import { PageGlyphs } from "@/components/PageGlyphs";
+import { Reveal } from "@/components/Reveal";
+import { CardHead } from "@/components/glass/CardHead";
+import { FoldCard } from "@/components/glass/FoldCard";
+import { GradientHeader } from "@/components/glass/GradientHeader";
+import { createClient } from "@/lib/supabase/server";
+import { DEFAULT_THEME } from "@/lib/themes";
 import {
   Languages,
   Lock,
@@ -10,13 +17,6 @@ import {
   ShieldCheck,
   User,
 } from "lucide-react";
-import { PageGlyphs } from "@/components/PageGlyphs";
-import { Reveal } from "@/components/Reveal";
-import { CardHead } from "@/components/glass/CardHead";
-import { FoldCard } from "@/components/glass/FoldCard";
-import { GradientHeader } from "@/components/glass/GradientHeader";
-import { createClient } from "@/lib/supabase/server";
-import { DEFAULT_THEME } from "@/lib/themes";
 import { getLocale } from "next-intl/server";
 import Link from "next/link";
 import { DeleteAccountButton } from "./DeleteAccountButton";
@@ -107,8 +107,7 @@ export default async function ConfigPage() {
           <FoldCard index={idx()}>
             <CardHead icon={Music} title="Fita rítmica" />
             <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-              Aumenta o rastro musical que segue o cursor — a fita e as notas
-              ficam maiores.
+              Aumenta o rastro musical que segue o cursor — a fita e as notas ficam maiores.
             </p>
             <TrailSizePicker />
             <div className="mt-6">

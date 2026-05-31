@@ -1,8 +1,10 @@
 "use client";
 
-import { THEMES, type ThemeId } from "@/lib/themes";
+import { applyCustomColors, readCustomColors } from "@/lib/custom-colors";
+import { PERSONALIZE_THEME, THEMES, type ThemeId } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { useState, useTransition } from "react";
+import { ColorCustomizer } from "./ColorCustomizer";
 import { updateTheme } from "./actions";
 
 export function ThemePicker({ currentTheme }: { currentTheme: string }) {
@@ -14,6 +16,10 @@ export function ThemePicker({ currentTheme }: { currentTheme: string }) {
     setSelected(id);
     setErr(undefined);
     document.documentElement.setAttribute("data-theme", id);
+    // Custom colours only live on the Personalizar theme: re-apply the saved
+    // palette when entering it, strip the inline overrides when leaving.
+    if (id === PERSONALIZE_THEME) applyCustomColors(readCustomColors());
+    else applyCustomColors({});
     start(async () => {
       const res = await updateTheme(id);
       if (res?.error) setErr(res.error);
@@ -22,7 +28,7 @@ export function ThemePicker({ currentTheme }: { currentTheme: string }) {
 
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {THEMES.map((t) => (
           <button
             type="button"
@@ -56,10 +62,25 @@ export function ThemePicker({ currentTheme }: { currentTheme: string }) {
           </button>
         ))}
       </div>
+
       {err ? (
         <p className="mt-2 text-xs" style={{ color: "var(--color-danger)" }}>
           {err}
         </p>
+      ) : null}
+
+      {/* The Personalizar theme reveals the per-colour editor — building your
+          own palette on top of the neutral base. */}
+      {selected === PERSONALIZE_THEME ? (
+        <div className="mt-5 border-t pt-5" style={{ borderColor: "var(--color-border)" }}>
+          <h3
+            className="text-eyebrow mb-3 uppercase tracking-[0.1em]"
+            style={{ color: "var(--color-fg-subtle)" }}
+          >
+            Suas cores
+          </h3>
+          <ColorCustomizer />
+        </div>
       ) : null}
     </>
   );
@@ -70,7 +91,7 @@ function ThemeSwatch({ themeId }: { themeId: ThemeId }) {
     royal: { bg: "#08112e", accent: "#e0b83e", accent2: "#3e5bb0" },
     "glass-purple": { bg: "#0a0618", accent: "#a855f7", accent2: "#ec4899" },
     "dark-minimal": { bg: "#0a0a0a", accent: "#22c55e", accent2: "#10b981" },
-    "notion-clean": { bg: "#f7f6f3", accent: "#2b6cb0", accent2: "#2c5282" },
+    personalize: { bg: "#ffffff", accent: "#4f46e5", accent2: "#7c3aed" },
   };
   const p = presets[themeId];
   return (

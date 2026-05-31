@@ -1,0 +1,30 @@
+/* Personalize — the build-your-own theme. Ships as a clean, pretty LIGHT
+   base with sensible default colours; the user then repaints any token via
+   the colour panel in /config. The per-user overrides are layered on top as
+   inline custom properties on <html> (see lib/custom-colors.ts +
+   CustomColorsBoot), so these values are just the "reset to default" floor. */
+[data-theme="personalize"] {
+  color-scheme: light; /* native controls (time/date pickers, scrollbars) follow the light base */
+  accent-color: var(--color-accent); /* tint checkboxes / picker selection with the chosen accent */
+  --color-bg: #ffffff;
+  --color-bg-elevated: #f6f6f7;
+  --color-fg: #1c1c1f;
+  --color-fg-muted: #56565e;
+  --color-fg-subtle: #9a9aa3;
+  --color-accent: #4f46e5;
+  --color-accent-2: #7c3aed;
+  --color-border: rgb(17 17 20 / 0.1);
+  --color-card: #ffffff;
+
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+
+  --gradient-brand: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --gradient-bg: radial-gradient(ellipse at top, #f3f1ff 0%, #ffffff 55%);
+
+  --radius-card: 1rem;
+  --glass-blur: 0px;
+  --glass-bg: #ffffff;
+  --glass-border: rgb(17 17 20 / 0.08);
+  --glass-shadow: 0 1px 3px rgb(17 17 20 / 0.08), 0 8px 24px rgb(17 17 20 / 0.04);
+}
