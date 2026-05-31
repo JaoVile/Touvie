@@ -225,10 +225,10 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
     spent_cents: number;
   }> = [];
   if (tab === "caixinhas") {
-    const monthStart = `${currentMonth}-01`;
+    const monthStart = `${selectedMonth}-01`;
     const monthEnd = new Date(
-      Number.parseInt(currentMonth.slice(0, 4)),
-      Number.parseInt(currentMonth.slice(5, 7)),
+      Number.parseInt(selectedMonth.slice(0, 4)),
+      Number.parseInt(selectedMonth.slice(5, 7)),
       0,
     )
       .toISOString()
@@ -239,7 +239,7 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
         .from("budget_envelopes")
         .select("id, name, emoji, category_id, month, limit_cents")
         .eq("user_id", userId)
-        .eq("month", currentMonth),
+        .eq("month", selectedMonth),
       supabase
         .from("transactions")
         .select("category_id, amount_cents")
@@ -314,7 +314,7 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
       ) : tab === "contas" ? (
         <ContasTab bills={bills} categories={categories} today={today} creditCards={creditCards} />
       ) : tab === "caixinhas" ? (
-        <CaixinhasTab envelopes={envelopes} categories={categories} currentMonth={currentMonth} />
+        <CaixinhasTab envelopes={envelopes} categories={categories} currentMonth={selectedMonth} />
       ) : tab === "graficos" ? (
         <GraficosTab userId={userId} categories={categories} />
       ) : tab === "importar" ? (

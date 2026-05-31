@@ -255,6 +255,18 @@ export async function deleteTransaction(id: string) {
   revalidatePath("/");
 }
 
+/** Apaga todas as parcelas de uma compra parcelada (mesmo installment_group_id). */
+export async function deleteInstallmentGroup(groupId: string) {
+  const { supabase, userId } = await requireUser();
+  await supabase
+    .from("transactions")
+    .delete()
+    .eq("user_id", userId)
+    .eq("installment_group_id", groupId);
+  revalidatePath("/financas");
+  revalidatePath("/");
+}
+
 // --- TRANSFERS -----------------------------------------------------
 
 const transferSchema = z
