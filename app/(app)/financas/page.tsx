@@ -11,6 +11,7 @@ import { GraficosTab } from "./GraficosTab";
 import { ImportTab } from "./ImportTab";
 import { LancamentosTab } from "./LancamentosTab";
 import { RecorrentesTab } from "./RecorrentesTab";
+import { ResumoStrip } from "./ResumoStrip";
 import { SetupTab } from "./SetupTab";
 import { type FinanceTab, Tabs } from "./Tabs";
 
@@ -43,10 +44,15 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
     q: sp?.q?.trim() || null,
   };
 
-  const [accountsRes, categoriesRes, balancesRes] = await Promise.all([
+  const curMonthStart = `${currentMonth}-01`;
+  const curMonthEnd = new Date(parseInt(currentMonth.slice(0, 4)), parseInt(currentMonth.slice(5, 7)), 0).toISOString().slice(0, 10);
+
+  const [accountsRes, categoriesRes, balancesRes, pendingBillsRes, monthTxRes] = await Promise.all([
     supabase.from("finance_accounts").select("id, name, kind, balance_cents, credit_limit_cents, closing_day, due_day, archived").eq("user_id", userId).eq("archived", false).order("name"),
     supabase.from("finance_categories").select("id, name, kind, emoji, color, archived").eq("user_id", userId).eq("archived", false).order("name"),
     supabase.from("finance_account_balances").select("account_id, current_cents").eq("user_id", userId),
+    supabase.from("bills").select("amount_cents").eq("user_id", userId).is("paid_at", null),
+    supabase.from("transactions").select("amount_cents, kind").eq("user_id", userId).eq("is_recurring", false).gte("occurred_on", curMonthStart).lte("occurred_on", curMonthEnd),
   ]);
 
   const balanceByAccount = new Map<string, number>(
@@ -57,6 +63,22 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
     (a) => ({ ...a, current_cents: balanceByAccount.get(a.id) ?? a.balance_cents }),
   );
   const categories = (categoriesRes.data ?? []) as Array<{ id: string; name: string; kind: "income" | "expense"; emoji: string | null; color: string | null; archived: boolean }>;
+
+  // Resumo (visível em todas as abas)
+  const patrimonio = accounts.reduce((s, a) => s + a.current_cents, 0);
+  const dividaCartao = accounts
+    .filter((a) => a.kind === "credit" && a.current_cents < 0)
+    .reduce((s, a) => s - a.current_cents, 0);
+  const aPagar = (pendingBillsRes.data ?? []).reduce((s, b) => s + (b.amount_cents as number), 0);
+  const monthTotals = (monthTxRes.data ?? []).reduce(
+    (acc, t) => {
+      if (t.kind === "income") acc.income += t.amount_cents as number;
+      else acc.expense += t.amount_cents as number;
+      return acc;
+    },
+    { income: 0, expense: 0 },
+  );
+  const sobraMes = monthTotals.income - monthTotals.expense;
 
   // Load bills for "contas" tab
   let bills: Array<{ id: string; title: string; amount_cents: number; due_date: string; paid_at: string | null; recurrence_rule: string | null; category_id: string | null; notes: string | null }> = [];
@@ -110,6 +132,9 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
           subtitle={subtitleByTab[tab]}
         />
       </Reveal>
+      {!noCategories ? (
+        <ResumoStrip patrimonio={patrimonio} dividaCartao={dividaCartao} aPagar={aPagar} sobraMes={sobraMes} />
+      ) : null}
       <Tabs current={tab} />
 
       {noCategories && !["setup", "importar", "contas", "caixinhas"].includes(tab) ? (
