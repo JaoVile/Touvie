@@ -16,7 +16,7 @@ import { type FinanceTab, Tabs } from "./Tabs";
 
 export const dynamic = "force-dynamic";
 
-type SP = Promise<{ t?: string }>;
+type SP = Promise<{ t?: string; m?: string; acc?: string; cat?: string; kind?: string; q?: string }>;
 
 const VALID_TABS: FinanceTab[] = ["lancamentos", "recorrentes", "contas", "caixinhas", "graficos", "setup", "importar"];
 
@@ -34,6 +34,14 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
 
   const today = todayBRTISO();
   const currentMonth = today.slice(0, 7); // YYYY-MM
+  const selectedMonth = /^\d{4}-\d{2}$/.test(sp?.m ?? "") ? (sp!.m as string) : currentMonth;
+  const spKind = sp?.kind;
+  const filters = {
+    accountId: sp?.acc || null,
+    categoryId: sp?.cat || null,
+    kind: (spKind === "income" || spKind === "expense" ? spKind : null) as "income" | "expense" | null,
+    q: sp?.q?.trim() || null,
+  };
 
   const [accountsRes, categoriesRes, balancesRes] = await Promise.all([
     supabase.from("finance_accounts").select("id, name, kind, balance_cents, credit_limit_cents, closing_day, due_day, archived").eq("user_id", userId).eq("archived", false).order("name"),
@@ -111,7 +119,13 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
           </p>
         </GlassCard>
       ) : tab === "lancamentos" ? (
-        <LancamentosTab userId={userId} accounts={accounts} categories={categories} />
+        <LancamentosTab
+          userId={userId}
+          accounts={accounts}
+          categories={categories}
+          month={selectedMonth}
+          filters={filters}
+        />
       ) : tab === "recorrentes" ? (
         <RecorrentesTab userId={userId} accounts={accounts} categories={categories} />
       ) : tab === "contas" ? (

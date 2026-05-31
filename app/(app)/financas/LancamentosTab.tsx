@@ -1,8 +1,9 @@
 import { GlassCard } from "@/components/glass/GlassCard";
 import { createClient } from "@/lib/supabase/server";
 import { formatBRL } from "@/lib/utils";
+import { LancamentosFilters } from "./LancamentosFilters";
 import { TransactionForm } from "./TransactionForm";
-import { TransactionRow } from "./TransactionRow";
+import { type LedgerItem, TransactionRow } from "./TransactionRow";
 
 interface Account {
   id: string;
@@ -17,21 +18,33 @@ interface Category {
   color: string | null;
 }
 
+interface Filters {
+  accountId: string | null;
+  categoryId: string | null;
+  kind: "income" | "expense" | null;
+  q: string | null;
+}
+
 interface Props {
   userId: string;
   accounts: Account[];
   categories: Category[];
+  month: string; // YYYY-MM
+  filters: Filters;
 }
 
-export async function LancamentosTab({ userId, accounts, categories }: Props) {
+export async function LancamentosTab({ userId, accounts, categories, month, filters }: Props) {
   const supabase = await createClient();
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+  const [y, m] = month.split("-").map(Number);
+  const monthStart = `${month}-01`;
+  const monthEnd = new Date(y, m, 0).toISOString().slice(0, 10);
 
-  const { data: rows } = await supabase
+  // --- Transactions ---
+  let txQuery = supabase
     .from("transactions")
-    .select("id, amount_cents, kind, occurred_on, description, account_id, category_id")
+    .select(
+      "id, amount_cents, kind, occurred_on, description, account_id, category_id, installment_number, installment_total",
+    )
     .eq("user_id", userId)
     .eq("is_recurring", false)
     .gte("occurred_on", monthStart)
@@ -39,11 +52,44 @@ export async function LancamentosTab({ userId, accounts, categories }: Props) {
     .order("occurred_on", { ascending: false })
     .order("created_at", { ascending: false });
 
-  const txs = rows ?? [];
+  if (filters.accountId) txQuery = txQuery.eq("account_id", filters.accountId);
+  if (filters.categoryId) txQuery = txQuery.eq("category_id", filters.categoryId);
+  if (filters.kind) txQuery = txQuery.eq("kind", filters.kind);
+  if (filters.q) txQuery = txQuery.ilike("description", `%${filters.q}%`);
+
+  const { data: txRows } = await txQuery;
+
+  // --- Transfers (só quando não filtra por tipo nem categoria) ---
+  let transferRows: Array<{
+    id: string;
+    amount_cents: number;
+    occurred_on: string;
+    description: string | null;
+    from_account_id: string | null;
+    to_account_id: string | null;
+  }> = [];
+  if (!filters.kind && !filters.categoryId) {
+    let trQuery = supabase
+      .from("transfers")
+      .select("id, amount_cents, occurred_on, description, from_account_id, to_account_id")
+      .eq("user_id", userId)
+      .gte("occurred_on", monthStart)
+      .lte("occurred_on", monthEnd);
+    if (filters.accountId) {
+      trQuery = trQuery.or(
+        `from_account_id.eq.${filters.accountId},to_account_id.eq.${filters.accountId}`,
+      );
+    }
+    if (filters.q) trQuery = trQuery.ilike("description", `%${filters.q}%`);
+    const { data } = await trQuery;
+    transferRows = data ?? [];
+  }
+
   const accountMap = new Map(accounts.map((a) => [a.id, a]));
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
 
-  const totals = txs.reduce(
+  // Totais (transfers não entram)
+  const totals = (txRows ?? []).reduce(
     (acc, t) => {
       if (t.kind === "income") acc.income += t.amount_cents;
       else acc.expense += t.amount_cents;
@@ -53,18 +99,56 @@ export async function LancamentosTab({ userId, accounts, categories }: Props) {
   );
   const net = totals.income - totals.expense;
 
-  // Group by date
-  const byDate = new Map<string, typeof txs>();
-  for (const t of txs) {
-    const arr = byDate.get(t.occurred_on) ?? [];
-    arr.push(t);
-    byDate.set(t.occurred_on, arr);
+  // Lista unificada por data
+  const items: Array<{ occurred_on: string; item: LedgerItem }> = [];
+  for (const t of txRows ?? []) {
+    const cat = t.category_id ? categoryMap.get(t.category_id) : null;
+    const acc = t.account_id ? accountMap.get(t.account_id) : null;
+    items.push({
+      occurred_on: t.occurred_on,
+      item: {
+        type: "tx",
+        id: t.id,
+        amount_cents: t.amount_cents,
+        kind: t.kind as "income" | "expense",
+        description: t.description,
+        category: cat ? { name: cat.name, emoji: cat.emoji, color: cat.color } : null,
+        account: acc ? { name: acc.name } : null,
+        installment: t.installment_total
+          ? { number: t.installment_number ?? 1, total: t.installment_total }
+          : null,
+      },
+    });
+  }
+  for (const tr of transferRows) {
+    items.push({
+      occurred_on: tr.occurred_on,
+      item: {
+        type: "transfer",
+        id: tr.id,
+        amount_cents: tr.amount_cents,
+        description: tr.description,
+        from: tr.from_account_id ? (accountMap.get(tr.from_account_id)?.name ?? "?") : "?",
+        to: tr.to_account_id ? (accountMap.get(tr.to_account_id)?.name ?? "?") : "?",
+      },
+    });
+  }
+
+  const byDate = new Map<string, LedgerItem[]>();
+  for (const { occurred_on, item } of items) {
+    const arr = byDate.get(occurred_on) ?? [];
+    arr.push(item);
+    byDate.set(occurred_on, arr);
   }
   const dates = Array.from(byDate.keys()).sort((a, b) => (a < b ? 1 : -1));
+  const hasItems = items.length > 0;
+  const hasFilters = !!(filters.accountId || filters.categoryId || filters.kind || filters.q);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
       <div className="grid gap-4">
+        <LancamentosFilters accounts={accounts} categories={categories} month={month} filters={filters} />
+
         <div className="grid gap-2 sm:grid-cols-3">
           <Stat label="Receitas" value={formatBRL(totals.income)} color="var(--color-success)" />
           <Stat label="Despesas" value={formatBRL(totals.expense)} color="var(--color-danger)" />
@@ -76,9 +160,11 @@ export async function LancamentosTab({ userId, accounts, categories }: Props) {
         </div>
 
         <GlassCard>
-          {txs.length === 0 ? (
+          {!hasItems ? (
             <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-              Nenhum lançamento este mês. Use o formulário ao lado pra adicionar.
+              {hasFilters
+                ? "Nenhum lançamento com esses filtros."
+                : "Nenhum lançamento neste mês. Use o formulário ao lado pra adicionar."}
             </p>
           ) : (
             <div className="space-y-4">
@@ -91,28 +177,8 @@ export async function LancamentosTab({ userId, accounts, categories }: Props) {
                     {formatDateHeader(date)}
                   </h3>
                   <ul className="space-y-1.5">
-                    {(byDate.get(date) ?? []).map((t) => (
-                      <TransactionRow
-                        key={t.id}
-                        tx={{
-                          id: t.id,
-                          amount_cents: t.amount_cents,
-                          kind: t.kind as "income" | "expense",
-                          description: t.description,
-                          category: t.category_id
-                            ? (() => {
-                                const c = categoryMap.get(t.category_id);
-                                return c ? { name: c.name, emoji: c.emoji, color: c.color } : null;
-                              })()
-                            : null,
-                          account: t.account_id
-                            ? (() => {
-                                const a = accountMap.get(t.account_id);
-                                return a ? { name: a.name } : null;
-                              })()
-                            : null,
-                        }}
-                      />
+                    {(byDate.get(date) ?? []).map((it) => (
+                      <TransactionRow key={`${it.type}-${it.id}`} item={it} />
                     ))}
                   </ul>
                 </div>
