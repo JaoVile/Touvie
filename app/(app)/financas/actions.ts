@@ -194,6 +194,60 @@ export async function deleteTransaction(id: string) {
   revalidatePath("/");
 }
 
+// --- TRANSFERS -----------------------------------------------------
+
+const transferSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    from_account_id: z.string().uuid("Escolha a conta de origem"),
+    to_account_id: z.string().uuid("Escolha a conta de destino"),
+    amount: z.number().positive("Valor deve ser maior que zero"),
+    occurred_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
+    description: z.string().max(200).nullable(),
+  })
+  .refine((d) => d.from_account_id !== d.to_account_id, {
+    message: "Origem e destino devem ser contas diferentes",
+    path: ["to_account_id"],
+  });
+
+export async function saveTransfer(fd: FormData): Promise<{ ok?: boolean; error?: string }> {
+  const amountStr = (fd.get("amount")?.toString() ?? "").replace(",", ".");
+  const amount = Number.parseFloat(amountStr);
+  const parsed = transferSchema.safeParse({
+    id: fd.get("id")?.toString() || undefined,
+    from_account_id: fd.get("from_account_id")?.toString(),
+    to_account_id: fd.get("to_account_id")?.toString(),
+    amount: Number.isFinite(amount) ? amount : 0,
+    occurred_on: fd.get("occurred_on")?.toString(),
+    description: fd.get("description")?.toString() || null,
+  });
+  if (!parsed.success) return { error: parsed.error.errors[0]?.message };
+
+  const { supabase, userId } = await requireUser();
+  const payload = {
+    user_id: userId,
+    from_account_id: parsed.data.from_account_id,
+    to_account_id: parsed.data.to_account_id,
+    amount_cents: reaisToCents(parsed.data.amount),
+    occurred_on: parsed.data.occurred_on,
+    description: parsed.data.description,
+  };
+  const { error } = parsed.data.id
+    ? await supabase.from("transfers").update(payload).eq("id", parsed.data.id)
+    : await supabase.from("transfers").insert(payload);
+  if (error) return { error: error.message };
+  revalidatePath("/financas");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function deleteTransfer(id: string) {
+  const { supabase } = await requireUser();
+  await supabase.from("transfers").delete().eq("id", id);
+  revalidatePath("/financas");
+  revalidatePath("/");
+}
+
 // --- CSV IMPORT ---------------------------------------------------
 
 export async function importCsv(

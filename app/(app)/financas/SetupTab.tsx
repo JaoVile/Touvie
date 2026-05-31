@@ -11,6 +11,7 @@ interface Account {
   name: string;
   kind: AccountKind;
   balance_cents: number;
+  current_cents: number;
 }
 interface Category {
   id: string;
@@ -52,8 +53,18 @@ export function SetupTab({ accounts, categories }: Props) {
                     {ACCOUNT_KIND_LABELS[a.kind]}
                   </span>
                 </span>
-                <span className="font-mono text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                  {formatBRL(a.balance_cents)}
+                <span className="flex flex-col items-end leading-tight">
+                  <span
+                    className="font-mono text-sm"
+                    style={{ color: a.current_cents < 0 ? "var(--color-danger)" : "var(--color-fg)" }}
+                  >
+                    {formatBRL(a.current_cents)}
+                  </span>
+                  {a.current_cents !== a.balance_cents ? (
+                    <span className="font-mono text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
+                      inicial {formatBRL(a.balance_cents)}
+                    </span>
+                  ) : null}
                 </span>
               </li>
             ))}

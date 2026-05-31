@@ -35,12 +35,19 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
   const today = todayBRTISO();
   const currentMonth = today.slice(0, 7); // YYYY-MM
 
-  const [accountsRes, categoriesRes] = await Promise.all([
-    supabase.from("finance_accounts").select("id, name, kind, balance_cents, archived").eq("user_id", userId).eq("archived", false).order("name"),
+  const [accountsRes, categoriesRes, balancesRes] = await Promise.all([
+    supabase.from("finance_accounts").select("id, name, kind, balance_cents, credit_limit_cents, closing_day, due_day, archived").eq("user_id", userId).eq("archived", false).order("name"),
     supabase.from("finance_categories").select("id, name, kind, emoji, color, archived").eq("user_id", userId).eq("archived", false).order("name"),
+    supabase.from("finance_account_balances").select("account_id, current_cents").eq("user_id", userId),
   ]);
 
-  const accounts = (accountsRes.data ?? []) as Array<{ id: string; name: string; kind: "cash" | "checking" | "savings" | "credit" | "investment"; balance_cents: number; archived: boolean }>;
+  const balanceByAccount = new Map<string, number>(
+    (balancesRes.data ?? []).map((b) => [b.account_id as string, b.current_cents as number]),
+  );
+
+  const accounts = ((accountsRes.data ?? []) as Array<{ id: string; name: string; kind: "cash" | "checking" | "savings" | "credit" | "investment"; balance_cents: number; credit_limit_cents: number | null; closing_day: number | null; due_day: number | null; archived: boolean }>).map(
+    (a) => ({ ...a, current_cents: balanceByAccount.get(a.id) ?? a.balance_cents }),
+  );
   const categories = (categoriesRes.data ?? []) as Array<{ id: string; name: string; kind: "income" | "expense"; emoji: string | null; color: string | null; archived: boolean }>;
 
   // Load bills for "contas" tab

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { DatePicker } from "@/components/DatePicker";
-import { saveTransaction } from "./actions";
+import { saveTransaction, saveTransfer } from "./actions";
 
 interface Account {
   id: string;
@@ -15,6 +15,8 @@ interface Category {
   kind: "income" | "expense";
   emoji: string | null;
 }
+
+type Mode = "expense" | "income" | "transfer";
 
 interface Props {
   accounts: Account[];
@@ -44,17 +46,19 @@ export function TransactionForm({
 }: Props) {
   const [error, setError] = useState<string>();
   const [pending, start] = useTransition();
-  const [kind, setKind] = useState<"income" | "expense">(defaultValues?.kind ?? "expense");
+  const [mode, setMode] = useState<Mode>(defaultValues?.kind ?? "expense");
   const [isRecurring, setIsRecurring] = useState<boolean>(
     defaultValues?.is_recurring ?? recurringMode,
   );
 
+  const isTransfer = mode === "transfer";
+  const kind: "income" | "expense" = isTransfer ? "expense" : mode;
   const filteredCategories = categories.filter((c) => c.kind === kind);
 
   function submit(fd: FormData) {
     setError(undefined);
     start(async () => {
-      const res = await saveTransaction(fd);
+      const res = isTransfer ? await saveTransfer(fd) : await saveTransaction(fd);
       if (res?.error) setError(res.error);
       else onDone?.();
     });
@@ -63,32 +67,41 @@ export function TransactionForm({
   const today = new Date().toISOString().slice(0, 10);
   const defaultDay = new Date().getDate();
 
+  const modes: Mode[] = recurringMode ? ["expense", "income"] : ["expense", "income", "transfer"];
+  const modeLabel: Record<Mode, string> = {
+    expense: "💸 Despesa",
+    income: "💰 Receita",
+    transfer: "🔁 Transferir",
+  };
+
   return (
     <form action={submit} className="space-y-3 text-sm">
       {defaultValues?.id ? <input type="hidden" name="id" value={defaultValues.id} /> : null}
 
       <div className="flex gap-1 rounded-lg p-1" style={{ background: "var(--color-card)" }}>
-        {(["expense", "income"] as const).map((k) => (
+        {modes.map((m) => (
           <label
-            key={k}
+            key={m}
             className="flex-1 cursor-pointer rounded-md py-1.5 text-center font-medium transition"
             style={{
-              background: kind === k ? "var(--gradient-brand)" : "transparent",
-              color: kind === k ? "white" : "var(--color-fg-muted)",
+              background: mode === m ? "var(--gradient-brand)" : "transparent",
+              color: mode === m ? "white" : "var(--color-fg-muted)",
             }}
           >
             <input
               type="radio"
-              name="kind"
-              value={k}
-              checked={kind === k}
-              onChange={() => setKind(k)}
+              name="mode"
+              value={m}
+              checked={mode === m}
+              onChange={() => setMode(m)}
               className="sr-only"
             />
-            {k === "expense" ? "💸 Despesa" : "💰 Receita"}
+            {modeLabel[m]}
           </label>
         ))}
       </div>
+
+      {!isTransfer ? <input type="hidden" name="kind" value={kind} /> : null}
 
       <div className="grid grid-cols-2 gap-2">
         <input
@@ -107,35 +120,62 @@ export function TransactionForm({
         <DatePicker name="occurred_on" defaultValue={defaultValues?.occurred_on ?? today} />
       </div>
 
-      <select
-        name="category_id"
-        defaultValue={defaultValues?.category_id ?? ""}
-        className={inputCls}
-        style={inputStyle}
-        key={kind}
-      >
-        <option value="">— Sem categoria —</option>
-        {filteredCategories.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.emoji ? `${c.emoji} ` : ""}
-            {c.name}
-          </option>
-        ))}
-      </select>
+      {isTransfer ? (
+        <div className="grid grid-cols-2 gap-2">
+          <select name="from_account_id" required className={inputCls} style={inputStyle} defaultValue="">
+            <option value="" disabled>
+              De…
+            </option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+          <select name="to_account_id" required className={inputCls} style={inputStyle} defaultValue="">
+            <option value="" disabled>
+              Para…
+            </option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <>
+          <select
+            name="category_id"
+            defaultValue={defaultValues?.category_id ?? ""}
+            className={inputCls}
+            style={inputStyle}
+            key={kind}
+          >
+            <option value="">— Sem categoria —</option>
+            {filteredCategories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.emoji ? `${c.emoji} ` : ""}
+                {c.name}
+              </option>
+            ))}
+          </select>
 
-      <select
-        name="account_id"
-        defaultValue={defaultValues?.account_id ?? ""}
-        className={inputCls}
-        style={inputStyle}
-      >
-        <option value="">— Sem conta —</option>
-        {accounts.map((a) => (
-          <option key={a.id} value={a.id}>
-            {a.name}
-          </option>
-        ))}
-      </select>
+          <select
+            name="account_id"
+            defaultValue={defaultValues?.account_id ?? ""}
+            className={inputCls}
+            style={inputStyle}
+          >
+            <option value="">— Sem conta —</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
 
       <input
         type="text"
@@ -147,7 +187,7 @@ export function TransactionForm({
         style={inputStyle}
       />
 
-      {!recurringMode ? (
+      {!isTransfer && !recurringMode ? (
         <label
           className="flex items-center gap-2 text-xs"
           style={{ color: "var(--color-fg-muted)" }}
@@ -161,11 +201,11 @@ export function TransactionForm({
           />
           Repetir todo mês
         </label>
-      ) : (
+      ) : !isTransfer ? (
         <input type="hidden" name="is_recurring" value="on" />
-      )}
+      ) : null}
 
-      {recurringMode || isRecurring ? (
+      {!isTransfer && (recurringMode || isRecurring) ? (
         <div className="grid grid-cols-2 gap-2">
           <input
             type="number"
