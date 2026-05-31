@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
 import { DatePicker } from "@/components/DatePicker";
+import { useState, useTransition } from "react";
 import { saveTransaction, saveTransfer } from "./actions";
 
 interface Account {
   id: string;
   name: string;
+  kind?: string;
 }
 
 interface Category {
@@ -50,10 +51,13 @@ export function TransactionForm({
   const [isRecurring, setIsRecurring] = useState<boolean>(
     defaultValues?.is_recurring ?? recurringMode,
   );
+  const [accountId, setAccountId] = useState<string>(defaultValues?.account_id ?? "");
 
   const isTransfer = mode === "transfer";
   const kind: "income" | "expense" = isTransfer ? "expense" : mode;
   const filteredCategories = categories.filter((c) => c.kind === kind);
+  const isCreditSelected = accounts.find((a) => a.id === accountId)?.kind === "credit";
+  const canInstall = isCreditSelected && mode === "expense" && !isRecurring && !defaultValues?.id;
 
   function submit(fd: FormData) {
     setError(undefined);
@@ -122,7 +126,13 @@ export function TransactionForm({
 
       {isTransfer ? (
         <div className="grid grid-cols-2 gap-2">
-          <select name="from_account_id" required className={inputCls} style={inputStyle} defaultValue="">
+          <select
+            name="from_account_id"
+            required
+            className={inputCls}
+            style={inputStyle}
+            defaultValue=""
+          >
             <option value="" disabled>
               De…
             </option>
@@ -132,7 +142,13 @@ export function TransactionForm({
               </option>
             ))}
           </select>
-          <select name="to_account_id" required className={inputCls} style={inputStyle} defaultValue="">
+          <select
+            name="to_account_id"
+            required
+            className={inputCls}
+            style={inputStyle}
+            defaultValue=""
+          >
             <option value="" disabled>
               Para…
             </option>
@@ -163,7 +179,8 @@ export function TransactionForm({
 
           <select
             name="account_id"
-            defaultValue={defaultValues?.account_id ?? ""}
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
             className={inputCls}
             style={inputStyle}
           >
@@ -174,6 +191,25 @@ export function TransactionForm({
               </option>
             ))}
           </select>
+
+          {canInstall ? (
+            <label
+              className="flex items-center gap-2 text-xs"
+              style={{ color: "var(--color-fg-muted)" }}
+            >
+              <span className="shrink-0">💳 Parcelar em</span>
+              <input
+                type="number"
+                name="installments"
+                min="1"
+                max="48"
+                defaultValue="1"
+                className="w-16 rounded-lg border px-2 py-1 text-center"
+                style={inputStyle}
+              />
+              <span className="shrink-0">x (valor total acima)</span>
+            </label>
+          ) : null}
         </>
       )}
 

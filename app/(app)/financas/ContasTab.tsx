@@ -1,9 +1,20 @@
 "use client";
 
 import { DatePicker } from "@/components/DatePicker";
+import { availableCredit } from "@/lib/finance";
 import { formatBRL } from "@/lib/utils";
 import { useState, useTransition } from "react";
 import { deleteBill, saveBill, toggleBillPaid } from "./actions";
+
+interface CreditCard {
+  id: string;
+  name: string;
+  current_cents: number;
+  credit_limit_cents: number | null;
+  due_day: number | null;
+  closing_day: number | null;
+  faturaAberta: number;
+}
 
 interface Category {
   id: string;
@@ -26,9 +37,10 @@ interface Props {
   bills: Bill[];
   categories: Category[];
   today: string;
+  creditCards?: CreditCard[];
 }
 
-export function ContasTab({ bills, categories, today }: Props) {
+export function ContasTab({ bills, categories, today, creditCards = [] }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Bill | null>(null);
   const [pending, start] = useTransition();
@@ -48,14 +60,20 @@ export function ContasTab({ bills, categories, today }: Props) {
 
   return (
     <div className="space-y-4">
+      {creditCards.length > 0 ? <CreditCardsSection cards={creditCards} /> : null}
+
       <div className="flex items-center justify-between">
         <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
           {bills.filter((b) => !b.paid_at).length} pendente(s) ·{" "}
-          {formatBRL(bills.filter((b) => !b.paid_at).reduce((s, b) => s + b.amount_cents, 0))} a pagar
+          {formatBRL(bills.filter((b) => !b.paid_at).reduce((s, b) => s + b.amount_cents, 0))} a
+          pagar
         </p>
         <button
           type="button"
-          onClick={() => { setEditing(null); setShowForm(true); }}
+          onClick={() => {
+            setEditing(null);
+            setShowForm(true);
+          }}
           className="rounded-lg px-3 py-1.5 text-sm font-semibold text-white"
           style={{ background: "var(--gradient-brand)" }}
         >
@@ -63,17 +81,23 @@ export function ContasTab({ bills, categories, today }: Props) {
         </button>
       </div>
 
-      {(showForm || editing) ? (
+      {showForm || editing ? (
         <BillForm
           bill={editing}
           categories={categories}
           today={today}
-          onDone={() => { setShowForm(false); setEditing(null); }}
+          onDone={() => {
+            setShowForm(false);
+            setEditing(null);
+          }}
         />
       ) : null}
 
       {sorted.length === 0 ? (
-        <p className="rounded-lg border p-4 text-sm text-center" style={{ borderColor: "var(--color-border)", color: "var(--color-fg-muted)" }}>
+        <p
+          className="rounded-lg border p-4 text-sm text-center"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-fg-muted)" }}
+        >
           Nenhuma conta cadastrada.
         </p>
       ) : (
@@ -86,7 +110,12 @@ export function ContasTab({ bills, categories, today }: Props) {
                 key={b.id}
                 className="flex items-center gap-3 rounded-lg border p-3"
                 style={{
-                  borderColor: status === "vencida" ? "var(--color-danger)" : status === "hoje" ? "var(--color-accent)" : "var(--color-border)",
+                  borderColor:
+                    status === "vencida"
+                      ? "var(--color-danger)"
+                      : status === "hoje"
+                        ? "var(--color-accent)"
+                        : "var(--color-border)",
                   opacity: status === "paga" ? 0.55 : 1,
                   background: "var(--color-card)",
                 }}
@@ -102,18 +131,27 @@ export function ContasTab({ bills, categories, today }: Props) {
                 </button>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium" style={{ textDecoration: status === "paga" ? "line-through" : "none" }}>
+                  <p
+                    className="truncate text-sm font-medium"
+                    style={{ textDecoration: status === "paga" ? "line-through" : "none" }}
+                  >
                     {cat?.emoji ? <span className="mr-1">{cat.emoji}</span> : null}
                     {b.title}
                   </p>
                   <p className="text-xs" style={{ color: "var(--color-fg-muted)" }}>
-                    {formatDateLabel(b.due_date)}{b.recurrence_rule ? " · recorrente" : ""}
+                    {formatDateLabel(b.due_date)}
+                    {b.recurrence_rule ? " · recorrente" : ""}
                     {b.notes ? ` · ${b.notes}` : ""}
                   </p>
                 </div>
 
                 <div className="flex shrink-0 flex-col items-end gap-1">
-                  <span className="font-mono text-sm font-semibold" style={{ color: status === "vencida" ? "var(--color-danger)" : "var(--color-fg)" }}>
+                  <span
+                    className="font-mono text-sm font-semibold"
+                    style={{
+                      color: status === "vencida" ? "var(--color-danger)" : "var(--color-fg)",
+                    }}
+                  >
                     {formatBRL(b.amount_cents)}
                   </span>
                   <StatusChip status={status} />
@@ -122,7 +160,10 @@ export function ContasTab({ bills, categories, today }: Props) {
                 <div className="flex shrink-0 gap-1">
                   <button
                     type="button"
-                    onClick={() => { setEditing(b); setShowForm(false); }}
+                    onClick={() => {
+                      setEditing(b);
+                      setShowForm(false);
+                    }}
                     className="rounded px-2 py-1 text-xs"
                     style={{ color: "var(--color-accent)" }}
                   >
@@ -131,7 +172,10 @@ export function ContasTab({ bills, categories, today }: Props) {
                   <button
                     type="button"
                     disabled={pending}
-                    onClick={() => { if (!confirm("Apagar conta?")) return; start(() => deleteBill(b.id)); }}
+                    onClick={() => {
+                      if (!confirm("Apagar conta?")) return;
+                      start(() => deleteBill(b.id));
+                    }}
                     className="rounded px-2 py-1 text-xs"
                     style={{ color: "var(--color-danger)" }}
                   >
@@ -149,15 +193,17 @@ export function ContasTab({ bills, categories, today }: Props) {
 
 function StatusChip({ status }: { status: "paga" | "vencida" | "hoje" | "pendente" }) {
   const map = {
-    paga:     { label: "paga",     color: "var(--color-success)" },
-    vencida:  { label: "vencida",  color: "var(--color-danger)" },
-    hoje:     { label: "vence hoje", color: "var(--color-accent)" },
+    paga: { label: "paga", color: "var(--color-success)" },
+    vencida: { label: "vencida", color: "var(--color-danger)" },
+    hoje: { label: "vence hoje", color: "var(--color-accent)" },
     pendente: { label: "pendente", color: "var(--color-fg-muted)" },
   };
   const { label, color } = map[status];
   return (
-    <span className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-      style={{ color, border: `1px solid ${color}` }}>
+    <span
+      className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+      style={{ color, border: `1px solid ${color}` }}
+    >
       {label}
     </span>
   );
@@ -165,8 +211,100 @@ function StatusChip({ status }: { status: "paga" | "vencida" | "hoje" | "pendent
 
 function formatDateLabel(iso: string): string {
   const [, m, d] = iso.split("-");
-  const months = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
-  return `${parseInt(d)} de ${months[parseInt(m) - 1]}`;
+  const months = [
+    "jan",
+    "fev",
+    "mar",
+    "abr",
+    "mai",
+    "jun",
+    "jul",
+    "ago",
+    "set",
+    "out",
+    "nov",
+    "dez",
+  ];
+  return `${Number.parseInt(d)} de ${months[Number.parseInt(m) - 1]}`;
+}
+
+function CreditCardsSection({ cards }: { cards: CreditCard[] }) {
+  return (
+    <div className="space-y-2">
+      <h2
+        className="text-xs font-semibold uppercase tracking-wide"
+        style={{ color: "var(--color-fg-subtle)" }}
+      >
+        💳 Cartões
+      </h2>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {cards.map((c) => {
+          const limit = c.credit_limit_cents;
+          const available = availableCredit(limit, c.current_cents);
+          const used = limit != null ? Math.max(limit - (available ?? 0), 0) : 0;
+          const usedPct = limit && limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
+          const danger = usedPct >= 90;
+          return (
+            <div
+              key={c.id}
+              className="rounded-xl border p-3"
+              style={{ borderColor: "var(--color-border)", background: "var(--color-card)" }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">💳 {c.name}</span>
+                {c.due_day ? (
+                  <span className="text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
+                    vence dia {c.due_day}
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-1 flex items-baseline justify-between">
+                <span
+                  className="text-[10px] uppercase tracking-wide"
+                  style={{ color: "var(--color-fg-subtle)" }}
+                >
+                  Fatura aberta
+                </span>
+                <span
+                  className="font-mono text-base font-semibold"
+                  style={{ color: "var(--color-danger)" }}
+                >
+                  {formatBRL(c.faturaAberta)}
+                </span>
+              </div>
+              {limit != null ? (
+                <>
+                  <div
+                    className="mt-2 h-1.5 w-full overflow-hidden rounded-full"
+                    style={{ background: "var(--color-bg-elevated)" }}
+                  >
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${usedPct}%`,
+                        background: danger ? "var(--color-danger)" : "var(--gradient-brand)",
+                      }}
+                    />
+                  </div>
+                  <div
+                    className="mt-1 flex justify-between text-[10px]"
+                    style={{ color: "var(--color-fg-subtle)" }}
+                  >
+                    <span>disponível {formatBRL(available ?? 0)}</span>
+                    <span>limite {formatBRL(limit)}</span>
+                  </div>
+                </>
+              ) : (
+                <p className="mt-1 text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
+                  Defina limite/fechamento no Setup para ver o disponível.
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function BillForm({
@@ -186,65 +324,138 @@ function BillForm({
   async function handleSubmit(fd: FormData) {
     start(async () => {
       const res = await saveBill(fd);
-      if (res.error) { setError(res.error); return; }
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
       onDone();
     });
   }
 
   return (
-    <form action={handleSubmit} className="rounded-lg border p-4 space-y-3" style={{ borderColor: "var(--color-border)", background: "var(--color-card)" }}>
+    <form
+      action={handleSubmit}
+      className="rounded-lg border p-4 space-y-3"
+      style={{ borderColor: "var(--color-border)", background: "var(--color-card)" }}
+    >
       {bill ? <input type="hidden" name="id" value={bill.id} /> : null}
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
-          <label className="mb-1 block text-xs font-medium" style={{ color: "var(--color-fg-muted)" }}>Título *</label>
-          <input name="title" defaultValue={bill?.title ?? ""} required className="w-full rounded-lg border px-3 py-1.5 text-sm outline-none focus:ring-2"
-            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }} />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium" style={{ color: "var(--color-fg-muted)" }}>Valor (R$) *</label>
-          <input name="amount" type="number" step="0.01" min="0.01" defaultValue={bill ? (bill.amount_cents / 100).toFixed(2) : ""} required
+          <label
+            className="mb-1 block text-xs font-medium"
+            style={{ color: "var(--color-fg-muted)" }}
+          >
+            Título *
+          </label>
+          <input
+            name="title"
+            defaultValue={bill?.title ?? ""}
+            required
             className="w-full rounded-lg border px-3 py-1.5 text-sm outline-none focus:ring-2"
-            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }} />
+            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+          />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium" style={{ color: "var(--color-fg-muted)" }}>Vencimento *</label>
+          <label
+            className="mb-1 block text-xs font-medium"
+            style={{ color: "var(--color-fg-muted)" }}
+          >
+            Valor (R$) *
+          </label>
+          <input
+            name="amount"
+            type="number"
+            step="0.01"
+            min="0.01"
+            defaultValue={bill ? (bill.amount_cents / 100).toFixed(2) : ""}
+            required
+            className="w-full rounded-lg border px-3 py-1.5 text-sm outline-none focus:ring-2"
+            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+          />
+        </div>
+        <div>
+          <label
+            className="mb-1 block text-xs font-medium"
+            style={{ color: "var(--color-fg-muted)" }}
+          >
+            Vencimento *
+          </label>
           <DatePicker name="due_date" defaultValue={bill?.due_date ?? today} />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium" style={{ color: "var(--color-fg-muted)" }}>Categoria</label>
-          <select name="category_id" defaultValue={bill?.category_id ?? ""}
+          <label
+            className="mb-1 block text-xs font-medium"
+            style={{ color: "var(--color-fg-muted)" }}
+          >
+            Categoria
+          </label>
+          <select
+            name="category_id"
+            defaultValue={bill?.category_id ?? ""}
             className="w-full rounded-lg border px-3 py-1.5 text-sm outline-none focus:ring-2"
-            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+          >
             <option value="">— sem categoria —</option>
-            {categories.map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.emoji} {c.name}
+              </option>
+            ))}
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium" style={{ color: "var(--color-fg-muted)" }}>Recorrência</label>
-          <select name="recurrence_rule" defaultValue={bill?.recurrence_rule ?? ""}
+          <label
+            className="mb-1 block text-xs font-medium"
+            style={{ color: "var(--color-fg-muted)" }}
+          >
+            Recorrência
+          </label>
+          <select
+            name="recurrence_rule"
+            defaultValue={bill?.recurrence_rule ?? ""}
             className="w-full rounded-lg border px-3 py-1.5 text-sm outline-none focus:ring-2"
-            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+          >
             <option value="">Única</option>
             <option value="monthly">Mensal</option>
           </select>
         </div>
         <div className="col-span-2">
-          <label className="mb-1 block text-xs font-medium" style={{ color: "var(--color-fg-muted)" }}>Observações</label>
-          <input name="notes" defaultValue={bill?.notes ?? ""} maxLength={300}
+          <label
+            className="mb-1 block text-xs font-medium"
+            style={{ color: "var(--color-fg-muted)" }}
+          >
+            Observações
+          </label>
+          <input
+            name="notes"
+            defaultValue={bill?.notes ?? ""}
+            maxLength={300}
             className="w-full rounded-lg border px-3 py-1.5 text-sm outline-none focus:ring-2"
-            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }} />
+            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+          />
         </div>
       </div>
-      {error ? <p className="text-xs" style={{ color: "var(--color-danger)" }}>{error}</p> : null}
+      {error ? (
+        <p className="text-xs" style={{ color: "var(--color-danger)" }}>
+          {error}
+        </p>
+      ) : null}
       <div className="flex gap-2">
-        <button type="submit" disabled={pending}
+        <button
+          type="submit"
+          disabled={pending}
           className="rounded-lg px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
-          style={{ background: "var(--gradient-brand)" }}>
+          style={{ background: "var(--gradient-brand)" }}
+        >
           {pending ? "Salvando…" : bill ? "Salvar" : "Criar"}
         </button>
-        <button type="button" onClick={onDone}
+        <button
+          type="button"
+          onClick={onDone}
           className="rounded-lg border px-4 py-1.5 text-sm hover:opacity-80"
-          style={{ borderColor: "var(--color-border)" }}>
+          style={{ borderColor: "var(--color-border)" }}
+        >
           Cancelar
         </button>
       </div>

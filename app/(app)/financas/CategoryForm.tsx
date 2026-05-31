@@ -42,10 +42,7 @@ export function CategoryForm() {
           <option value="income">Receita</option>
         </select>
       </div>
-      <label
-        className="flex items-center gap-2 text-xs"
-        style={{ color: "var(--color-fg-muted)" }}
-      >
+      <label className="flex items-center gap-2 text-xs" style={{ color: "var(--color-fg-muted)" }}>
         Cor:
         <input
           type="color"

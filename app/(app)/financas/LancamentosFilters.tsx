@@ -63,7 +63,11 @@ export function LancamentosFilters({
   return (
     <div
       className="flex flex-wrap items-center gap-2 rounded-xl p-2"
-      style={{ background: "var(--color-card)", border: "1px solid var(--color-border)", opacity: pending ? 0.6 : 1 }}
+      style={{
+        background: "var(--color-card)",
+        border: "1px solid var(--color-border)",
+        opacity: pending ? 0.6 : 1,
+      }}
     >
       {/* Navegação de mês */}
       <div className="flex items-center gap-1">
@@ -90,13 +94,23 @@ export function LancamentosFilters({
 
       <div className="h-5 w-px" style={{ background: "var(--color-border)" }} />
 
-      <select value={filters.kind ?? ""} onChange={(e) => update({ kind: e.target.value || null })} className={selCls} style={selStyle}>
+      <select
+        value={filters.kind ?? ""}
+        onChange={(e) => update({ kind: e.target.value || null })}
+        className={selCls}
+        style={selStyle}
+      >
         <option value="">Tipo</option>
         <option value="expense">💸 Despesas</option>
         <option value="income">💰 Receitas</option>
       </select>
 
-      <select value={filters.categoryId ?? ""} onChange={(e) => update({ cat: e.target.value || null })} className={selCls} style={selStyle}>
+      <select
+        value={filters.categoryId ?? ""}
+        onChange={(e) => update({ cat: e.target.value || null })}
+        className={selCls}
+        style={selStyle}
+      >
         <option value="">Categoria</option>
         {categories.map((c) => (
           <option key={c.id} value={c.id}>
@@ -106,7 +120,12 @@ export function LancamentosFilters({
         ))}
       </select>
 
-      <select value={filters.accountId ?? ""} onChange={(e) => update({ acc: e.target.value || null })} className={selCls} style={selStyle}>
+      <select
+        value={filters.accountId ?? ""}
+        onChange={(e) => update({ acc: e.target.value || null })}
+        className={selCls}
+        style={selStyle}
+      >
         <option value="">Conta</option>
         {accounts.map((a) => (
           <option key={a.id} value={a.id}>

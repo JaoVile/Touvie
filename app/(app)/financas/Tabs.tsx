@@ -3,7 +3,14 @@
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
-export type FinanceTab = "lancamentos" | "recorrentes" | "contas" | "caixinhas" | "graficos" | "setup" | "importar";
+export type FinanceTab =
+  | "lancamentos"
+  | "recorrentes"
+  | "contas"
+  | "caixinhas"
+  | "graficos"
+  | "setup"
+  | "importar";
 
 const TABS: Array<{ id: FinanceTab; label: string; emoji: string }> = [
   { id: "lancamentos", label: "Lançamentos", emoji: "🧾" },

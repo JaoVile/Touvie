@@ -7,6 +7,7 @@ import { saveAccount } from "./actions";
 export function AccountForm() {
   const [error, setError] = useState<string>();
   const [pending, start] = useTransition();
+  const [kind, setKind] = useState<AccountKind>("checking");
   const formRef = useRef<HTMLFormElement>(null);
 
   function submit(fd: FormData) {
@@ -14,9 +15,14 @@ export function AccountForm() {
     start(async () => {
       const res = await saveAccount(fd);
       if (res?.error) setError(res.error);
-      else formRef.current?.reset();
+      else {
+        formRef.current?.reset();
+        setKind("checking");
+      }
     });
   }
+
+  const isCredit = kind === "credit";
 
   return (
     <form ref={formRef} action={submit} className="space-y-2 text-sm">
@@ -30,7 +36,13 @@ export function AccountForm() {
           className={inputCls}
           style={inputStyle}
         />
-        <select name="kind" defaultValue="checking" className={inputCls} style={inputStyle}>
+        <select
+          name="kind"
+          value={kind}
+          onChange={(e) => setKind(e.target.value as AccountKind)}
+          className={inputCls}
+          style={inputStyle}
+        >
           {ACCOUNT_KINDS.map((k) => (
             <option key={k} value={k}>
               {ACCOUNT_KIND_LABELS[k as AccountKind]}
@@ -43,10 +55,41 @@ export function AccountForm() {
         name="balance"
         step="0.01"
         defaultValue="0"
-        placeholder="Saldo inicial (R$)"
+        placeholder={isCredit ? "Saldo inicial da fatura (R$)" : "Saldo inicial (R$)"}
         className={inputCls}
         style={inputStyle}
       />
+      {isCredit ? (
+        <div className="grid grid-cols-3 gap-2">
+          <input
+            type="number"
+            name="credit_limit"
+            step="0.01"
+            min="0"
+            placeholder="Limite (R$)"
+            className={inputCls}
+            style={inputStyle}
+          />
+          <input
+            type="number"
+            name="closing_day"
+            min="1"
+            max="28"
+            placeholder="Fecha dia"
+            className={inputCls}
+            style={inputStyle}
+          />
+          <input
+            type="number"
+            name="due_day"
+            min="1"
+            max="31"
+            placeholder="Vence dia"
+            className={inputCls}
+            style={inputStyle}
+          />
+        </div>
+      ) : null}
       {error ? <p style={{ color: "var(--color-danger)" }}>{error}</p> : null}
       <button
         type="submit"

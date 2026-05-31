@@ -32,9 +32,13 @@ export function ImportTab() {
             </p>
             <ol className="list-decimal space-y-0.5 pl-4">
               <li>Acesse nubank.com.br pelo computador</li>
-              <li>Clique em <strong>Faturas</strong> no menu lateral</li>
+              <li>
+                Clique em <strong>Faturas</strong> no menu lateral
+              </li>
               <li>Selecione a fatura desejada</li>
-              <li>Clique em <strong>Exportar CSV</strong></li>
+              <li>
+                Clique em <strong>Exportar CSV</strong>
+              </li>
             </ol>
           </div>
           <div>
@@ -43,8 +47,12 @@ export function ImportTab() {
             </p>
             <ol className="list-decimal space-y-0.5 pl-4">
               <li>Acesse mercadopago.com.br pelo computador</li>
-              <li>Vá em <strong>Relatórios → Dinheiro em conta</strong></li>
-              <li>Clique em <strong>Criar relatório</strong> e selecione o período</li>
+              <li>
+                Vá em <strong>Relatórios → Dinheiro em conta</strong>
+              </li>
+              <li>
+                Clique em <strong>Criar relatório</strong> e selecione o período
+              </li>
               <li>Baixe o arquivo CSV gerado</li>
             </ol>
           </div>

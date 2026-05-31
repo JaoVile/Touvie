@@ -48,6 +48,54 @@ export function recurrenceLabel(rule: string | null | undefined): string {
   return `Todo dia ${r.day}`;
 }
 
+// --- CRÉDITO / PARCELAMENTO ------------------------------------------
+
+/** Soma `months` meses a uma data ISO (YYYY-MM-DD), preservando fim de mês. */
+export function addMonthsISO(iso: string, months: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const base = new Date(y, m - 1 + months, 1);
+  const lastDay = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+  base.setDate(Math.min(d, lastDay));
+  return `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(base.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Ciclo de fatura que contém `ref`, dado o dia de fechamento.
+ * A fatura fecha no dia `closingDay`; compras até o fechamento entram nesse ciclo,
+ * depois disso vão pro próximo. Retorna datas ISO inclusivas {start, end}.
+ */
+export function billingCycle(closingDay: number, ref: Date): { start: string; end: string } {
+  const day = Math.min(Math.max(closingDay, 1), 28);
+  const y = ref.getFullYear();
+  const m = ref.getMonth();
+  const refDay = ref.getDate();
+  // Fechamento do ciclo que contém ref
+  const closeMonthOffset = refDay <= day ? 0 : 1;
+  const close = new Date(y, m + closeMonthOffset, day);
+  const start = new Date(close.getFullYear(), close.getMonth() - 1, day + 1);
+  const iso = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return { start: iso(start), end: iso(close) };
+}
+
+/** Divide um total em `n` parcelas inteiras (em centavos), distribuindo o resto nas primeiras. */
+export function splitInstallments(totalCents: number, n: number): number[] {
+  if (n <= 1) return [totalCents];
+  const base = Math.floor(totalCents / n);
+  let remainder = totalCents - base * n;
+  return Array.from({ length: n }, () => {
+    const extra = remainder > 0 ? 1 : 0;
+    if (remainder > 0) remainder--;
+    return base + extra;
+  });
+}
+
+/** Limite disponível: limite + saldo atual (saldo é negativo quando há dívida). */
+export function availableCredit(limitCents: number | null, currentCents: number): number | null {
+  if (limitCents == null) return null;
+  return limitCents + currentCents;
+}
+
 export const SEED_CATEGORIES: Array<{
   name: string;
   kind: CategoryKind;

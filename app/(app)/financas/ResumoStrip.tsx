@@ -54,7 +54,10 @@ function Card({
       className="rounded-xl p-3"
       style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
     >
-      <div className="text-[10px] uppercase tracking-wide" style={{ color: "var(--color-fg-subtle)" }}>
+      <div
+        className="text-[10px] uppercase tracking-wide"
+        style={{ color: "var(--color-fg-subtle)" }}
+      >
         {label}
       </div>
       <div className="mt-0.5 font-mono text-base font-semibold sm:text-lg" style={{ color }}>

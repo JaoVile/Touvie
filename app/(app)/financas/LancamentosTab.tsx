@@ -147,7 +147,12 @@ export async function LancamentosTab({ userId, accounts, categories, month, filt
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
       <div className="grid gap-4">
-        <LancamentosFilters accounts={accounts} categories={categories} month={month} filters={filters} />
+        <LancamentosFilters
+          accounts={accounts}
+          categories={categories}
+          month={month}
+          filters={filters}
+        />
 
         <div className="grid gap-2 sm:grid-cols-3">
           <Stat label="Receitas" value={formatBRL(totals.income)} color="var(--color-success)" />

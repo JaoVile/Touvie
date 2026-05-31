@@ -56,12 +56,17 @@ export function SetupTab({ accounts, categories }: Props) {
                 <span className="flex flex-col items-end leading-tight">
                   <span
                     className="font-mono text-sm"
-                    style={{ color: a.current_cents < 0 ? "var(--color-danger)" : "var(--color-fg)" }}
+                    style={{
+                      color: a.current_cents < 0 ? "var(--color-danger)" : "var(--color-fg)",
+                    }}
                   >
                     {formatBRL(a.current_cents)}
                   </span>
                   {a.current_cents !== a.balance_cents ? (
-                    <span className="font-mono text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
+                    <span
+                      className="font-mono text-[10px]"
+                      style={{ color: "var(--color-fg-subtle)" }}
+                    >
                       inicial {formatBRL(a.balance_cents)}
                     </span>
                   ) : null}

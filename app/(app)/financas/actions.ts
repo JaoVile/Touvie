@@ -1,7 +1,13 @@
 "use server";
 
+import {
+  ACCOUNT_KINDS,
+  SEED_CATEGORIES,
+  addMonthsISO,
+  reaisToCents,
+  splitInstallments,
+} from "@/lib/finance";
 import { detectAndParse, guessCategory } from "@/lib/importers/csv";
-import { ACCOUNT_KINDS, SEED_CATEGORIES, reaisToCents } from "@/lib/finance";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -46,16 +52,30 @@ const accountSchema = z.object({
   name: z.string().min(1, "Nome obrigatório").max(60),
   kind: z.enum(ACCOUNT_KINDS as [string, ...string[]]),
   balance: z.number().finite(),
+  credit_limit: z.number().nonnegative().nullable(),
+  closing_day: z.number().int().min(1).max(28).nullable(),
+  due_day: z.number().int().min(1).max(31).nullable(),
 });
+
+function parseIntOrNull(v: string | undefined): number | null {
+  if (!v || !/^\d+$/.test(v)) return null;
+  return Number.parseInt(v, 10);
+}
 
 export async function saveAccount(fd: FormData): Promise<{ ok?: boolean; error?: string }> {
   const balanceStr = (fd.get("balance")?.toString() ?? "0").replace(",", ".");
   const balance = Number.parseFloat(balanceStr);
+  const isCredit = fd.get("kind")?.toString() === "credit";
+  const limitStr = (fd.get("credit_limit")?.toString() ?? "").replace(",", ".");
+  const limit = Number.parseFloat(limitStr);
   const parsed = accountSchema.safeParse({
     id: fd.get("id")?.toString() || undefined,
     name: fd.get("name")?.toString(),
     kind: fd.get("kind")?.toString(),
     balance: Number.isFinite(balance) ? balance : 0,
+    credit_limit: isCredit && Number.isFinite(limit) ? limit : null,
+    closing_day: isCredit ? parseIntOrNull(fd.get("closing_day")?.toString()) : null,
+    due_day: isCredit ? parseIntOrNull(fd.get("due_day")?.toString()) : null,
   });
   if (!parsed.success) return { error: parsed.error.errors[0]?.message };
 
@@ -65,6 +85,10 @@ export async function saveAccount(fd: FormData): Promise<{ ok?: boolean; error?:
     name: parsed.data.name,
     kind: parsed.data.kind,
     balance_cents: reaisToCents(parsed.data.balance),
+    credit_limit_cents:
+      parsed.data.credit_limit != null ? reaisToCents(parsed.data.credit_limit) : null,
+    closing_day: parsed.data.closing_day,
+    due_day: parsed.data.due_day,
   };
   const { error } = parsed.data.id
     ? await supabase.from("finance_accounts").update(payload).eq("id", parsed.data.id)
@@ -146,6 +170,10 @@ export async function saveTransaction(fd: FormData): Promise<{ ok?: boolean; err
   const recDay = /^\d+$/.test(recDayStr) ? Number.parseInt(recDayStr, 10) : null;
   const amountStr = (fd.get("amount")?.toString() ?? "").replace(",", ".");
   const amount = Number.parseFloat(amountStr);
+  const instStr = fd.get("installments")?.toString() ?? "";
+  const installments = /^\d+$/.test(instStr)
+    ? Math.min(Math.max(Number.parseInt(instStr, 10), 1), 48)
+    : 1;
 
   const parsed = txSchema.safeParse({
     id: fd.get("id")?.toString() || undefined,
@@ -166,6 +194,39 @@ export async function saveTransaction(fd: FormData): Promise<{ ok?: boolean; err
   }
 
   const { supabase, userId } = await requireUser();
+
+  // Compra parcelada (apenas na criação, despesa não-recorrente): N lançamentos mensais.
+  if (
+    !parsed.data.id &&
+    !parsed.data.is_recurring &&
+    parsed.data.kind === "expense" &&
+    installments > 1
+  ) {
+    const groupId = crypto.randomUUID();
+    const parts = splitInstallments(reaisToCents(parsed.data.amount), installments);
+    const baseDesc = parsed.data.description ?? "";
+    const rows = parts.map((cents, i) => ({
+      user_id: userId,
+      account_id: parsed.data.account_id,
+      category_id: parsed.data.category_id,
+      amount_cents: cents,
+      kind: parsed.data.kind,
+      occurred_on: addMonthsISO(parsed.data.occurred_on, i),
+      description: `${baseDesc ? `${baseDesc} ` : ""}(${i + 1}/${installments})`.trim(),
+      is_recurring: false,
+      recurrence_rule: null,
+      reminder_enabled: false,
+      installment_group_id: groupId,
+      installment_number: i + 1,
+      installment_total: installments,
+    }));
+    const { error } = await supabase.from("transactions").insert(rows);
+    if (error) return { error: error.message };
+    revalidatePath("/financas");
+    revalidatePath("/");
+    return { ok: true };
+  }
+
   const payload = {
     user_id: userId,
     account_id: parsed.data.account_id,
@@ -256,14 +317,20 @@ export async function importCsv(
   const { supabase, userId } = await requireUser();
 
   const file = fd.get("file");
-  if (!(file instanceof File) || file.size === 0) return { imported: 0, skipped: 0, error: "Nenhum arquivo enviado." };
-  if (file.size > 5 * 1024 * 1024) return { imported: 0, skipped: 0, error: "Arquivo muito grande (máx 5 MB)." };
+  if (!(file instanceof File) || file.size === 0)
+    return { imported: 0, skipped: 0, error: "Nenhum arquivo enviado." };
+  if (file.size > 5 * 1024 * 1024)
+    return { imported: 0, skipped: 0, error: "Arquivo muito grande (máx 5 MB)." };
 
   const text = await file.text();
   const { source, rows } = detectAndParse(text);
 
   if (source === "unknown" || rows.length === 0) {
-    return { imported: 0, skipped: 0, error: "Formato não reconhecido. Verifique se é o CSV correto do Nubank ou Mercado Pago." };
+    return {
+      imported: 0,
+      skipped: 0,
+      error: "Formato não reconhecido. Verifique se é o CSV correto do Nubank ou Mercado Pago.",
+    };
   }
 
   const SOURCE_LABEL = { nubank: "Nubank", mercadopago: "Mercado Pago" } as const;
@@ -272,8 +339,17 @@ export async function importCsv(
 
   // Parallel: load categories + look up existing account
   const [catsRes, existingAccRes] = await Promise.all([
-    supabase.from("finance_categories").select("id, name, kind").eq("user_id", userId).eq("archived", false),
-    supabase.from("finance_accounts").select("id").eq("user_id", userId).ilike("name", accountName).maybeSingle(),
+    supabase
+      .from("finance_categories")
+      .select("id, name, kind")
+      .eq("user_id", userId)
+      .eq("archived", false),
+    supabase
+      .from("finance_accounts")
+      .select("id")
+      .eq("user_id", userId)
+      .ilike("name", accountName)
+      .maybeSingle(),
   ]);
   const categories = catsRes.data ?? [];
 
@@ -344,7 +420,7 @@ const billSchema = z.object({
 
 export async function saveBill(fd: FormData): Promise<{ ok?: boolean; error?: string }> {
   const amountStr = (fd.get("amount")?.toString() ?? "").replace(",", ".");
-  const amount = parseFloat(amountStr);
+  const amount = Number.parseFloat(amountStr);
   const parsed = billSchema.safeParse({
     id: fd.get("id")?.toString() || undefined,
     title: fd.get("title")?.toString(),
@@ -404,7 +480,7 @@ const envelopeSchema = z.object({
 
 export async function saveEnvelope(fd: FormData): Promise<{ ok?: boolean; error?: string }> {
   const limitStr = (fd.get("limit")?.toString() ?? "").replace(",", ".");
-  const limit = parseFloat(limitStr);
+  const limit = Number.parseFloat(limitStr);
   const parsed = envelopeSchema.safeParse({
     id: fd.get("id")?.toString() || undefined,
     category_id: fd.get("category_id")?.toString() || null,

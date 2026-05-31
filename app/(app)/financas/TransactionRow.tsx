@@ -1,7 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
 import { formatBRL } from "@/lib/utils";
+import { useTransition } from "react";
 import { deleteTransaction, deleteTransfer } from "./actions";
 
 export type LedgerItem =
@@ -46,7 +46,9 @@ export function TransactionRow({ item }: { item: LedgerItem }) {
   const avatarBg = isTransfer
     ? "var(--color-bg-elevated)"
     : (item.category?.color ?? "var(--color-bg-elevated)");
-  const avatarEmoji = isTransfer ? "🔁" : (item.category?.emoji ?? (item.kind === "income" ? "💰" : "💸"));
+  const avatarEmoji = isTransfer
+    ? "🔁"
+    : (item.category?.emoji ?? (item.kind === "income" ? "💰" : "💸"));
 
   const title = isTransfer
     ? item.description || "Transferência"
