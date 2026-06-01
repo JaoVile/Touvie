@@ -22,16 +22,6 @@ export const MEAL_TYPE_LABELS: Record<MealType, string> = {
   other: "Outro",
 };
 
-export const MEAL_TYPE_EMOJIS: Record<MealType, string> = {
-  breakfast: "🥐",
-  snack: "🍎",
-  lunch: "🍛",
-  pre: "💪",
-  post: "🥤",
-  dinner: "🍽️",
-  other: "🍴",
-};
-
 export interface Macros {
   kcal: number;
   protein_g: number;

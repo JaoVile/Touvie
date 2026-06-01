@@ -2,6 +2,7 @@
 
 import { GlassCard } from "@/components/glass/GlassCard";
 import { type Macros, ZERO_MACROS, formatGrams, sumMacros } from "@/lib/diet";
+import type { LucideIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { addMealItem, deleteMeal, deleteMealItem, updateMealNotes } from "./actions";
 
@@ -22,7 +23,7 @@ interface Item {
 interface Props {
   mealType: string;
   label: string;
-  emoji: string;
+  icon: LucideIcon;
   mealId: string | null;
   mealNotes: string;
   items: Item[];
@@ -33,7 +34,7 @@ interface Props {
 export function MealCard({
   mealType,
   label,
-  emoji,
+  icon: Icon,
   mealId,
   mealNotes,
   items,
@@ -97,8 +98,8 @@ export function MealCard({
   return (
     <GlassCard>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="font-semibold">
-          <span className="mr-1.5">{emoji}</span>
+        <h3 className="flex items-center gap-1.5 font-semibold">
+          <Icon size={16} className="shrink-0" style={{ color: "var(--color-fg-muted)" }} />
           {label}
         </h3>
         <span className="font-mono text-xs" style={{ color: "var(--color-fg-muted)" }}>

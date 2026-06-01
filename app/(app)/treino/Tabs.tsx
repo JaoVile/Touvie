@@ -1,15 +1,16 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { FolderKanban, History, type LucideIcon, Target, Trophy } from "lucide-react";
 import Link from "next/link";
 
 export type WorkoutTab = "hoje" | "programas" | "historico" | "prs";
 
-const TABS: Array<{ id: WorkoutTab; label: string; emoji: string }> = [
-  { id: "hoje", label: "Hoje", emoji: "🎯" },
-  { id: "programas", label: "Programas", emoji: "🗂️" },
-  { id: "historico", label: "Histórico", emoji: "📜" },
-  { id: "prs", label: "PRs", emoji: "🏆" },
+const TABS: Array<{ id: WorkoutTab; label: string; icon: LucideIcon }> = [
+  { id: "hoje", label: "Hoje", icon: Target },
+  { id: "programas", label: "Programas", icon: FolderKanban },
+  { id: "historico", label: "Histórico", icon: History },
+  { id: "prs", label: "PRs", icon: Trophy },
 ];
 
 export function Tabs({ current }: { current: WorkoutTab }) {
@@ -20,12 +21,13 @@ export function Tabs({ current }: { current: WorkoutTab }) {
     >
       {TABS.map((t) => {
         const active = t.id === current;
+        const Icon = t.icon;
         return (
           <Link
             key={t.id}
             href={`/treino?t=${t.id}`}
             className={cn(
-              "flex-1 whitespace-nowrap rounded-md px-3 py-1.5 text-center text-sm font-medium transition",
+              "flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-center text-sm font-medium transition",
               active ? "text-white shadow" : "hover:opacity-80",
             )}
             style={{
@@ -33,7 +35,7 @@ export function Tabs({ current }: { current: WorkoutTab }) {
               color: active ? "white" : "var(--color-fg-muted)",
             }}
           >
-            <span className="mr-1">{t.emoji}</span>
+            <Icon size={14} className="shrink-0" />
             {t.label}
           </Link>
         );

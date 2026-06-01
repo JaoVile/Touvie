@@ -1,5 +1,6 @@
 import { GlassCard } from "@/components/glass/GlassCard";
 import { createClient } from "@/lib/supabase/server";
+import { History, TrendingUp } from "lucide-react";
 import { MeasurementChart } from "./MeasurementChart";
 import { MeasurementForm } from "./MeasurementForm";
 import { MeasurementRow } from "./MeasurementRow";
@@ -40,7 +41,10 @@ export async function MedidasTab({ userId }: Props) {
     <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
       <div className="grid gap-4">
         <GlassCard>
-          <h2 className="mb-3 text-sm font-semibold">📈 Peso (últimos 180 dias)</h2>
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <TrendingUp size={16} />
+            Peso (últimos 180 dias)
+          </h2>
           {weightSeries.length >= 2 ? (
             <MeasurementChart data={weightSeries} />
           ) : (
@@ -51,7 +55,10 @@ export async function MedidasTab({ userId }: Props) {
         </GlassCard>
 
         <GlassCard>
-          <h2 className="mb-3 text-sm font-semibold">📜 Histórico</h2>
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <History size={16} />
+            Histórico
+          </h2>
           {rows.length === 0 ? (
             <p className="text-xs italic" style={{ color: "var(--color-fg-subtle)" }}>
               Sem registros ainda. Use o formulário ao lado.

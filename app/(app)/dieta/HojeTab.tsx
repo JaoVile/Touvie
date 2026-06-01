@@ -1,7 +1,6 @@
 import { GlassCard } from "@/components/glass/GlassCard";
 import { addDaysISO, dayLabelBR, todayBRTISO } from "@/lib/datetime";
 import {
-  MEAL_TYPE_EMOJIS,
   MEAL_TYPE_LABELS,
   MEAL_TYPE_ORDER,
   type Macros,
@@ -11,9 +10,29 @@ import {
   sumMacros,
 } from "@/lib/diet";
 import { createClient } from "@/lib/supabase/server";
+import {
+  Apple,
+  Coffee,
+  Croissant,
+  Dumbbell,
+  type LucideIcon,
+  GlassWater,
+  UtensilsCrossed,
+  Utensils,
+} from "lucide-react";
 import Link from "next/link";
 import { MacrosBar } from "./MacrosBar";
 import { MealCard } from "./MealCard";
+
+const MEAL_TYPE_ICONS: Record<MealType, LucideIcon> = {
+  breakfast: Croissant,
+  snack: Apple,
+  lunch: UtensilsCrossed,
+  pre: Dumbbell,
+  post: GlassWater,
+  dinner: Utensils,
+  other: Coffee,
+};
 
 interface Props {
   userId: string;
@@ -178,7 +197,7 @@ export async function HojeTab({ userId, date }: Props) {
             key={mt}
             mealType={mt}
             label={MEAL_TYPE_LABELS[mt]}
-            emoji={MEAL_TYPE_EMOJIS[mt]}
+            icon={MEAL_TYPE_ICONS[mt]}
             mealId={meal?.id ?? null}
             mealNotes={meal?.notes ?? ""}
             items={enriched}

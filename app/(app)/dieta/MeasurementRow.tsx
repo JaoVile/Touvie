@@ -1,5 +1,6 @@
 "use client";
 
+import { Scale } from "lucide-react";
 import { useTransition } from "react";
 import { deleteMeasurement } from "./actions";
 
@@ -35,7 +36,12 @@ export function MeasurementRow({ m }: { m: Measurement }) {
           className="flex flex-wrap items-center gap-2 font-mono"
           style={{ color: "var(--color-fg-muted)" }}
         >
-          {m.weight_kg != null ? <span>⚖️ {m.weight_kg.toFixed(1)}kg</span> : null}
+          {m.weight_kg != null ? (
+            <span className="flex items-center gap-1">
+              <Scale size={12} />
+              {m.weight_kg.toFixed(1)}kg
+            </span>
+          ) : null}
           {m.waist_cm != null ? <span>cintura {m.waist_cm}</span> : null}
           {m.chest_cm != null ? <span>peito {m.chest_cm}</span> : null}
           {m.arm_cm != null ? <span>braço {m.arm_cm}</span> : null}
