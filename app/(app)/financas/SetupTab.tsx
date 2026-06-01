@@ -1,10 +1,27 @@
 import { GlassCard } from "@/components/glass/GlassCard";
-import { ACCOUNT_KIND_EMOJIS, ACCOUNT_KIND_LABELS, type AccountKind } from "@/lib/finance";
+import { ACCOUNT_KIND_LABELS, type AccountKind } from "@/lib/finance";
 import { formatBRL } from "@/lib/utils";
+import {
+  Banknote,
+  CreditCard,
+  Landmark,
+  type LucideIcon,
+  PiggyBank,
+  Tags,
+  TrendingUp,
+} from "lucide-react";
 import { AccountForm } from "./AccountForm";
 import { CategoryForm } from "./CategoryForm";
 import { CategoryRow } from "./CategoryRow";
 import { SeedCategoriesButton } from "./SeedCategoriesButton";
+
+const ACCOUNT_KIND_ICONS: Record<AccountKind, LucideIcon> = {
+  cash: Banknote,
+  checking: Landmark,
+  savings: PiggyBank,
+  credit: CreditCard,
+  investment: TrendingUp,
+};
 
 interface Account {
   id: string;
@@ -33,7 +50,10 @@ export function SetupTab({ accounts, categories }: Props) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <GlassCard>
-        <h2 className="mb-3 text-sm font-semibold">🏦 Contas</h2>
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+          <Landmark size={16} />
+          Contas
+        </h2>
         {accounts.length === 0 ? (
           <p className="mb-3 text-xs" style={{ color: "var(--color-fg-muted)" }}>
             Crie a primeira conta abaixo.
@@ -46,10 +66,13 @@ export function SetupTab({ accounts, categories }: Props) {
                 className="flex items-center justify-between rounded-lg px-3 py-2 text-sm"
                 style={{ background: "var(--color-card)" }}
               >
-                <span>
-                  <span className="mr-2">{ACCOUNT_KIND_EMOJIS[a.kind]}</span>
+                <span className="flex items-center gap-2">
+                  {(() => {
+                    const Icon = ACCOUNT_KIND_ICONS[a.kind];
+                    return <Icon size={15} className="shrink-0" style={{ color: "var(--color-fg-muted)" }} />;
+                  })()}
                   <span className="font-medium">{a.name}</span>
-                  <span className="ml-2 text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
+                  <span className="text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
                     {ACCOUNT_KIND_LABELS[a.kind]}
                   </span>
                 </span>
@@ -86,7 +109,10 @@ export function SetupTab({ accounts, categories }: Props) {
 
       <GlassCard>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">🏷️ Categorias</h2>
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <Tags size={16} />
+            Categorias
+          </h2>
           {categories.length === 0 ? <SeedCategoriesButton /> : null}
         </div>
 

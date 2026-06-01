@@ -1,6 +1,7 @@
 "use client";
 
 import { formatBRL } from "@/lib/utils";
+import { Bell, Repeat } from "lucide-react";
 import { useTransition } from "react";
 import { deleteTransaction } from "./actions";
 
@@ -42,12 +43,14 @@ export function RecurringRow({ tx }: Props) {
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm"
           style={{ background: tx.category?.color ?? "var(--color-bg-elevated)" }}
         >
-          {tx.category?.emoji ?? "🔁"}
+          {tx.category?.emoji ?? <Repeat size={15} style={{ color: "var(--color-fg-muted)" }} />}
         </span>
         <div className="min-w-0">
-          <div className="truncate font-medium">
+          <div className="flex items-center gap-1 truncate font-medium">
             {tx.description || tx.category?.name || "(sem descrição)"}
-            {tx.reminder_enabled ? <span className="ml-1 text-[11px]">🔔</span> : null}
+            {tx.reminder_enabled ? (
+              <Bell size={11} className="shrink-0" style={{ color: "var(--color-fg-subtle)" }} />
+            ) : null}
           </div>
           <div className="truncate text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
             {tx.label}

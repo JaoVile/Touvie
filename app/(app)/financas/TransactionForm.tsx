@@ -1,6 +1,7 @@
 "use client";
 
 import { DatePicker } from "@/components/DatePicker";
+import { CreditCard, type LucideIcon, Repeat, TrendingDown, TrendingUp } from "lucide-react";
 import { useState, useTransition } from "react";
 import { saveTransaction, saveTransfer } from "./actions";
 
@@ -72,10 +73,10 @@ export function TransactionForm({
   const defaultDay = new Date().getDate();
 
   const modes: Mode[] = recurringMode ? ["expense", "income"] : ["expense", "income", "transfer"];
-  const modeLabel: Record<Mode, string> = {
-    expense: "💸 Despesa",
-    income: "💰 Receita",
-    transfer: "🔁 Transferir",
+  const modeMeta: Record<Mode, { label: string; icon: LucideIcon }> = {
+    expense: { label: "Despesa", icon: TrendingDown },
+    income: { label: "Receita", icon: TrendingUp },
+    transfer: { label: "Transferir", icon: Repeat },
   };
 
   return (
@@ -83,26 +84,30 @@ export function TransactionForm({
       {defaultValues?.id ? <input type="hidden" name="id" value={defaultValues.id} /> : null}
 
       <div className="flex gap-1 rounded-lg p-1" style={{ background: "var(--color-card)" }}>
-        {modes.map((m) => (
-          <label
-            key={m}
-            className="flex-1 cursor-pointer rounded-md py-1.5 text-center font-medium transition"
-            style={{
-              background: mode === m ? "var(--gradient-brand)" : "transparent",
-              color: mode === m ? "white" : "var(--color-fg-muted)",
-            }}
-          >
-            <input
-              type="radio"
-              name="mode"
-              value={m}
-              checked={mode === m}
-              onChange={() => setMode(m)}
-              className="sr-only"
-            />
-            {modeLabel[m]}
-          </label>
-        ))}
+        {modes.map((m) => {
+          const Icon = modeMeta[m].icon;
+          return (
+            <label
+              key={m}
+              className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md py-1.5 text-center font-medium transition"
+              style={{
+                background: mode === m ? "var(--gradient-brand)" : "transparent",
+                color: mode === m ? "white" : "var(--color-fg-muted)",
+              }}
+            >
+              <input
+                type="radio"
+                name="mode"
+                value={m}
+                checked={mode === m}
+                onChange={() => setMode(m)}
+                className="sr-only"
+              />
+              <Icon size={14} className="shrink-0" />
+              {modeMeta[m].label}
+            </label>
+          );
+        })}
       </div>
 
       {!isTransfer ? <input type="hidden" name="kind" value={kind} /> : null}
@@ -197,7 +202,10 @@ export function TransactionForm({
               className="flex items-center gap-2 text-xs"
               style={{ color: "var(--color-fg-muted)" }}
             >
-              <span className="shrink-0">💳 Parcelar em</span>
+              <span className="flex shrink-0 items-center gap-1.5">
+                <CreditCard size={14} />
+                Parcelar em
+              </span>
               <input
                 type="number"
                 name="installments"

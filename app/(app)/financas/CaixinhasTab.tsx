@@ -1,6 +1,7 @@
 "use client";
 
 import { formatBRL } from "@/lib/utils";
+import { AlertTriangle, Zap } from "lucide-react";
 import { useState, useTransition } from "react";
 import { deleteEnvelope, saveEnvelope } from "./actions";
 
@@ -149,6 +150,7 @@ export function CaixinhasTab({ envelopes, categories, currentMonth }: Props) {
 
                 <div className="mt-1.5 flex items-center justify-between text-xs">
                   <span
+                    className="flex items-center gap-1"
                     style={{
                       color: over
                         ? "var(--color-danger)"
@@ -157,11 +159,19 @@ export function CaixinhasTab({ envelopes, categories, currentMonth }: Props) {
                           : "var(--color-fg-subtle)",
                     }}
                   >
-                    {over
-                      ? `⚠️ excedeu ${formatBRL(Math.abs(remaining))}`
-                      : warn
-                        ? `⚡ ${Math.round(pct)}% usado`
-                        : `${Math.round(pct)}% usado`}
+                    {over ? (
+                      <>
+                        <AlertTriangle size={12} className="shrink-0" />
+                        {`excedeu ${formatBRL(Math.abs(remaining))}`}
+                      </>
+                    ) : warn ? (
+                      <>
+                        <Zap size={12} className="shrink-0" />
+                        {`${Math.round(pct)}% usado`}
+                      </>
+                    ) : (
+                      `${Math.round(pct)}% usado`
+                    )}
                   </span>
                   <span style={{ color: "var(--color-fg-muted)" }}>
                     {remaining >= 0

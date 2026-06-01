@@ -12,14 +12,6 @@ export const ACCOUNT_KIND_LABELS: Record<AccountKind, string> = {
   investment: "Investimentos",
 };
 
-export const ACCOUNT_KIND_EMOJIS: Record<AccountKind, string> = {
-  cash: "💵",
-  checking: "🏦",
-  savings: "🐷",
-  credit: "💳",
-  investment: "📈",
-};
-
 export function reaisToCents(value: number): number {
   return Math.round(value * 100);
 }

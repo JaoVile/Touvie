@@ -418,6 +418,37 @@ export async function importCsv(
   return { imported: toInsert.length, skipped, source: SOURCE_LABEL[source] };
 }
 
+/**
+ * Quantos lançamentos vieram de importação (têm external_ref). Lançamentos
+ * manuais ficam com external_ref nulo, então nunca entram nessa conta.
+ */
+export async function countImportedTransactions(): Promise<number> {
+  const { supabase, userId } = await requireUser();
+  const { count } = await supabase
+    .from("transactions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .not("external_ref", "is", null);
+  return count ?? 0;
+}
+
+/**
+ * Apaga em massa SÓ os lançamentos importados (external_ref não nulo) — os
+ * que infla(ra)m o gráfico de fluxo. Lançamentos manuais ficam intactos.
+ */
+export async function deleteImportedTransactions(): Promise<{ deleted: number; error?: string }> {
+  const { supabase, userId } = await requireUser();
+  const { count, error } = await supabase
+    .from("transactions")
+    .delete({ count: "exact" })
+    .eq("user_id", userId)
+    .not("external_ref", "is", null);
+  if (error) return { deleted: 0, error: error.message };
+  revalidatePath("/financas");
+  revalidatePath("/");
+  return { deleted: count ?? 0 };
+}
+
 // --- BILLS ---------------------------------------------------------
 
 const billSchema = z.object({

@@ -3,6 +3,7 @@
 import { DatePicker } from "@/components/DatePicker";
 import { availableCredit } from "@/lib/finance";
 import { formatBRL } from "@/lib/utils";
+import { CheckSquare, CreditCard as CreditCardIcon, Square } from "lucide-react";
 import { useState, useTransition } from "react";
 import { deleteBill, saveBill, toggleBillPaid } from "./actions";
 
@@ -43,6 +44,7 @@ interface Props {
 export function ContasTab({ bills, categories, today, creditCards = [] }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Bill | null>(null);
+  const [catFilter, setCatFilter] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   function billStatus(b: Bill): "paga" | "vencida" | "hoje" | "pendente" {
@@ -52,7 +54,20 @@ export function ContasTab({ bills, categories, today, creditCards = [] }: Props)
     return "pendente";
   }
 
-  const sorted = [...bills].sort((a, b) => {
+  // Only offer filters for categories that actually have bills (plus a bucket
+  // for the uncategorised ones), keeping the chip row short and relevant.
+  const usedCatIds = new Set(bills.map((b) => b.category_id));
+  const filterCats = categories.filter((c) => usedCatIds.has(c.id));
+  const hasUncategorised = bills.some((b) => !b.category_id);
+
+  const filtered =
+    catFilter === null
+      ? bills
+      : catFilter === "__none__"
+        ? bills.filter((b) => !b.category_id)
+        : bills.filter((b) => b.category_id === catFilter);
+
+  const sorted = [...filtered].sort((a, b) => {
     if (a.paid_at && !b.paid_at) return 1;
     if (!a.paid_at && b.paid_at) return -1;
     return a.due_date.localeCompare(b.due_date);
@@ -64,8 +79,8 @@ export function ContasTab({ bills, categories, today, creditCards = [] }: Props)
 
       <div className="flex items-center justify-between">
         <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-          {bills.filter((b) => !b.paid_at).length} pendente(s) ·{" "}
-          {formatBRL(bills.filter((b) => !b.paid_at).reduce((s, b) => s + b.amount_cents, 0))} a
+          {filtered.filter((b) => !b.paid_at).length} pendente(s) ·{" "}
+          {formatBRL(filtered.filter((b) => !b.paid_at).reduce((s, b) => s + b.amount_cents, 0))} a
           pagar
         </p>
         <button
@@ -80,6 +95,31 @@ export function ContasTab({ bills, categories, today, creditCards = [] }: Props)
           + Nova conta
         </button>
       </div>
+
+      {filterCats.length > 0 || hasUncategorised ? (
+        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
+          <FilterChip
+            label="Todas"
+            active={catFilter === null}
+            onClick={() => setCatFilter(null)}
+          />
+          {filterCats.map((c) => (
+            <FilterChip
+              key={c.id}
+              label={`${c.emoji ? `${c.emoji} ` : ""}${c.name}`}
+              active={catFilter === c.id}
+              onClick={() => setCatFilter(c.id)}
+            />
+          ))}
+          {hasUncategorised ? (
+            <FilterChip
+              label="Sem categoria"
+              active={catFilter === "__none__"}
+              onClick={() => setCatFilter("__none__")}
+            />
+          ) : null}
+        </div>
+      ) : null}
 
       {showForm || editing ? (
         <BillForm
@@ -98,7 +138,7 @@ export function ContasTab({ bills, categories, today, creditCards = [] }: Props)
           className="rounded-lg border p-4 text-sm text-center"
           style={{ borderColor: "var(--color-border)", color: "var(--color-fg-muted)" }}
         >
-          Nenhuma conta cadastrada.
+          {catFilter === null ? "Nenhuma conta cadastrada." : "Nenhuma conta nesta categoria."}
         </p>
       ) : (
         <ul className="space-y-2">
@@ -124,10 +164,11 @@ export function ContasTab({ bills, categories, today, creditCards = [] }: Props)
                   type="button"
                   disabled={pending}
                   onClick={() => start(() => toggleBillPaid(b.id, !b.paid_at))}
-                  className="shrink-0 text-lg leading-none transition-transform active:scale-90"
+                  className="shrink-0 leading-none transition-transform active:scale-90"
                   title={b.paid_at ? "Marcar como pendente" : "Marcar como pago"}
+                  style={{ color: b.paid_at ? "var(--color-success)" : "var(--color-fg-subtle)" }}
                 >
-                  {b.paid_at ? "✅" : "⬜"}
+                  {b.paid_at ? <CheckSquare size={20} /> : <Square size={20} />}
                 </button>
 
                 <div className="min-w-0 flex-1">
@@ -228,6 +269,31 @@ function formatDateLabel(iso: string): string {
   return `${Number.parseInt(d)} de ${months[Number.parseInt(m) - 1]}`;
 }
 
+function FilterChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition"
+      style={{
+        borderColor: active ? "var(--color-accent)" : "var(--color-border)",
+        background: active ? "var(--color-accent)" : "transparent",
+        color: active ? "white" : "var(--color-fg-muted)",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
 function CreditCardsSection({ cards }: { cards: CreditCard[] }) {
   return (
     <div className="space-y-2">
@@ -235,7 +301,10 @@ function CreditCardsSection({ cards }: { cards: CreditCard[] }) {
         className="text-xs font-semibold uppercase tracking-wide"
         style={{ color: "var(--color-fg-subtle)" }}
       >
-        💳 Cartões
+        <span className="flex items-center gap-1.5">
+          <CreditCardIcon size={13} />
+          Cartões
+        </span>
       </h2>
       <div className="grid gap-2 sm:grid-cols-2">
         {cards.map((c) => {
@@ -251,7 +320,10 @@ function CreditCardsSection({ cards }: { cards: CreditCard[] }) {
               style={{ borderColor: "var(--color-border)", background: "var(--color-card)" }}
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">💳 {c.name}</span>
+                <span className="flex items-center gap-1.5 text-sm font-medium">
+                  <CreditCardIcon size={14} />
+                  {c.name}
+                </span>
                 {c.due_day ? (
                   <span className="text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
                     vence dia {c.due_day}

@@ -101,8 +101,8 @@ export function LancamentosFilters({
         style={selStyle}
       >
         <option value="">Tipo</option>
-        <option value="expense">💸 Despesas</option>
-        <option value="income">💰 Receitas</option>
+        <option value="expense">Despesas</option>
+        <option value="income">Receitas</option>
       </select>
 
       <select

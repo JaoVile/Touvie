@@ -1,6 +1,7 @@
 "use client";
 
 import { formatBRL } from "@/lib/utils";
+import { Repeat, TrendingDown, TrendingUp } from "lucide-react";
 import { useTransition } from "react";
 import { deleteTransaction, deleteTransfer } from "./actions";
 
@@ -46,9 +47,17 @@ export function TransactionRow({ item }: { item: LedgerItem }) {
   const avatarBg = isTransfer
     ? "var(--color-bg-elevated)"
     : (item.category?.color ?? "var(--color-bg-elevated)");
-  const avatarEmoji = isTransfer
-    ? "🔁"
-    : (item.category?.emoji ?? (item.kind === "income" ? "💰" : "💸"));
+  // Keep the user's chosen category emoji; only the absent-category fallback
+  // becomes a lucide icon.
+  const avatarContent = isTransfer ? (
+    <Repeat size={15} style={{ color: "var(--color-fg-muted)" }} />
+  ) : item.category?.emoji ? (
+    item.category.emoji
+  ) : item.kind === "income" ? (
+    <TrendingUp size={15} style={{ color: "var(--color-success)" }} />
+  ) : (
+    <TrendingDown size={15} style={{ color: "var(--color-danger)" }} />
+  );
 
   const title = isTransfer
     ? item.description || "Transferência"
@@ -69,7 +78,7 @@ export function TransactionRow({ item }: { item: LedgerItem }) {
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm"
           style={{ background: avatarBg }}
         >
-          {avatarEmoji}
+          {avatarContent}
         </span>
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 truncate font-medium">

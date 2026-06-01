@@ -1,6 +1,16 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import {
+  BarChart3,
+  CalendarDays,
+  Download,
+  type LucideIcon,
+  PiggyBank,
+  Receipt,
+  Repeat,
+  Wrench,
+} from "lucide-react";
 import Link from "next/link";
 
 export type FinanceTab =
@@ -12,14 +22,14 @@ export type FinanceTab =
   | "setup"
   | "importar";
 
-const TABS: Array<{ id: FinanceTab; label: string; emoji: string }> = [
-  { id: "lancamentos", label: "Lançamentos", emoji: "🧾" },
-  { id: "recorrentes", label: "Recorrentes", emoji: "🔁" },
-  { id: "contas", label: "Contas", emoji: "📅" },
-  { id: "caixinhas", label: "Caixinhas", emoji: "🪙" },
-  { id: "graficos", label: "Gráficos", emoji: "📊" },
-  { id: "importar", label: "Importar", emoji: "📥" },
-  { id: "setup", label: "Setup", emoji: "🧰" },
+const TABS: Array<{ id: FinanceTab; label: string; icon: LucideIcon }> = [
+  { id: "lancamentos", label: "Lançamentos", icon: Receipt },
+  { id: "recorrentes", label: "Recorrentes", icon: Repeat },
+  { id: "contas", label: "Contas", icon: CalendarDays },
+  { id: "caixinhas", label: "Caixinhas", icon: PiggyBank },
+  { id: "graficos", label: "Gráficos", icon: BarChart3 },
+  { id: "importar", label: "Importar", icon: Download },
+  { id: "setup", label: "Setup", icon: Wrench },
 ];
 
 export function Tabs({ current }: { current: FinanceTab }) {
@@ -30,12 +40,13 @@ export function Tabs({ current }: { current: FinanceTab }) {
     >
       {TABS.map((t) => {
         const active = t.id === current;
+        const Icon = t.icon;
         return (
           <Link
             key={t.id}
             href={`/financas?t=${t.id}`}
             className={cn(
-              "flex-1 whitespace-nowrap rounded-md px-3 py-1.5 text-center text-sm font-medium transition",
+              "flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-center text-sm font-medium transition",
               active ? "text-white shadow" : "hover:opacity-80",
             )}
             style={{
@@ -43,7 +54,7 @@ export function Tabs({ current }: { current: FinanceTab }) {
               color: active ? "white" : "var(--color-fg-muted)",
             }}
           >
-            <span className="mr-1">{t.emoji}</span>
+            <Icon size={14} className="shrink-0" />
             {t.label}
           </Link>
         );
