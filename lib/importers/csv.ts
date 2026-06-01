@@ -80,6 +80,9 @@ function hash(s: string): string {
 export function parseNubank(text: string): ParsedTx[] {
   const lines = text.replace(/\r/g, "").split("\n").filter(Boolean);
   const results: ParsedTx[] = [];
+  // Contador por chave (data|desc|valor) pra desambiguar linhas idênticas —
+  // ver nota no external_ref abaixo.
+  const seen = new Map<string, number>();
 
   for (let i = 1; i < lines.length; i++) {
     const cols = splitCsv(lines[i]);
@@ -98,13 +101,25 @@ export function parseNubank(text: string): ParsedTx[] {
     const cents = parseBRL(rawVal ?? "0");
     if (!cents || !desc) continue;
 
-    // Nubank fatura: all entries are credit card expenses (positive amount = expense)
+    // Fatura do Nubank: gastos vêm positivos. Valores negativos são estornos/
+    // créditos (reduzem a fatura), então entram como income pra netar certo —
+    // antes virava despesa e inflava os gastos.
+    const kind: "income" | "expense" = cents < 0 ? "income" : "expense";
+
+    // external_ref precisa ser único por LINHA: duas compras idênticas no mesmo
+    // dia (mesmo valor e descrição) não podem colidir num único hash, senão a
+    // segunda some como "duplicata". Um contador por chave resolve e continua
+    // estável ao re-importar o mesmo arquivo (mesma ordem → mesmos índices).
+    const key = `${date}|${desc}|${cents}`;
+    const n = seen.get(key) ?? 0;
+    seen.set(key, n + 1);
+
     results.push({
       occurred_on: date,
       description: desc,
       amount_cents: Math.abs(cents),
-      kind: "expense",
-      external_ref: `nu:${hash(`${date}|${desc}|${cents}`)}`,
+      kind,
+      external_ref: `nu:${hash(`${key}|${n}`)}`,
     });
   }
 
@@ -114,12 +129,32 @@ export function parseNubank(text: string): ParsedTx[] {
 // ─── Mercado Pago ──────────────────────────────────────────────────
 // Format: Data;Descrição;Valor;Tipo;...  (positive = income, negative = expense)
 
+const stripDiacritics = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
 export function parseMercadoPago(text: string): ParsedTx[] {
   const lines = text.replace(/\r/g, "").split("\n").filter(Boolean);
   if (lines.length < 2) return [];
 
-  // Detect column indices from header
-  const header = splitCsv(lines[0]).map((h) => h.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""));
+  // Alguns relatórios do MP trazem linhas de título/metadados antes do
+  // cabeçalho real, então procuramos a primeira linha que tenha colunas de
+  // data E valor em vez de assumir que é a linha 0.
+  let headerIdx = -1;
+  let header: string[] = [];
+  for (let i = 0; i < Math.min(lines.length, 15); i++) {
+    const h = splitCsv(lines[i]).map(stripDiacritics);
+    const hasDate = h.some((c) => c.includes("data") || c.includes("date"));
+    const hasVal = h.some(
+      (c) => c.includes("valor") || c.includes("value") || c.includes("quantia"),
+    );
+    if (hasDate && hasVal) {
+      headerIdx = i;
+      header = h;
+      break;
+    }
+  }
+  if (headerIdx < 0) return [];
+
   const dateIdx = header.findIndex((h) => h.includes("data") || h.includes("date"));
   const descIdx = header.findIndex((h) => h.includes("descri") || h.includes("detalhe") || h.includes("detail"));
   const valIdx  = header.findIndex((h) => h.includes("valor") || h.includes("value") || h.includes("quantia"));
@@ -127,8 +162,9 @@ export function parseMercadoPago(text: string): ParsedTx[] {
   if (dateIdx < 0 || valIdx < 0) return [];
 
   const results: ParsedTx[] = [];
+  const seen = new Map<string, number>();
 
-  for (let i = 1; i < lines.length; i++) {
+  for (let i = headerIdx + 1; i < lines.length; i++) {
     const cols = splitCsv(lines[i]);
     if (cols.length < 2) continue;
 
@@ -144,12 +180,18 @@ export function parseMercadoPago(text: string): ParsedTx[] {
     const cents = parseBRL(cols[valIdx] ?? "0");
     if (!cents) continue;
 
+    // Mesma desambiguação por linha do Nubank: evita que dois movimentos
+    // idênticos no mesmo dia colidam no mesmo external_ref.
+    const key = `${rawDate}|${desc}|${cents}`;
+    const n = seen.get(key) ?? 0;
+    seen.set(key, n + 1);
+
     results.push({
       occurred_on: rawDate,
       description: desc || "Mercado Pago",
       amount_cents: Math.abs(cents),
       kind: cents >= 0 ? "income" : "expense",
-      external_ref: `mp:${hash(`${rawDate}|${desc}|${cents}`)}`,
+      external_ref: `mp:${hash(`${key}|${n}`)}`,
     });
   }
 
@@ -160,7 +202,8 @@ export function parseMercadoPago(text: string): ParsedTx[] {
 
 export function detectAndParse(text: string): { source: "nubank" | "mercadopago" | "unknown"; rows: ParsedTx[] } {
   const clean = text.replace(/^﻿/, ""); // strip UTF-8 BOM
-  const firstLine = clean.split("\n")[0]?.toUpperCase() ?? "";
+  const lines = clean.split("\n").filter(Boolean);
+  const firstLine = lines[0]?.toUpperCase() ?? "";
   const cols = firstLine.split(";");
 
   // Nubank: exactly 3 semicolon columns — DATA ; DESCRICAO ; VALOR
@@ -168,9 +211,19 @@ export function detectAndParse(text: string): { source: "nubank" | "mercadopago"
     return { source: "nubank", rows: parseNubank(clean) };
   }
 
-  // Mercado Pago: more than 3 columns with a DATA/DATE header
-  if (cols.length > 3 && (firstLine.includes("DATA") || firstLine.includes("DATE"))) {
-    return { source: "mercadopago", rows: parseMercadoPago(clean) };
+  // Mercado Pago: cabeçalho com data + valor e mais de 3 colunas, possivelmente
+  // depois de um preâmbulo — varre as primeiras linhas em vez de só a linha 0.
+  const looksMP = lines.slice(0, 15).some((l) => {
+    const up = l.toUpperCase();
+    return (
+      up.split(/[;,]/).length > 3 &&
+      (up.includes("DATA") || up.includes("DATE")) &&
+      /VALOR|VALUE|QUANTIA/.test(up)
+    );
+  });
+  if (looksMP) {
+    const rows = parseMercadoPago(clean);
+    if (rows.length > 0) return { source: "mercadopago", rows };
   }
 
   // Fallback: try each parser and return whichever yields rows
