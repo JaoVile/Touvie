@@ -559,18 +559,31 @@ export function CursorTrail() {
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
 
-        // Stroke every staff-line segment. The 2 outer lines are kept
-        // EXTREMELY faint; the 3 inner lines carry the staff.
-        for (let i = 0; i < length - 1; i++) {
+        // Stroke every staff line as a smooth curve, not a polyline. Each
+        // piece is a quadratic centred on point i, running midpoint→midpoint
+        // with the point itself as the control handle — so the ribbon bends
+        // *through* the chain instead of kinking at every joint. That kills
+        // the faceted, "quebrado/quadrado" look on fast direction changes.
+        // Consecutive pieces share their midpoint endpoints and round caps
+        // hide the seams; the head/tail pieces reach the true end points.
+        // The 2 outer lines stay EXTREMELY faint; the 3 inner carry the staff.
+        for (let i = 1; i < length - 1; i++) {
           const t = i / (length - 1);
           ctx.lineWidth = headWidth + (tailWidth - headWidth) * t;
+          const atHead = i === 1;
+          const atTail = i === length - 2;
           for (let k = 0; k < N; k++) {
+            const L = lines[k];
             const base = k === 0 || k === N - 1 ? CONFIG.alphaFaint : CONFIG.alphaBase;
             const alpha = base + (CONFIG.alphaEnd - base) * t;
             ctx.strokeStyle = `rgba(${palette.ribbonRgb},${alpha})`;
+            const sx = atHead ? L[0].x : (L[i - 1].x + L[i].x) / 2;
+            const sy = atHead ? L[0].y : (L[i - 1].y + L[i].y) / 2;
+            const ex = atTail ? L[length - 1].x : (L[i].x + L[i + 1].x) / 2;
+            const ey = atTail ? L[length - 1].y : (L[i].y + L[i + 1].y) / 2;
             ctx.beginPath();
-            ctx.moveTo(lines[k][i].x, lines[k][i].y);
-            ctx.lineTo(lines[k][i + 1].x, lines[k][i + 1].y);
+            ctx.moveTo(sx, sy);
+            ctx.quadraticCurveTo(L[i].x, L[i].y, ex, ey);
             ctx.stroke();
           }
         }
