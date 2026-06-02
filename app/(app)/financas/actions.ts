@@ -7,6 +7,7 @@ import {
   reaisToCents,
   splitInstallments,
 } from "@/lib/finance";
+import { todayBRTISO } from "@/lib/datetime";
 import { detectAndParse, guessCategory } from "@/lib/importers/csv";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -493,12 +494,64 @@ export async function saveBill(fd: FormData): Promise<{ ok?: boolean; error?: st
   return { ok: true };
 }
 
-export async function toggleBillPaid(id: string, paid: boolean): Promise<void> {
-  const { supabase } = await requireUser();
-  await supabase
-    .from("bills")
-    .update({ paid_at: paid ? new Date().toISOString() : null })
-    .eq("id", id);
+/**
+ * Marca/desmarca uma conta como paga. Ao pagar, se um `accountId` for
+ * informado, cria a despesa real (linkada via `bill_id`) que abate o saldo
+ * daquela conta — usando o valor/categoria/título da própria bill. Ao
+ * desmarcar, remove a despesa linkada. Idempotente: nunca duplica o
+ * lançamento de uma mesma bill.
+ */
+export async function toggleBillPaid(
+  id: string,
+  paid: boolean,
+  accountId?: string | null,
+): Promise<void> {
+  const { supabase, userId } = await requireUser();
+
+  if (!paid) {
+    // Desmarcar: limpa a data e remove qualquer lançamento que esta bill gerou.
+    await supabase.from("transactions").delete().eq("user_id", userId).eq("bill_id", id);
+    await supabase.from("bills").update({ paid_at: null }).eq("id", id);
+    revalidatePath("/financas");
+    revalidatePath("/");
+    return;
+  }
+
+  await supabase.from("bills").update({ paid_at: new Date().toISOString() }).eq("id", id);
+
+  if (accountId) {
+    const { data: bill } = await supabase
+      .from("bills")
+      .select("title, amount_cents, category_id")
+      .eq("id", id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    // Só cria se a bill existe e ainda não tem lançamento (idempotência).
+    if (bill) {
+      const { data: existing } = await supabase
+        .from("transactions")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("bill_id", id)
+        .limit(1);
+      if (!existing || existing.length === 0) {
+        await supabase.from("transactions").insert({
+          user_id: userId,
+          account_id: accountId,
+          category_id: bill.category_id,
+          amount_cents: bill.amount_cents,
+          kind: "expense",
+          occurred_on: todayBRTISO(),
+          description: bill.title,
+          is_recurring: false,
+          recurrence_rule: null,
+          reminder_enabled: false,
+          bill_id: id,
+        });
+      }
+    }
+  }
+
   revalidatePath("/financas");
   revalidatePath("/");
 }

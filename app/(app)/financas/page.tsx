@@ -91,7 +91,14 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
       .from("finance_account_balances")
       .select("account_id, current_cents")
       .eq("user_id", userId),
-    supabase.from("bills").select("amount_cents").eq("user_id", userId).is("paid_at", null),
+    // "A pagar": só conta o que vence até o fim do mês atual (mês corrente +
+    // atrasadas). Meses futuros já cadastrados (recorrentes) não inflam o total.
+    supabase
+      .from("bills")
+      .select("amount_cents")
+      .eq("user_id", userId)
+      .is("paid_at", null)
+      .lte("due_date", curMonthEnd),
     supabase
       .from("transactions")
       .select("amount_cents, kind")
@@ -163,10 +170,13 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
     faturaAberta: number;
   }> = [];
   if (tab === "contas") {
+    // Mesma regra do resumo: lista o mês atual + atrasadas; meses futuros já
+    // cadastrados aparecem só quando chegar a vez deles.
     const { data } = await supabase
       .from("bills")
       .select("id, title, amount_cents, due_date, paid_at, recurrence_rule, category_id, notes")
       .eq("user_id", userId)
+      .lte("due_date", curMonthEnd)
       .order("due_date", { ascending: true });
     bills = data ?? [];
 
@@ -312,7 +322,13 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
       ) : tab === "recorrentes" ? (
         <RecorrentesTab userId={userId} accounts={accounts} categories={categories} />
       ) : tab === "contas" ? (
-        <ContasTab bills={bills} categories={categories} today={today} creditCards={creditCards} />
+        <ContasTab
+          bills={bills}
+          categories={categories}
+          today={today}
+          creditCards={creditCards}
+          accounts={accounts.map((a) => ({ id: a.id, name: a.name, kind: a.kind }))}
+        />
       ) : tab === "caixinhas" ? (
         <CaixinhasTab envelopes={envelopes} categories={categories} currentMonth={selectedMonth} />
       ) : tab === "graficos" ? (

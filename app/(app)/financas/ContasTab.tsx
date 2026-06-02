@@ -1,11 +1,17 @@
 "use client";
 
 import { DatePicker } from "@/components/DatePicker";
-import { availableCredit } from "@/lib/finance";
+import { ACCOUNT_KIND_LABELS, type AccountKind, availableCredit } from "@/lib/finance";
 import { formatBRL } from "@/lib/utils";
 import { CheckSquare, CreditCard as CreditCardIcon, Square } from "lucide-react";
 import { useState, useTransition } from "react";
 import { deleteBill, saveBill, toggleBillPaid } from "./actions";
+
+interface Account {
+  id: string;
+  name: string;
+  kind: AccountKind;
+}
 
 interface CreditCard {
   id: string;
@@ -39,13 +45,29 @@ interface Props {
   categories: Category[];
   today: string;
   creditCards?: CreditCard[];
+  accounts?: Account[];
 }
 
-export function ContasTab({ bills, categories, today, creditCards = [] }: Props) {
+export function ContasTab({ bills, categories, today, creditCards = [], accounts = [] }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Bill | null>(null);
   const [catFilter, setCatFilter] = useState<string | null>(null);
+  // Bill aguardando escolha de conta-origem ao ser marcada como paga (só quando
+  // há mais de uma conta — com 0 ou 1 conta resolvemos sem perguntar).
+  const [payingBill, setPayingBill] = useState<Bill | null>(null);
   const [pending, start] = useTransition();
+
+  // Marca uma conta como paga. Com uma única conta, debita dela direto; com
+  // várias, abre o seletor; sem nenhuma, só registra a data (sem lançamento).
+  function markPaid(b: Bill) {
+    if (accounts.length === 0) {
+      start(() => toggleBillPaid(b.id, true));
+    } else if (accounts.length === 1) {
+      start(() => toggleBillPaid(b.id, true, accounts[0].id));
+    } else {
+      setPayingBill(b);
+    }
+  }
 
   function billStatus(b: Bill): "paga" | "vencida" | "hoje" | "pendente" {
     if (b.paid_at) return "paga";
@@ -163,7 +185,9 @@ export function ContasTab({ bills, categories, today, creditCards = [] }: Props)
                 <button
                   type="button"
                   disabled={pending}
-                  onClick={() => start(() => toggleBillPaid(b.id, !b.paid_at))}
+                  onClick={() =>
+                    b.paid_at ? start(() => toggleBillPaid(b.id, false)) : markPaid(b)
+                  }
                   className="shrink-0 leading-none transition-transform active:scale-90"
                   title={b.paid_at ? "Marcar como pendente" : "Marcar como pago"}
                   style={{ color: b.paid_at ? "var(--color-success)" : "var(--color-fg-subtle)" }}
@@ -228,6 +252,82 @@ export function ContasTab({ bills, categories, today, creditCards = [] }: Props)
           })}
         </ul>
       )}
+
+      {payingBill ? (
+        <PayAccountPicker
+          bill={payingBill}
+          accounts={accounts}
+          disabled={pending}
+          onPick={(accountId) => {
+            const billId = payingBill.id;
+            setPayingBill(null);
+            start(() => toggleBillPaid(billId, true, accountId));
+          }}
+          onCancel={() => setPayingBill(null)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function PayAccountPicker({
+  bill,
+  accounts,
+  disabled,
+  onPick,
+  onCancel,
+}: {
+  bill: { title: string; amount_cents: number };
+  accounts: Account[];
+  disabled: boolean;
+  onPick: (accountId: string) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.5)" }}
+      onClick={onCancel}
+      onKeyDown={(e) => e.key === "Escape" && onCancel()}
+    >
+      <div
+        className="w-full max-w-xs rounded-xl border p-4 space-y-3"
+        style={{ borderColor: "var(--color-border)", background: "var(--color-card)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div>
+          <p className="text-sm font-semibold">Pagar com qual conta?</p>
+          <p className="text-xs" style={{ color: "var(--color-fg-muted)" }}>
+            {bill.title} · {formatBRL(bill.amount_cents)}
+          </p>
+        </div>
+        <ul className="space-y-1.5">
+          {accounts.map((a) => (
+            <li key={a.id}>
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => onPick(a.id)}
+                className="flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition hover:opacity-80 disabled:opacity-50"
+                style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+              >
+                <span className="font-medium">{a.name}</span>
+                <span className="text-xs" style={{ color: "var(--color-fg-subtle)" }}>
+                  {ACCOUNT_KIND_LABELS[a.kind]}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="w-full rounded-lg border px-4 py-1.5 text-sm hover:opacity-80"
+          style={{ borderColor: "var(--color-border)" }}
+        >
+          Cancelar
+        </button>
+      </div>
     </div>
   );
 }
