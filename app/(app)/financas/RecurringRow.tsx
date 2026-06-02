@@ -1,9 +1,9 @@
 "use client";
 
 import { formatBRL } from "@/lib/utils";
-import { Bell, Repeat } from "lucide-react";
-import { useTransition } from "react";
-import { deleteTransaction } from "./actions";
+import { Bell, Check, Repeat } from "lucide-react";
+import { useState, useTransition } from "react";
+import { deleteTransaction, postRecurringNow } from "./actions";
 
 interface Props {
   tx: {
@@ -17,15 +17,24 @@ interface Props {
     category: { name: string; emoji: string | null; color: string | null } | null;
     account: { name: string } | null;
   };
+  postedThisMonth?: boolean;
 }
 
-export function RecurringRow({ tx }: Props) {
+export function RecurringRow({ tx, postedThisMonth = false }: Props) {
   const [pending, start] = useTransition();
+  const [posted, setPosted] = useState(postedThisMonth);
 
   function remove() {
     if (!confirm("Apagar esta recorrência?")) return;
     start(async () => {
       await deleteTransaction(tx.id);
+    });
+  }
+
+  function post() {
+    start(async () => {
+      const res = await postRecurringNow(tx.id);
+      if (res.ok) setPosted(true);
     });
   }
 
@@ -62,6 +71,27 @@ export function RecurringRow({ tx }: Props) {
         <span className="font-mono text-sm" style={{ color }}>
           {sign} {formatBRL(tx.amount_cents)}
         </span>
+        {posted ? (
+          <span
+            className="flex items-center gap-0.5 rounded px-1.5 py-1 text-[10px] font-semibold"
+            style={{ color: "var(--color-success)" }}
+            title="Já lançado neste mês"
+          >
+            <Check size={12} />
+            lançado
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={post}
+            disabled={pending}
+            className="rounded border px-2 py-1 text-[11px] font-semibold transition hover:opacity-80 disabled:opacity-40"
+            style={{ borderColor: "var(--color-accent)", color: "var(--color-accent)" }}
+            title="Lançar este mês no saldo"
+          >
+            {tx.kind === "income" ? "Recebi" : "Lançar"}
+          </button>
+        )}
         <button
           type="button"
           onClick={remove}

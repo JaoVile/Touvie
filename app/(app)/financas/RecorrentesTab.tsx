@@ -1,4 +1,5 @@
 import { GlassCard } from "@/components/glass/GlassCard";
+import { todayBRTISO } from "@/lib/datetime";
 import { parseRecurrenceRule, recurrenceLabel } from "@/lib/finance";
 import { createClient } from "@/lib/supabase/server";
 import { formatBRL } from "@/lib/utils";
@@ -40,6 +41,23 @@ export async function RecorrentesTab({ userId, accounts, categories }: Props) {
   const accountMap = new Map(accounts.map((a) => [a.id, a]));
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
 
+  // Quais recorrências já foram lançadas neste mês (external_ref rec:<id>:<mês>),
+  // pra mostrar "Lançado ✓" em vez do botão.
+  const month = todayBRTISO().slice(0, 7); // YYYY-MM
+  const monthRefs = recurring.map((r) => `rec:${r.id}:${month}`);
+  const postedIds = new Set<string>();
+  if (monthRefs.length > 0) {
+    const { data: posted } = await supabase
+      .from("transactions")
+      .select("external_ref")
+      .eq("user_id", userId)
+      .in("external_ref", monthRefs);
+    for (const p of posted ?? []) {
+      const id = (p.external_ref as string).split(":")[1];
+      if (id) postedIds.add(id);
+    }
+  }
+
   const monthlyExpense = recurring
     .filter((r) => r.kind === "expense")
     .reduce((s, r) => s + r.amount_cents, 0);
@@ -77,6 +95,7 @@ export async function RecorrentesTab({ userId, accounts, categories }: Props) {
                 return (
                   <RecurringRow
                     key={r.id}
+                    postedThisMonth={postedIds.has(r.id)}
                     tx={{
                       id: r.id,
                       amount_cents: r.amount_cents,

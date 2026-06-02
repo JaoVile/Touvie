@@ -11,6 +11,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { AccountForm } from "./AccountForm";
+import { AdjustBalanceButton } from "./AdjustBalanceButton";
 import { CategoryForm } from "./CategoryForm";
 import { CategoryRow } from "./CategoryRow";
 import { SeedCategoriesButton } from "./SeedCategoriesButton";
@@ -69,30 +70,43 @@ export function SetupTab({ accounts, categories }: Props) {
                 <span className="flex items-center gap-2">
                   {(() => {
                     const Icon = ACCOUNT_KIND_ICONS[a.kind];
-                    return <Icon size={15} className="shrink-0" style={{ color: "var(--color-fg-muted)" }} />;
+                    return (
+                      <Icon
+                        size={15}
+                        className="shrink-0"
+                        style={{ color: "var(--color-fg-muted)" }}
+                      />
+                    );
                   })()}
                   <span className="font-medium">{a.name}</span>
                   <span className="text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
                     {ACCOUNT_KIND_LABELS[a.kind]}
                   </span>
                 </span>
-                <span className="flex flex-col items-end leading-tight">
-                  <span
-                    className="font-mono text-sm"
-                    style={{
-                      color: a.current_cents < 0 ? "var(--color-danger)" : "var(--color-fg)",
-                    }}
-                  >
-                    {formatBRL(a.current_cents)}
-                  </span>
-                  {a.current_cents !== a.balance_cents ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="flex flex-col items-end leading-tight">
                     <span
-                      className="font-mono text-[10px]"
-                      style={{ color: "var(--color-fg-subtle)" }}
+                      className="font-mono text-sm"
+                      style={{
+                        color: a.current_cents < 0 ? "var(--color-danger)" : "var(--color-fg)",
+                      }}
                     >
-                      inicial {formatBRL(a.balance_cents)}
+                      {formatBRL(a.current_cents)}
                     </span>
-                  ) : null}
+                    {a.current_cents !== a.balance_cents ? (
+                      <span
+                        className="font-mono text-[10px]"
+                        style={{ color: "var(--color-fg-subtle)" }}
+                      >
+                        inicial {formatBRL(a.balance_cents)}
+                      </span>
+                    ) : null}
+                  </span>
+                  <AdjustBalanceButton
+                    accountId={a.id}
+                    name={a.name}
+                    currentCents={a.current_cents}
+                  />
                 </span>
               </li>
             ))}

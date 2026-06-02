@@ -5,7 +5,7 @@ import { ACCOUNT_KIND_LABELS, type AccountKind, availableCredit } from "@/lib/fi
 import { formatBRL } from "@/lib/utils";
 import { CheckSquare, CreditCard as CreditCardIcon, Square } from "lucide-react";
 import { useState, useTransition } from "react";
-import { deleteBill, saveBill, toggleBillPaid } from "./actions";
+import { deleteBill, payCardInvoice, saveBill, toggleBillPaid } from "./actions";
 
 interface Account {
   id: string;
@@ -97,7 +97,12 @@ export function ContasTab({ bills, categories, today, creditCards = [], accounts
 
   return (
     <div className="space-y-4">
-      {creditCards.length > 0 ? <CreditCardsSection cards={creditCards} /> : null}
+      {creditCards.length > 0 ? (
+        <CreditCardsSection
+          cards={creditCards}
+          accounts={accounts.filter((a) => a.kind !== "credit")}
+        />
+      ) : null}
 
       <div className="flex items-center justify-between">
         <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
@@ -394,7 +399,10 @@ function FilterChip({
   );
 }
 
-function CreditCardsSection({ cards }: { cards: CreditCard[] }) {
+function CreditCardsSection({ cards, accounts }: { cards: CreditCard[]; accounts: Account[] }) {
+  const [paying, setPaying] = useState<CreditCard | null>(null);
+  const [pending, start] = useTransition();
+
   return (
     <div className="space-y-2">
       <h2
@@ -471,9 +479,144 @@ function CreditCardsSection({ cards }: { cards: CreditCard[] }) {
                   Defina limite/fechamento no Setup para ver o disponível.
                 </p>
               )}
+              {c.faturaAberta > 0 && accounts.length > 0 ? (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => setPaying(c)}
+                  className="mt-2 w-full rounded-lg border px-3 py-1.5 text-xs font-semibold transition hover:opacity-80 disabled:opacity-50"
+                  style={{ borderColor: "var(--color-accent)", color: "var(--color-accent)" }}
+                >
+                  Pagar fatura
+                </button>
+              ) : null}
             </div>
           );
         })}
+      </div>
+
+      {paying ? (
+        <PayInvoiceModal
+          card={paying}
+          accounts={accounts}
+          disabled={pending}
+          onPay={(fromAccountId, amountReais) => {
+            const cardId = paying.id;
+            setPaying(null);
+            start(async () => {
+              await payCardInvoice(cardId, fromAccountId, amountReais);
+            });
+          }}
+          onCancel={() => setPaying(null)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function PayInvoiceModal({
+  card,
+  accounts,
+  disabled,
+  onPay,
+  onCancel,
+}: {
+  card: CreditCard;
+  accounts: Account[];
+  disabled: boolean;
+  onPay: (fromAccountId: string, amountReais: number) => void;
+  onCancel: () => void;
+}) {
+  const [fromId, setFromId] = useState(accounts[0]?.id ?? "");
+  const [amount, setAmount] = useState((card.faturaAberta / 100).toFixed(2));
+  const [error, setError] = useState("");
+
+  function submit() {
+    const value = Number.parseFloat(amount.replace(",", "."));
+    if (!fromId) return setError("Escolha a conta de origem");
+    if (!Number.isFinite(value) || value <= 0) return setError("Valor deve ser maior que zero");
+    onPay(fromId, value);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.5)" }}
+      onClick={onCancel}
+      onKeyDown={(e) => e.key === "Escape" && onCancel()}
+    >
+      <div
+        className="w-full max-w-xs rounded-xl border p-4 space-y-3"
+        style={{ borderColor: "var(--color-border)", background: "var(--color-card)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div>
+          <p className="text-sm font-semibold">Pagar fatura</p>
+          <p className="text-xs" style={{ color: "var(--color-fg-muted)" }}>
+            {card.name} · fatura {formatBRL(card.faturaAberta)}
+          </p>
+        </div>
+        <div>
+          <label
+            className="mb-1 block text-xs font-medium"
+            style={{ color: "var(--color-fg-muted)" }}
+          >
+            Pagar com
+          </label>
+          <select
+            value={fromId}
+            onChange={(e) => setFromId(e.target.value)}
+            className="w-full rounded-lg border px-3 py-1.5 text-sm outline-none focus:ring-2"
+            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+          >
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label
+            className="mb-1 block text-xs font-medium"
+            style={{ color: "var(--color-fg-muted)" }}
+          >
+            Valor (R$)
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="w-full rounded-lg border px-3 py-1.5 text-sm outline-none focus:ring-2"
+            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+          />
+        </div>
+        {error ? (
+          <p className="text-xs" style={{ color: "var(--color-danger)" }}>
+            {error}
+          </p>
+        ) : null}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={submit}
+            className="flex-1 rounded-lg px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
+            style={{ background: "var(--gradient-brand)" }}
+          >
+            Pagar
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border px-4 py-1.5 text-sm hover:opacity-80"
+            style={{ borderColor: "var(--color-border)" }}
+          >
+            Cancelar
+          </button>
+        </div>
       </div>
     </div>
   );

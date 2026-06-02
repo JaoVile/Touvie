@@ -1,13 +1,14 @@
 "use server";
 
+import { todayBRTISO } from "@/lib/datetime";
 import {
   ACCOUNT_KINDS,
   SEED_CATEGORIES,
   addMonthsISO,
+  parseRecurrenceRule,
   reaisToCents,
   splitInstallments,
 } from "@/lib/finance";
-import { todayBRTISO } from "@/lib/datetime";
 import { detectAndParse, guessCategory } from "@/lib/importers/csv";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -103,6 +104,49 @@ export async function archiveAccount(id: string) {
   const { supabase } = await requireUser();
   await supabase.from("finance_accounts").update({ archived: true }).eq("id", id);
   revalidatePath("/financas");
+}
+
+/**
+ * Ajusta o saldo de uma conta pela realidade: o usuário digita o saldo REAL e
+ * geramos um lançamento de ajuste (receita se faltava, despesa se sobrava) do
+ * tamanho da diferença entre o real e o saldo calculado pela view. Sem
+ * categoria; entra no saldo como qualquer tx não-recorrente.
+ */
+export async function adjustAccountBalance(
+  accountId: string,
+  realReais: number,
+): Promise<{ ok?: boolean; error?: string }> {
+  if (!accountId) return { error: "Conta inválida" };
+  if (!Number.isFinite(realReais)) return { error: "Valor inválido" };
+
+  const { supabase, userId } = await requireUser();
+  const { data: bal } = await supabase
+    .from("finance_account_balances")
+    .select("current_cents")
+    .eq("user_id", userId)
+    .eq("account_id", accountId)
+    .maybeSingle();
+  if (!bal) return { error: "Conta não encontrada" };
+
+  const deltaCents = reaisToCents(realReais) - (bal.current_cents as number);
+  if (deltaCents === 0) return { ok: true };
+
+  const { error } = await supabase.from("transactions").insert({
+    user_id: userId,
+    account_id: accountId,
+    category_id: null,
+    amount_cents: Math.abs(deltaCents),
+    kind: deltaCents > 0 ? "income" : "expense",
+    occurred_on: todayBRTISO(),
+    description: "Ajuste de saldo",
+    is_recurring: false,
+    recurrence_rule: null,
+    reminder_enabled: false,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/financas");
+  revalidatePath("/");
+  return { ok: true };
 }
 
 // --- CATEGORIES ----------------------------------------------------
@@ -268,6 +312,68 @@ export async function deleteInstallmentGroup(groupId: string) {
   revalidatePath("/");
 }
 
+/**
+ * Materializa o lançamento do MÊS CORRENTE de uma recorrência (salário, freela
+ * fixo, etc.) — o botão "Recebi/Lançar este mês". Insere uma tx real
+ * (`is_recurring=false`, então entra no saldo) copiando conta/categoria/valor/
+ * tipo/descrição do template. Idempotente via `external_ref` = `rec:<id>:<mês>`:
+ * se já existe o lançamento daquele mês, não duplica.
+ */
+export async function postRecurringNow(
+  recurringId: string,
+): Promise<{ ok?: boolean; already?: boolean; error?: string }> {
+  const { supabase, userId } = await requireUser();
+
+  const { data: tpl } = await supabase
+    .from("transactions")
+    .select("amount_cents, kind, description, account_id, category_id, recurrence_rule")
+    .eq("id", recurringId)
+    .eq("user_id", userId)
+    .eq("is_recurring", true)
+    .maybeSingle();
+  if (!tpl) return { error: "Recorrência não encontrada" };
+
+  const today = todayBRTISO();
+  const month = today.slice(0, 7); // YYYY-MM
+  const externalRef = `rec:${recurringId}:${month}`;
+
+  // Idempotência: já lançado neste mês?
+  const { data: existing } = await supabase
+    .from("transactions")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("external_ref", externalRef)
+    .limit(1);
+  if (existing && existing.length > 0) return { ok: true, already: true };
+
+  // occurred_on = dia da recorrência no mês corrente (clampa fim de mês).
+  const day = parseRecurrenceRule(tpl.recurrence_rule)?.day ?? Number(today.slice(8, 10));
+  const lastDay = new Date(
+    Number.parseInt(month.slice(0, 4)),
+    Number.parseInt(month.slice(5, 7)),
+    0,
+  ).getDate();
+  const occurredOn = `${month}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
+
+  const { error } = await supabase.from("transactions").insert({
+    user_id: userId,
+    account_id: tpl.account_id,
+    category_id: tpl.category_id,
+    amount_cents: tpl.amount_cents,
+    kind: tpl.kind,
+    occurred_on: occurredOn,
+    description: tpl.description,
+    is_recurring: false,
+    recurrence_rule: null,
+    reminder_enabled: false,
+    external_ref: externalRef,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/financas");
+  revalidatePath("/");
+  return { ok: true };
+}
+
 // --- TRANSFERS -----------------------------------------------------
 
 const transferSchema = z
@@ -320,6 +426,37 @@ export async function deleteTransfer(id: string) {
   await supabase.from("transfers").delete().eq("id", id);
   revalidatePath("/financas");
   revalidatePath("/");
+}
+
+/**
+ * Paga a fatura de um cartão: cria uma transferência conta-origem → cartão.
+ * Na view de saldo isso abate a dívida do cartão (transfer_in soma no
+ * current_cents, que é negativo quando há dívida) e debita a conta-origem.
+ * O valor default é a fatura aberta, mas o usuário pode quitar parcial.
+ */
+export async function payCardInvoice(
+  cardId: string,
+  fromAccountId: string,
+  amountReais: number,
+): Promise<{ ok?: boolean; error?: string }> {
+  if (!cardId || !fromAccountId) return { error: "Escolha a conta de origem" };
+  if (cardId === fromAccountId) return { error: "Origem e cartão devem ser diferentes" };
+  if (!Number.isFinite(amountReais) || amountReais <= 0)
+    return { error: "Valor deve ser maior que zero" };
+
+  const { supabase, userId } = await requireUser();
+  const { error } = await supabase.from("transfers").insert({
+    user_id: userId,
+    from_account_id: fromAccountId,
+    to_account_id: cardId,
+    amount_cents: reaisToCents(amountReais),
+    occurred_on: todayBRTISO(),
+    description: "Pagamento de fatura",
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/financas");
+  revalidatePath("/");
+  return { ok: true };
 }
 
 // --- CSV IMPORT ---------------------------------------------------
