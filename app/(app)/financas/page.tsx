@@ -3,15 +3,12 @@ import { Reveal } from "@/components/Reveal";
 import { GlassCard } from "@/components/glass/GlassCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { todayBRTISO } from "@/lib/datetime";
-import { billingCycle } from "@/lib/finance";
 import { createClient } from "@/lib/supabase/server";
 import { Wallet } from "lucide-react";
 import { CaixinhasTab } from "./CaixinhasTab";
 import { ContasTab } from "./ContasTab";
 import { GraficosTab } from "./GraficosTab";
-import { ImportTab } from "./ImportTab";
 import { LancamentosTab } from "./LancamentosTab";
-import { RecorrentesTab } from "./RecorrentesTab";
 import { ResumoStrip } from "./ResumoStrip";
 import { SetupTab } from "./SetupTab";
 import { type FinanceTab, Tabs } from "./Tabs";
@@ -21,21 +18,12 @@ export const dynamic = "force-dynamic";
 type SP = Promise<{
   t?: string;
   m?: string;
-  acc?: string;
   cat?: string;
   kind?: string;
   q?: string;
 }>;
 
-const VALID_TABS: FinanceTab[] = [
-  "lancamentos",
-  "recorrentes",
-  "contas",
-  "caixinhas",
-  "graficos",
-  "setup",
-  "importar",
-];
+const VALID_TABS: FinanceTab[] = ["lancamentos", "contas", "caixinhas", "graficos", "setup"];
 
 function isTab(x: string | undefined): x is FinanceTab {
   return !!x && (VALID_TABS as string[]).includes(x);
@@ -56,7 +44,6 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
   const selectedMonth = /^\d{4}-\d{2}$/.test(sp?.m ?? "") ? (sp!.m as string) : currentMonth;
   const spKind = sp?.kind;
   const filters = {
-    accountId: sp?.acc || null,
     categoryId: sp?.cat || null,
     kind: (spKind === "income" || spKind === "expense" ? spKind : null) as
       | "income"
@@ -74,25 +61,16 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
     .toISOString()
     .slice(0, 10);
 
-  const [accountsRes, categoriesRes, balancesRes, pendingBillsRes, monthTxRes] = await Promise.all([
-    supabase
-      .from("finance_accounts")
-      .select("id, name, kind, balance_cents, credit_limit_cents, closing_day, due_day, archived")
-      .eq("user_id", userId)
-      .eq("archived", false)
-      .order("name"),
+  const [categoriesRes, balancesRes, pendingBillsRes, monthTxRes] = await Promise.all([
     supabase
       .from("finance_categories")
       .select("id, name, kind, emoji, color, archived")
       .eq("user_id", userId)
       .eq("archived", false)
       .order("name"),
-    supabase
-      .from("finance_account_balances")
-      .select("account_id, current_cents")
-      .eq("user_id", userId),
+    supabase.from("finance_account_balances").select("current_cents").eq("user_id", userId),
     // "A pagar": só conta o que vence até o fim do mês atual (mês corrente +
-    // atrasadas). Meses futuros já cadastrados (recorrentes) não inflam o total.
+    // atrasadas). Meses futuros já cadastrados não inflam o total.
     supabase
       .from("bills")
       .select("amount_cents")
@@ -108,22 +86,6 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
       .lte("occurred_on", curMonthEnd),
   ]);
 
-  const balanceByAccount = new Map<string, number>(
-    (balancesRes.data ?? []).map((b) => [b.account_id as string, b.current_cents as number]),
-  );
-
-  const accounts = (
-    (accountsRes.data ?? []) as Array<{
-      id: string;
-      name: string;
-      kind: "cash" | "checking" | "savings" | "credit" | "investment";
-      balance_cents: number;
-      credit_limit_cents: number | null;
-      closing_day: number | null;
-      due_day: number | null;
-      archived: boolean;
-    }>
-  ).map((a) => ({ ...a, current_cents: balanceByAccount.get(a.id) ?? a.balance_cents }));
   const categories = (categoriesRes.data ?? []) as Array<{
     id: string;
     name: string;
@@ -133,11 +95,8 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
     archived: boolean;
   }>;
 
-  // Resumo (visível em todas as abas)
-  const patrimonio = accounts.reduce((s, a) => s + a.current_cents, 0);
-  const dividaCartao = accounts
-    .filter((a) => a.kind === "credit" && a.current_cents < 0)
-    .reduce((s, a) => s - a.current_cents, 0);
+  // Saldo total = soma de tudo (o "um total só").
+  const saldoTotal = (balancesRes.data ?? []).reduce((s, b) => s + (b.current_cents as number), 0);
   const aPagar = (pendingBillsRes.data ?? []).reduce((s, b) => s + (b.amount_cents as number), 0);
   const monthTotals = (monthTxRes.data ?? []).reduce(
     (acc, t) => {
@@ -149,7 +108,7 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
   );
   const sobraMes = monthTotals.income - monthTotals.expense;
 
-  // Load bills + cartões for "contas" tab
+  // Bills da aba Contas: mês atual + atrasadas.
   let bills: Array<{
     id: string;
     title: string;
@@ -160,18 +119,7 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
     category_id: string | null;
     notes: string | null;
   }> = [];
-  let creditCards: Array<{
-    id: string;
-    name: string;
-    current_cents: number;
-    credit_limit_cents: number | null;
-    due_day: number | null;
-    closing_day: number | null;
-    faturaAberta: number;
-  }> = [];
   if (tab === "contas") {
-    // Mesma regra do resumo: lista o mês atual + atrasadas; meses futuros já
-    // cadastrados aparecem só quando chegar a vez deles.
     const { data } = await supabase
       .from("bills")
       .select("id, title, amount_cents, due_date, paid_at, recurrence_rule, category_id, notes")
@@ -179,52 +127,9 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
       .lte("due_date", curMonthEnd)
       .order("due_date", { ascending: true });
     bills = data ?? [];
-
-    const creditAccounts = accounts.filter((a) => a.kind === "credit");
-    if (creditAccounts.length > 0) {
-      const refDate = new Date(`${today}T12:00:00`);
-      const cycles = new Map<string, { start: string; end: string }>(
-        creditAccounts.map((a) => [a.id, billingCycle(a.closing_day ?? 1, refDate)]),
-      );
-      const minStart = [...cycles.values()].reduce(
-        (m, c) => (c.start < m ? c.start : m),
-        "9999-99-99",
-      );
-      const maxEnd = [...cycles.values()].reduce((m, c) => (c.end > m ? c.end : m), "0000-00-00");
-      const { data: cardTx } = await supabase
-        .from("transactions")
-        .select("account_id, amount_cents, occurred_on")
-        .eq("user_id", userId)
-        .eq("kind", "expense")
-        .eq("is_recurring", false)
-        .in(
-          "account_id",
-          creditAccounts.map((a) => a.id),
-        )
-        .gte("occurred_on", minStart)
-        .lte("occurred_on", maxEnd);
-
-      const faturaByCard: Record<string, number> = {};
-      for (const t of cardTx ?? []) {
-        const cyc = t.account_id ? cycles.get(t.account_id) : null;
-        if (cyc && t.occurred_on >= cyc.start && t.occurred_on <= cyc.end) {
-          faturaByCard[t.account_id] =
-            (faturaByCard[t.account_id] ?? 0) + (t.amount_cents as number);
-        }
-      }
-      creditCards = creditAccounts.map((a) => ({
-        id: a.id,
-        name: a.name,
-        current_cents: a.current_cents,
-        credit_limit_cents: a.credit_limit_cents,
-        due_day: a.due_day,
-        closing_day: a.closing_day,
-        faturaAberta: faturaByCard[a.id] ?? 0,
-      }));
-    }
   }
 
-  // Load envelopes + spending for "caixinhas" tab
+  // Envelopes + gastos para a aba Caixinhas.
   let envelopes: Array<{
     id: string;
     name: string;
@@ -272,13 +177,11 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
   }
 
   const subtitleByTab: Record<FinanceTab, string> = {
-    lancamentos: "Receitas e despesas do mês.",
-    recorrentes: "Contas e receitas que se repetem todo mês.",
+    lancamentos: "O que entrou e o que saiu.",
     contas: "Vencimentos e status de pagamento.",
     caixinhas: "Orçamento por categoria — controle onde vai cada real.",
     graficos: "Pra onde o dinheiro está indo.",
-    importar: "Importe o extrato do Nubank ou Mercado Pago.",
-    setup: "Contas e categorias.",
+    setup: "Saldo e categorias.",
   };
 
   const noCategories = categories.length === 0;
@@ -295,16 +198,11 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
         />
       </Reveal>
       {!noCategories ? (
-        <ResumoStrip
-          patrimonio={patrimonio}
-          dividaCartao={dividaCartao}
-          aPagar={aPagar}
-          sobraMes={sobraMes}
-        />
+        <ResumoStrip saldoTotal={saldoTotal} aPagar={aPagar} sobraMes={sobraMes} />
       ) : null}
       <Tabs current={tab} />
 
-      {noCategories && !["setup", "importar", "contas", "caixinhas"].includes(tab) ? (
+      {noCategories && !["setup", "contas", "caixinhas"].includes(tab) ? (
         <GlassCard>
           <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
             Você ainda não tem categorias. Vá para <strong>Setup</strong> e clique em "Carregar
@@ -314,29 +212,18 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
       ) : tab === "lancamentos" ? (
         <LancamentosTab
           userId={userId}
-          accounts={accounts}
           categories={categories}
           month={selectedMonth}
           filters={filters}
         />
-      ) : tab === "recorrentes" ? (
-        <RecorrentesTab userId={userId} accounts={accounts} categories={categories} />
       ) : tab === "contas" ? (
-        <ContasTab
-          bills={bills}
-          categories={categories}
-          today={today}
-          creditCards={creditCards}
-          accounts={accounts.map((a) => ({ id: a.id, name: a.name, kind: a.kind }))}
-        />
+        <ContasTab bills={bills} categories={categories} today={today} />
       ) : tab === "caixinhas" ? (
         <CaixinhasTab envelopes={envelopes} categories={categories} currentMonth={selectedMonth} />
       ) : tab === "graficos" ? (
         <GraficosTab userId={userId} categories={categories} />
-      ) : tab === "importar" ? (
-        <ImportTab />
       ) : (
-        <SetupTab accounts={accounts} categories={categories} />
+        <SetupTab saldoTotal={saldoTotal} categories={categories} />
       )}
     </>
   );

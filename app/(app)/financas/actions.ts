@@ -1,15 +1,7 @@
 "use server";
 
 import { todayBRTISO } from "@/lib/datetime";
-import {
-  ACCOUNT_KINDS,
-  SEED_CATEGORIES,
-  addMonthsISO,
-  parseRecurrenceRule,
-  reaisToCents,
-  splitInstallments,
-} from "@/lib/finance";
-import { detectAndParse, guessCategory } from "@/lib/importers/csv";
+import { SEED_CATEGORIES, reaisToCents } from "@/lib/finance";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -21,6 +13,34 @@ async function requireUser() {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("unauthenticated");
   return { supabase, userId: user.id };
+}
+
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Modelo "um total só": o usuário não escolhe banco. Toda transação precisa de
+ * uma conta pra entrar no saldo, então usamos UMA conta implícita por usuário
+ * (a primeira não-cartão, ou uma "Carteira" criada na hora). O total exibido é
+ * a soma de tudo, então qual conta recebe o lançamento é irrelevante pra ele.
+ */
+async function defaultAccountId(supabase: SupabaseClient, userId: string): Promise<string> {
+  const { data: accs } = await supabase
+    .from("finance_accounts")
+    .select("id, kind")
+    .eq("user_id", userId)
+    .eq("archived", false)
+    .order("created_at", { ascending: true });
+  const list = accs ?? [];
+  const preferred = list.find((a) => a.kind !== "credit") ?? list[0];
+  if (preferred) return preferred.id as string;
+
+  const { data: created } = await supabase
+    .from("finance_accounts")
+    .insert({ user_id: userId, name: "Carteira", kind: "cash", balance_cents: 0 })
+    .select("id")
+    .single();
+  if (!created) throw new Error("Não foi possível criar a carteira");
+  return created.id as string;
 }
 
 // --- SEED ----------------------------------------------------------
@@ -44,108 +64,6 @@ export async function seedDefaultCategories(): Promise<{ ok?: boolean; error?: s
   const { error } = await supabase.from("finance_categories").insert(rows);
   if (error) return { error: error.message };
   revalidatePath("/financas");
-  return { ok: true };
-}
-
-// --- ACCOUNTS ------------------------------------------------------
-
-const accountSchema = z.object({
-  id: z.string().uuid().optional(),
-  name: z.string().min(1, "Nome obrigatório").max(60),
-  kind: z.enum(ACCOUNT_KINDS as [string, ...string[]]),
-  balance: z.number().finite(),
-  credit_limit: z.number().nonnegative().nullable(),
-  closing_day: z.number().int().min(1).max(28).nullable(),
-  due_day: z.number().int().min(1).max(31).nullable(),
-});
-
-function parseIntOrNull(v: string | undefined): number | null {
-  if (!v || !/^\d+$/.test(v)) return null;
-  return Number.parseInt(v, 10);
-}
-
-export async function saveAccount(fd: FormData): Promise<{ ok?: boolean; error?: string }> {
-  const balanceStr = (fd.get("balance")?.toString() ?? "0").replace(",", ".");
-  const balance = Number.parseFloat(balanceStr);
-  const isCredit = fd.get("kind")?.toString() === "credit";
-  const limitStr = (fd.get("credit_limit")?.toString() ?? "").replace(",", ".");
-  const limit = Number.parseFloat(limitStr);
-  const parsed = accountSchema.safeParse({
-    id: fd.get("id")?.toString() || undefined,
-    name: fd.get("name")?.toString(),
-    kind: fd.get("kind")?.toString(),
-    balance: Number.isFinite(balance) ? balance : 0,
-    credit_limit: isCredit && Number.isFinite(limit) ? limit : null,
-    closing_day: isCredit ? parseIntOrNull(fd.get("closing_day")?.toString()) : null,
-    due_day: isCredit ? parseIntOrNull(fd.get("due_day")?.toString()) : null,
-  });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message };
-
-  const { supabase, userId } = await requireUser();
-  const payload = {
-    user_id: userId,
-    name: parsed.data.name,
-    kind: parsed.data.kind,
-    balance_cents: reaisToCents(parsed.data.balance),
-    credit_limit_cents:
-      parsed.data.credit_limit != null ? reaisToCents(parsed.data.credit_limit) : null,
-    closing_day: parsed.data.closing_day,
-    due_day: parsed.data.due_day,
-  };
-  const { error } = parsed.data.id
-    ? await supabase.from("finance_accounts").update(payload).eq("id", parsed.data.id)
-    : await supabase.from("finance_accounts").insert(payload);
-  if (error) return { error: error.message };
-  revalidatePath("/financas");
-  return { ok: true };
-}
-
-export async function archiveAccount(id: string) {
-  const { supabase } = await requireUser();
-  await supabase.from("finance_accounts").update({ archived: true }).eq("id", id);
-  revalidatePath("/financas");
-}
-
-/**
- * Ajusta o saldo de uma conta pela realidade: o usuário digita o saldo REAL e
- * geramos um lançamento de ajuste (receita se faltava, despesa se sobrava) do
- * tamanho da diferença entre o real e o saldo calculado pela view. Sem
- * categoria; entra no saldo como qualquer tx não-recorrente.
- */
-export async function adjustAccountBalance(
-  accountId: string,
-  realReais: number,
-): Promise<{ ok?: boolean; error?: string }> {
-  if (!accountId) return { error: "Conta inválida" };
-  if (!Number.isFinite(realReais)) return { error: "Valor inválido" };
-
-  const { supabase, userId } = await requireUser();
-  const { data: bal } = await supabase
-    .from("finance_account_balances")
-    .select("current_cents")
-    .eq("user_id", userId)
-    .eq("account_id", accountId)
-    .maybeSingle();
-  if (!bal) return { error: "Conta não encontrada" };
-
-  const deltaCents = reaisToCents(realReais) - (bal.current_cents as number);
-  if (deltaCents === 0) return { ok: true };
-
-  const { error } = await supabase.from("transactions").insert({
-    user_id: userId,
-    account_id: accountId,
-    category_id: null,
-    amount_cents: Math.abs(deltaCents),
-    kind: deltaCents > 0 ? "income" : "expense",
-    occurred_on: todayBRTISO(),
-    description: "Ajuste de saldo",
-    is_recurring: false,
-    recurrence_rule: null,
-    reminder_enabled: false,
-  });
-  if (error) return { error: error.message };
-  revalidatePath("/financas");
-  revalidatePath("/");
   return { ok: true };
 }
 
@@ -198,96 +116,59 @@ export async function archiveCategory(id: string) {
 
 const txSchema = z.object({
   id: z.string().uuid().optional(),
-  account_id: z.string().uuid().nullable(),
   category_id: z.string().uuid().nullable(),
   amount: z.number().positive("Valor deve ser maior que zero"),
   kind: z.enum(["income", "expense"]),
   occurred_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
   description: z.string().max(200).nullable(),
-  is_recurring: z.boolean(),
-  recurrence_day: z.number().int().min(1).max(31).nullable(),
-  reminder_enabled: z.boolean(),
 });
 
 export async function saveTransaction(fd: FormData): Promise<{ ok?: boolean; error?: string }> {
-  const isRecurring = fd.get("is_recurring") === "on" || fd.get("is_recurring") === "true";
-  const recDayStr = fd.get("recurrence_day")?.toString() ?? "";
-  const recDay = /^\d+$/.test(recDayStr) ? Number.parseInt(recDayStr, 10) : null;
   const amountStr = (fd.get("amount")?.toString() ?? "").replace(",", ".");
   const amount = Number.parseFloat(amountStr);
-  const instStr = fd.get("installments")?.toString() ?? "";
-  const installments = /^\d+$/.test(instStr)
-    ? Math.min(Math.max(Number.parseInt(instStr, 10), 1), 48)
-    : 1;
 
   const parsed = txSchema.safeParse({
     id: fd.get("id")?.toString() || undefined,
-    account_id: fd.get("account_id")?.toString() || null,
     category_id: fd.get("category_id")?.toString() || null,
     amount: Number.isFinite(amount) ? amount : 0,
     kind: fd.get("kind")?.toString(),
     occurred_on: fd.get("occurred_on")?.toString(),
     description: fd.get("description")?.toString() || null,
-    is_recurring: isRecurring,
-    recurrence_day: isRecurring ? recDay : null,
-    reminder_enabled: fd.get("reminder_enabled") === "on",
   });
   if (!parsed.success) return { error: parsed.error.errors[0]?.message };
 
-  if (parsed.data.is_recurring && !parsed.data.recurrence_day) {
-    return { error: "Informe o dia do mês da recorrência" };
-  }
-
   const { supabase, userId } = await requireUser();
 
-  // Compra parcelada (apenas na criação, despesa não-recorrente): N lançamentos mensais.
-  if (
-    !parsed.data.id &&
-    !parsed.data.is_recurring &&
-    parsed.data.kind === "expense" &&
-    installments > 1
-  ) {
-    const groupId = crypto.randomUUID();
-    const parts = splitInstallments(reaisToCents(parsed.data.amount), installments);
-    const baseDesc = parsed.data.description ?? "";
-    const rows = parts.map((cents, i) => ({
+  if (parsed.data.id) {
+    // Edição: não mexe na conta (invisível pro usuário), só nos campos visíveis.
+    const { error } = await supabase
+      .from("transactions")
+      .update({
+        category_id: parsed.data.category_id,
+        amount_cents: reaisToCents(parsed.data.amount),
+        kind: parsed.data.kind,
+        occurred_on: parsed.data.occurred_on,
+        description: parsed.data.description,
+      })
+      .eq("id", parsed.data.id);
+    if (error) return { error: error.message };
+  } else {
+    const accountId = await defaultAccountId(supabase, userId);
+    const { error } = await supabase.from("transactions").insert({
       user_id: userId,
-      account_id: parsed.data.account_id,
+      account_id: accountId,
       category_id: parsed.data.category_id,
-      amount_cents: cents,
+      amount_cents: reaisToCents(parsed.data.amount),
       kind: parsed.data.kind,
-      occurred_on: addMonthsISO(parsed.data.occurred_on, i),
-      description: `${baseDesc ? `${baseDesc} ` : ""}(${i + 1}/${installments})`.trim(),
+      occurred_on: parsed.data.occurred_on,
+      description: parsed.data.description,
       is_recurring: false,
       recurrence_rule: null,
       reminder_enabled: false,
-      installment_group_id: groupId,
-      installment_number: i + 1,
-      installment_total: installments,
-    }));
-    const { error } = await supabase.from("transactions").insert(rows);
+    });
     if (error) return { error: error.message };
-    revalidatePath("/financas");
-    revalidatePath("/");
-    return { ok: true };
   }
 
-  const payload = {
-    user_id: userId,
-    account_id: parsed.data.account_id,
-    category_id: parsed.data.category_id,
-    amount_cents: reaisToCents(parsed.data.amount),
-    kind: parsed.data.kind,
-    occurred_on: parsed.data.occurred_on,
-    description: parsed.data.description,
-    is_recurring: parsed.data.is_recurring,
-    recurrence_rule: parsed.data.is_recurring ? `monthly:${parsed.data.recurrence_day}` : null,
-    reminder_enabled: parsed.data.reminder_enabled,
-  };
-  const { error } = parsed.data.id
-    ? await supabase.from("transactions").update(payload).eq("id", parsed.data.id)
-    : await supabase.from("transactions").insert(payload);
-  if (error) return { error: error.message };
   revalidatePath("/financas");
   revalidatePath("/");
   return { ok: true };
@@ -300,291 +181,44 @@ export async function deleteTransaction(id: string) {
   revalidatePath("/");
 }
 
-/** Apaga todas as parcelas de uma compra parcelada (mesmo installment_group_id). */
-export async function deleteInstallmentGroup(groupId: string) {
-  const { supabase, userId } = await requireUser();
-  await supabase
-    .from("transactions")
-    .delete()
-    .eq("user_id", userId)
-    .eq("installment_group_id", groupId);
-  revalidatePath("/financas");
-  revalidatePath("/");
-}
-
 /**
- * Materializa o lançamento do MÊS CORRENTE de uma recorrência (salário, freela
- * fixo, etc.) — o botão "Recebi/Lançar este mês". Insere uma tx real
- * (`is_recurring=false`, então entra no saldo) copiando conta/categoria/valor/
- * tipo/descrição do template. Idempotente via `external_ref` = `rec:<id>:<mês>`:
- * se já existe o lançamento daquele mês, não duplica.
+ * Ajusta o saldo TOTAL pela realidade: o usuário digita quanto tem de fato e
+ * geramos um lançamento de ajuste (receita ou despesa) do tamanho da diferença
+ * entre o real e o total calculado. Sem categoria; entra no total como qualquer
+ * lançamento.
  */
-export async function postRecurringNow(
-  recurringId: string,
-): Promise<{ ok?: boolean; already?: boolean; error?: string }> {
+export async function adjustTotalBalance(
+  realReais: number,
+): Promise<{ ok?: boolean; error?: string }> {
+  if (!Number.isFinite(realReais)) return { error: "Valor inválido" };
+
   const { supabase, userId } = await requireUser();
+  const { data: bals } = await supabase
+    .from("finance_account_balances")
+    .select("current_cents")
+    .eq("user_id", userId);
+  const totalCents = (bals ?? []).reduce((s, b) => s + (b.current_cents as number), 0);
 
-  const { data: tpl } = await supabase
-    .from("transactions")
-    .select("amount_cents, kind, description, account_id, category_id, recurrence_rule")
-    .eq("id", recurringId)
-    .eq("user_id", userId)
-    .eq("is_recurring", true)
-    .maybeSingle();
-  if (!tpl) return { error: "Recorrência não encontrada" };
+  const deltaCents = reaisToCents(realReais) - totalCents;
+  if (deltaCents === 0) return { ok: true };
 
-  const today = todayBRTISO();
-  const month = today.slice(0, 7); // YYYY-MM
-  const externalRef = `rec:${recurringId}:${month}`;
-
-  // Idempotência: já lançado neste mês?
-  const { data: existing } = await supabase
-    .from("transactions")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("external_ref", externalRef)
-    .limit(1);
-  if (existing && existing.length > 0) return { ok: true, already: true };
-
-  // occurred_on = dia da recorrência no mês corrente (clampa fim de mês).
-  const day = parseRecurrenceRule(tpl.recurrence_rule)?.day ?? Number(today.slice(8, 10));
-  const lastDay = new Date(
-    Number.parseInt(month.slice(0, 4)),
-    Number.parseInt(month.slice(5, 7)),
-    0,
-  ).getDate();
-  const occurredOn = `${month}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
-
+  const accountId = await defaultAccountId(supabase, userId);
   const { error } = await supabase.from("transactions").insert({
     user_id: userId,
-    account_id: tpl.account_id,
-    category_id: tpl.category_id,
-    amount_cents: tpl.amount_cents,
-    kind: tpl.kind,
-    occurred_on: occurredOn,
-    description: tpl.description,
+    account_id: accountId,
+    category_id: null,
+    amount_cents: Math.abs(deltaCents),
+    kind: deltaCents > 0 ? "income" : "expense",
+    occurred_on: todayBRTISO(),
+    description: "Ajuste de saldo",
     is_recurring: false,
     recurrence_rule: null,
     reminder_enabled: false,
-    external_ref: externalRef,
   });
   if (error) return { error: error.message };
   revalidatePath("/financas");
   revalidatePath("/");
   return { ok: true };
-}
-
-// --- TRANSFERS -----------------------------------------------------
-
-const transferSchema = z
-  .object({
-    id: z.string().uuid().optional(),
-    from_account_id: z.string().uuid("Escolha a conta de origem"),
-    to_account_id: z.string().uuid("Escolha a conta de destino"),
-    amount: z.number().positive("Valor deve ser maior que zero"),
-    occurred_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
-    description: z.string().max(200).nullable(),
-  })
-  .refine((d) => d.from_account_id !== d.to_account_id, {
-    message: "Origem e destino devem ser contas diferentes",
-    path: ["to_account_id"],
-  });
-
-export async function saveTransfer(fd: FormData): Promise<{ ok?: boolean; error?: string }> {
-  const amountStr = (fd.get("amount")?.toString() ?? "").replace(",", ".");
-  const amount = Number.parseFloat(amountStr);
-  const parsed = transferSchema.safeParse({
-    id: fd.get("id")?.toString() || undefined,
-    from_account_id: fd.get("from_account_id")?.toString(),
-    to_account_id: fd.get("to_account_id")?.toString(),
-    amount: Number.isFinite(amount) ? amount : 0,
-    occurred_on: fd.get("occurred_on")?.toString(),
-    description: fd.get("description")?.toString() || null,
-  });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message };
-
-  const { supabase, userId } = await requireUser();
-  const payload = {
-    user_id: userId,
-    from_account_id: parsed.data.from_account_id,
-    to_account_id: parsed.data.to_account_id,
-    amount_cents: reaisToCents(parsed.data.amount),
-    occurred_on: parsed.data.occurred_on,
-    description: parsed.data.description,
-  };
-  const { error } = parsed.data.id
-    ? await supabase.from("transfers").update(payload).eq("id", parsed.data.id)
-    : await supabase.from("transfers").insert(payload);
-  if (error) return { error: error.message };
-  revalidatePath("/financas");
-  revalidatePath("/");
-  return { ok: true };
-}
-
-export async function deleteTransfer(id: string) {
-  const { supabase } = await requireUser();
-  await supabase.from("transfers").delete().eq("id", id);
-  revalidatePath("/financas");
-  revalidatePath("/");
-}
-
-/**
- * Paga a fatura de um cartão: cria uma transferência conta-origem → cartão.
- * Na view de saldo isso abate a dívida do cartão (transfer_in soma no
- * current_cents, que é negativo quando há dívida) e debita a conta-origem.
- * O valor default é a fatura aberta, mas o usuário pode quitar parcial.
- */
-export async function payCardInvoice(
-  cardId: string,
-  fromAccountId: string,
-  amountReais: number,
-): Promise<{ ok?: boolean; error?: string }> {
-  if (!cardId || !fromAccountId) return { error: "Escolha a conta de origem" };
-  if (cardId === fromAccountId) return { error: "Origem e cartão devem ser diferentes" };
-  if (!Number.isFinite(amountReais) || amountReais <= 0)
-    return { error: "Valor deve ser maior que zero" };
-
-  const { supabase, userId } = await requireUser();
-  const { error } = await supabase.from("transfers").insert({
-    user_id: userId,
-    from_account_id: fromAccountId,
-    to_account_id: cardId,
-    amount_cents: reaisToCents(amountReais),
-    occurred_on: todayBRTISO(),
-    description: "Pagamento de fatura",
-  });
-  if (error) return { error: error.message };
-  revalidatePath("/financas");
-  revalidatePath("/");
-  return { ok: true };
-}
-
-// --- CSV IMPORT ---------------------------------------------------
-
-export async function importCsv(
-  fd: FormData,
-): Promise<{ imported: number; skipped: number; source?: string; error?: string }> {
-  const { supabase, userId } = await requireUser();
-
-  const file = fd.get("file");
-  if (!(file instanceof File) || file.size === 0)
-    return { imported: 0, skipped: 0, error: "Nenhum arquivo enviado." };
-  if (file.size > 5 * 1024 * 1024)
-    return { imported: 0, skipped: 0, error: "Arquivo muito grande (máx 5 MB)." };
-
-  const text = await file.text();
-  const { source, rows } = detectAndParse(text);
-
-  if (source === "unknown" || rows.length === 0) {
-    return {
-      imported: 0,
-      skipped: 0,
-      error: "Formato não reconhecido. Verifique se é o CSV correto do Nubank ou Mercado Pago.",
-    };
-  }
-
-  const SOURCE_LABEL = { nubank: "Nubank", mercadopago: "Mercado Pago" } as const;
-  const accountName = source === "nubank" ? "Nubank Cartão" : "Mercado Pago";
-  const accountKind = source === "nubank" ? "credit" : "checking";
-
-  // Parallel: load categories + look up existing account
-  const [catsRes, existingAccRes] = await Promise.all([
-    supabase
-      .from("finance_categories")
-      .select("id, name, kind")
-      .eq("user_id", userId)
-      .eq("archived", false),
-    supabase
-      .from("finance_accounts")
-      .select("id")
-      .eq("user_id", userId)
-      .ilike("name", accountName)
-      .maybeSingle(),
-  ]);
-  const categories = catsRes.data ?? [];
-
-  let accountId: string | null = existingAccRes.data?.id ?? null;
-  if (!accountId) {
-    const { data: newAcc } = await supabase
-      .from("finance_accounts")
-      .insert({ user_id: userId, name: accountName, kind: accountKind, balance_cents: 0 })
-      .select("id")
-      .single();
-    accountId = newAcc?.id ?? null;
-  }
-
-  // Check which external_refs already exist
-  const refs = rows.map((r) => r.external_ref);
-  const { data: existingRefs } = await supabase
-    .from("transactions")
-    .select("external_ref")
-    .eq("user_id", userId)
-    .in("external_ref", refs);
-  const existingSet = new Set((existingRefs ?? []).map((r) => r.external_ref));
-
-  const toInsert = rows.filter((r) => !existingSet.has(r.external_ref));
-  const skipped = rows.length - toInsert.length;
-
-  if (toInsert.length === 0) {
-    return { imported: 0, skipped, source: SOURCE_LABEL[source] };
-  }
-
-  // Map category by name guess
-  function findCategory(desc: string, kind: "income" | "expense"): string | null {
-    const guess = guessCategory(desc);
-    if (!guess) return null;
-    return categories.find((c) => c.name === guess && c.kind === kind)?.id ?? null;
-  }
-
-  const payload = toInsert.map((r) => ({
-    user_id: userId,
-    account_id: accountId,
-    category_id: findCategory(r.description, r.kind),
-    amount_cents: r.amount_cents,
-    kind: r.kind,
-    occurred_on: r.occurred_on,
-    description: r.description,
-    is_recurring: false,
-    external_ref: r.external_ref,
-  }));
-
-  const { error } = await supabase.from("transactions").insert(payload);
-  if (error) return { imported: 0, skipped, error: error.message };
-
-  revalidatePath("/financas");
-  revalidatePath("/");
-  return { imported: toInsert.length, skipped, source: SOURCE_LABEL[source] };
-}
-
-/**
- * Quantos lançamentos vieram de importação (têm external_ref). Lançamentos
- * manuais ficam com external_ref nulo, então nunca entram nessa conta.
- */
-export async function countImportedTransactions(): Promise<number> {
-  const { supabase, userId } = await requireUser();
-  const { count } = await supabase
-    .from("transactions")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .not("external_ref", "is", null);
-  return count ?? 0;
-}
-
-/**
- * Apaga em massa SÓ os lançamentos importados (external_ref não nulo) — os
- * que infla(ra)m o gráfico de fluxo. Lançamentos manuais ficam intactos.
- */
-export async function deleteImportedTransactions(): Promise<{ deleted: number; error?: string }> {
-  const { supabase, userId } = await requireUser();
-  const { count, error } = await supabase
-    .from("transactions")
-    .delete({ count: "exact" })
-    .eq("user_id", userId)
-    .not("external_ref", "is", null);
-  if (error) return { deleted: 0, error: error.message };
-  revalidatePath("/financas");
-  revalidatePath("/");
-  return { deleted: count ?? 0 };
 }
 
 // --- BILLS ---------------------------------------------------------
@@ -605,7 +239,7 @@ export async function saveBill(fd: FormData): Promise<{ ok?: boolean; error?: st
   const parsed = billSchema.safeParse({
     id: fd.get("id")?.toString() || undefined,
     title: fd.get("title")?.toString(),
-    amount: isFinite(amount) ? amount : 0,
+    amount: Number.isFinite(amount) ? amount : 0,
     due_date: fd.get("due_date")?.toString(),
     recurrence_rule: fd.get("recurrence_rule")?.toString() || null,
     category_id: fd.get("category_id")?.toString() || null,
@@ -632,21 +266,14 @@ export async function saveBill(fd: FormData): Promise<{ ok?: boolean; error?: st
 }
 
 /**
- * Marca/desmarca uma conta como paga. Ao pagar, se um `accountId` for
- * informado, cria a despesa real (linkada via `bill_id`) que abate o saldo
- * daquela conta — usando o valor/categoria/título da própria bill. Ao
- * desmarcar, remove a despesa linkada. Idempotente: nunca duplica o
- * lançamento de uma mesma bill.
+ * Marca/desmarca uma conta como paga. Ao pagar, cria a despesa real (linkada via
+ * `bill_id`) que abate o saldo total — sem perguntar de onde sai, pois o total é
+ * único. Ao desmarcar, remove a despesa linkada. Idempotente.
  */
-export async function toggleBillPaid(
-  id: string,
-  paid: boolean,
-  accountId?: string | null,
-): Promise<void> {
+export async function toggleBillPaid(id: string, paid: boolean): Promise<void> {
   const { supabase, userId } = await requireUser();
 
   if (!paid) {
-    // Desmarcar: limpa a data e remove qualquer lançamento que esta bill gerou.
     await supabase.from("transactions").delete().eq("user_id", userId).eq("bill_id", id);
     await supabase.from("bills").update({ paid_at: null }).eq("id", id);
     revalidatePath("/financas");
@@ -656,36 +283,34 @@ export async function toggleBillPaid(
 
   await supabase.from("bills").update({ paid_at: new Date().toISOString() }).eq("id", id);
 
-  if (accountId) {
-    const { data: bill } = await supabase
-      .from("bills")
-      .select("title, amount_cents, category_id")
-      .eq("id", id)
+  const { data: bill } = await supabase
+    .from("bills")
+    .select("title, amount_cents, category_id")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (bill) {
+    const { data: existing } = await supabase
+      .from("transactions")
+      .select("id")
       .eq("user_id", userId)
-      .maybeSingle();
-    // Só cria se a bill existe e ainda não tem lançamento (idempotência).
-    if (bill) {
-      const { data: existing } = await supabase
-        .from("transactions")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("bill_id", id)
-        .limit(1);
-      if (!existing || existing.length === 0) {
-        await supabase.from("transactions").insert({
-          user_id: userId,
-          account_id: accountId,
-          category_id: bill.category_id,
-          amount_cents: bill.amount_cents,
-          kind: "expense",
-          occurred_on: todayBRTISO(),
-          description: bill.title,
-          is_recurring: false,
-          recurrence_rule: null,
-          reminder_enabled: false,
-          bill_id: id,
-        });
-      }
+      .eq("bill_id", id)
+      .limit(1);
+    if (!existing || existing.length === 0) {
+      const accountId = await defaultAccountId(supabase, userId);
+      await supabase.from("transactions").insert({
+        user_id: userId,
+        account_id: accountId,
+        category_id: bill.category_id,
+        amount_cents: bill.amount_cents,
+        kind: "expense",
+        occurred_on: todayBRTISO(),
+        description: bill.title,
+        is_recurring: false,
+        recurrence_rule: null,
+        reminder_enabled: false,
+        bill_id: id,
+      });
     }
   }
 
@@ -699,7 +324,7 @@ export async function deleteBill(id: string): Promise<void> {
   revalidatePath("/financas");
 }
 
-// --- BUDGET ENVELOPES -----------------------------------------------
+// --- BUDGET ENVELOPES (Caixinhas) ----------------------------------
 
 const envelopeSchema = z.object({
   id: z.string().uuid().optional(),
@@ -718,7 +343,7 @@ export async function saveEnvelope(fd: FormData): Promise<{ ok?: boolean; error?
     id: fd.get("id")?.toString() || undefined,
     category_id: fd.get("category_id")?.toString() || null,
     month: fd.get("month")?.toString(),
-    limit: isFinite(limit) ? limit : 0,
+    limit: Number.isFinite(limit) ? limit : 0,
     name: fd.get("name")?.toString(),
     emoji: fd.get("emoji")?.toString() || null,
     color: fd.get("color")?.toString() || null,

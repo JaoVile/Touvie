@@ -3,18 +3,15 @@
 import { formatBRL } from "@/lib/utils";
 import { SlidersHorizontal } from "lucide-react";
 import { useState, useTransition } from "react";
-import { adjustAccountBalance } from "./actions";
+import { adjustTotalBalance } from "./actions";
 
 interface Props {
-  accountId: string;
-  name: string;
-  currentCents: number;
+  currentCents: number; // saldo total calculado
 }
 
-// Botão discreto na lista de contas (Setup): abre um campo pra digitar o saldo
-// REAL da conta; geramos um lançamento de ajuste do tamanho da diferença, pra
-// que o saldo calculado passe a bater com a realidade.
-export function AdjustBalanceButton({ accountId, name, currentCents }: Props) {
+// Abre um campo pra digitar o saldo REAL total; geramos um lançamento de ajuste
+// do tamanho da diferença, pra que o total passe a bater com a realidade.
+export function AdjustBalanceButton({ currentCents }: Props) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState((currentCents / 100).toFixed(2));
   const [error, setError] = useState("");
@@ -25,7 +22,7 @@ export function AdjustBalanceButton({ accountId, name, currentCents }: Props) {
     if (!Number.isFinite(real)) return setError("Valor inválido");
     setError("");
     start(async () => {
-      const res = await adjustAccountBalance(accountId, real);
+      const res = await adjustTotalBalance(real);
       if (res.error) {
         setError(res.error);
         return;
@@ -42,12 +39,11 @@ export function AdjustBalanceButton({ accountId, name, currentCents }: Props) {
           setValue((currentCents / 100).toFixed(2));
           setOpen(true);
         }}
-        className="rounded p-1 transition hover:opacity-70"
-        style={{ color: "var(--color-fg-subtle)" }}
-        title="Ajustar saldo pela realidade"
-        aria-label="Ajustar saldo"
+        className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition hover:opacity-80"
+        style={{ borderColor: "var(--color-border)", color: "var(--color-fg-muted)" }}
       >
         <SlidersHorizontal size={13} />
+        Ajustar saldo
       </button>
     );
   }
@@ -67,7 +63,7 @@ export function AdjustBalanceButton({ accountId, name, currentCents }: Props) {
         <div>
           <p className="text-sm font-semibold">Ajustar saldo</p>
           <p className="text-xs" style={{ color: "var(--color-fg-muted)" }}>
-            {name} · calculado {formatBRL(currentCents)}
+            calculado {formatBRL(currentCents)}
           </p>
         </div>
         <div>

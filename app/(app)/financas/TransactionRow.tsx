@@ -1,29 +1,17 @@
 "use client";
 
 import { formatBRL } from "@/lib/utils";
-import { Repeat, TrendingDown, TrendingUp } from "lucide-react";
+import { TrendingDown, TrendingUp } from "lucide-react";
 import { useTransition } from "react";
-import { deleteTransaction, deleteTransfer } from "./actions";
+import { deleteTransaction } from "./actions";
 
-export type LedgerItem =
-  | {
-      type: "tx";
-      id: string;
-      amount_cents: number;
-      kind: "income" | "expense";
-      description: string | null;
-      category: { name: string; emoji: string | null; color: string | null } | null;
-      account: { name: string } | null;
-      installment: { number: number; total: number } | null;
-    }
-  | {
-      type: "transfer";
-      id: string;
-      amount_cents: number;
-      description: string | null;
-      from: string | null;
-      to: string | null;
-    };
+export interface LedgerItem {
+  id: string;
+  amount_cents: number;
+  kind: "income" | "expense";
+  description: string | null;
+  category: { name: string; emoji: string | null; color: string | null } | null;
+}
 
 export function TransactionRow({ item }: { item: LedgerItem }) {
   const [pending, start] = useTransition();
@@ -31,27 +19,14 @@ export function TransactionRow({ item }: { item: LedgerItem }) {
   function remove() {
     if (!confirm("Apagar este lançamento?")) return;
     start(async () => {
-      if (item.type === "transfer") await deleteTransfer(item.id);
-      else await deleteTransaction(item.id);
+      await deleteTransaction(item.id);
     });
   }
 
-  const isTransfer = item.type === "transfer";
-  const sign = isTransfer ? "" : item.kind === "income" ? "+" : "−";
-  const color = isTransfer
-    ? "var(--color-fg-muted)"
-    : item.kind === "income"
-      ? "var(--color-success)"
-      : "var(--color-danger)";
-
-  const avatarBg = isTransfer
-    ? "var(--color-bg-elevated)"
-    : (item.category?.color ?? "var(--color-bg-elevated)");
-  // Keep the user's chosen category emoji; only the absent-category fallback
-  // becomes a lucide icon.
-  const avatarContent = isTransfer ? (
-    <Repeat size={15} style={{ color: "var(--color-fg-muted)" }} />
-  ) : item.category?.emoji ? (
+  const sign = item.kind === "income" ? "+" : "−";
+  const color = item.kind === "income" ? "var(--color-success)" : "var(--color-danger)";
+  const avatarBg = item.category?.color ?? "var(--color-bg-elevated)";
+  const avatarContent = item.category?.emoji ? (
     item.category.emoji
   ) : item.kind === "income" ? (
     <TrendingUp size={15} style={{ color: "var(--color-success)" }} />
@@ -59,13 +34,8 @@ export function TransactionRow({ item }: { item: LedgerItem }) {
     <TrendingDown size={15} style={{ color: "var(--color-danger)" }} />
   );
 
-  const title = isTransfer
-    ? item.description || "Transferência"
-    : item.description || item.category?.name || "(sem descrição)";
-
-  const subtitle = isTransfer
-    ? `${item.from ?? "?"} → ${item.to ?? "?"}`
-    : `${item.category?.name ?? "Sem categoria"}${item.account ? ` · ${item.account.name}` : ""}`;
+  const title = item.description || item.category?.name || "(sem descrição)";
+  const subtitle = item.category?.name ?? "Sem categoria";
 
   return (
     <li
@@ -81,17 +51,7 @@ export function TransactionRow({ item }: { item: LedgerItem }) {
           {avatarContent}
         </span>
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5 truncate font-medium">
-            <span className="truncate">{title}</span>
-            {!isTransfer && item.installment ? (
-              <span
-                className="shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold"
-                style={{ background: "var(--color-bg-elevated)", color: "var(--color-fg-subtle)" }}
-              >
-                {item.installment.number}/{item.installment.total}
-              </span>
-            ) : null}
-          </div>
+          <div className="truncate font-medium">{title}</div>
           <div className="truncate text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
             {subtitle}
           </div>

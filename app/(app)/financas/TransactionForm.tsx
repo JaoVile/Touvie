@@ -1,15 +1,9 @@
 "use client";
 
 import { DatePicker } from "@/components/DatePicker";
-import { CreditCard, type LucideIcon, Repeat, TrendingDown, TrendingUp } from "lucide-react";
+import { type LucideIcon, TrendingDown, TrendingUp } from "lucide-react";
 import { useState, useTransition } from "react";
-import { saveTransaction, saveTransfer } from "./actions";
-
-interface Account {
-  id: string;
-  name: string;
-  kind?: string;
-}
+import { saveTransaction } from "./actions";
 
 interface Category {
   id: string;
@@ -18,65 +12,43 @@ interface Category {
   emoji: string | null;
 }
 
-type Mode = "expense" | "income" | "transfer";
+type Mode = "expense" | "income";
 
 interface Props {
-  accounts: Account[];
   categories: Category[];
   defaultValues?: {
     id?: string;
-    account_id?: string | null;
     category_id?: string | null;
     amount_cents?: number;
     kind?: "income" | "expense";
     occurred_on?: string;
     description?: string | null;
-    is_recurring?: boolean;
-    recurrence_day?: number;
-    reminder_enabled?: boolean;
   };
-  recurringMode?: boolean;
   onDone?: () => void;
 }
 
-export function TransactionForm({
-  accounts,
-  categories,
-  defaultValues,
-  recurringMode = false,
-  onDone,
-}: Props) {
+export function TransactionForm({ categories, defaultValues, onDone }: Props) {
   const [error, setError] = useState<string>();
   const [pending, start] = useTransition();
   const [mode, setMode] = useState<Mode>(defaultValues?.kind ?? "expense");
-  const [isRecurring, setIsRecurring] = useState<boolean>(
-    defaultValues?.is_recurring ?? recurringMode,
-  );
-  const [accountId, setAccountId] = useState<string>(defaultValues?.account_id ?? "");
 
-  const isTransfer = mode === "transfer";
-  const kind: "income" | "expense" = isTransfer ? "expense" : mode;
+  const kind: "income" | "expense" = mode;
   const filteredCategories = categories.filter((c) => c.kind === kind);
-  const isCreditSelected = accounts.find((a) => a.id === accountId)?.kind === "credit";
-  const canInstall = isCreditSelected && mode === "expense" && !isRecurring && !defaultValues?.id;
 
   function submit(fd: FormData) {
     setError(undefined);
     start(async () => {
-      const res = isTransfer ? await saveTransfer(fd) : await saveTransaction(fd);
+      const res = await saveTransaction(fd);
       if (res?.error) setError(res.error);
       else onDone?.();
     });
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  const defaultDay = new Date().getDate();
 
-  const modes: Mode[] = recurringMode ? ["expense", "income"] : ["expense", "income", "transfer"];
   const modeMeta: Record<Mode, { label: string; icon: LucideIcon }> = {
-    expense: { label: "Despesa", icon: TrendingDown },
-    income: { label: "Receita", icon: TrendingUp },
-    transfer: { label: "Transferir", icon: Repeat },
+    expense: { label: "Saiu", icon: TrendingDown },
+    income: { label: "Entrou", icon: TrendingUp },
   };
 
   return (
@@ -84,7 +56,7 @@ export function TransactionForm({
       {defaultValues?.id ? <input type="hidden" name="id" value={defaultValues.id} /> : null}
 
       <div className="flex gap-1 rounded-lg p-1" style={{ background: "var(--color-card)" }}>
-        {modes.map((m) => {
+        {(["expense", "income"] as Mode[]).map((m) => {
           const Icon = modeMeta[m].icon;
           return (
             <label
@@ -110,7 +82,7 @@ export function TransactionForm({
         })}
       </div>
 
-      {!isTransfer ? <input type="hidden" name="kind" value={kind} /> : null}
+      <input type="hidden" name="kind" value={kind} />
 
       <div className="grid grid-cols-2 gap-2">
         <input
@@ -129,97 +101,21 @@ export function TransactionForm({
         <DatePicker name="occurred_on" defaultValue={defaultValues?.occurred_on ?? today} />
       </div>
 
-      {isTransfer ? (
-        <div className="grid grid-cols-2 gap-2">
-          <select
-            name="from_account_id"
-            required
-            className={inputCls}
-            style={inputStyle}
-            defaultValue=""
-          >
-            <option value="" disabled>
-              De…
-            </option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-          <select
-            name="to_account_id"
-            required
-            className={inputCls}
-            style={inputStyle}
-            defaultValue=""
-          >
-            <option value="" disabled>
-              Para…
-            </option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      ) : (
-        <>
-          <select
-            name="category_id"
-            defaultValue={defaultValues?.category_id ?? ""}
-            className={inputCls}
-            style={inputStyle}
-            key={kind}
-          >
-            <option value="">— Sem categoria —</option>
-            {filteredCategories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.emoji ? `${c.emoji} ` : ""}
-                {c.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            name="account_id"
-            value={accountId}
-            onChange={(e) => setAccountId(e.target.value)}
-            className={inputCls}
-            style={inputStyle}
-          >
-            <option value="">— Sem conta —</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-
-          {canInstall ? (
-            <label
-              className="flex items-center gap-2 text-xs"
-              style={{ color: "var(--color-fg-muted)" }}
-            >
-              <span className="flex shrink-0 items-center gap-1.5">
-                <CreditCard size={14} />
-                Parcelar em
-              </span>
-              <input
-                type="number"
-                name="installments"
-                min="1"
-                max="48"
-                defaultValue="1"
-                className="w-16 rounded-lg border px-2 py-1 text-center"
-                style={inputStyle}
-              />
-              <span className="shrink-0">x (valor total acima)</span>
-            </label>
-          ) : null}
-        </>
-      )}
+      <select
+        name="category_id"
+        defaultValue={defaultValues?.category_id ?? ""}
+        className={inputCls}
+        style={inputStyle}
+        key={kind}
+      >
+        <option value="">— Sem categoria —</option>
+        {filteredCategories.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.emoji ? `${c.emoji} ` : ""}
+            {c.name}
+          </option>
+        ))}
+      </select>
 
       <input
         type="text"
@@ -230,52 +126,6 @@ export function TransactionForm({
         className={inputCls}
         style={inputStyle}
       />
-
-      {!isTransfer && !recurringMode ? (
-        <label
-          className="flex items-center gap-2 text-xs"
-          style={{ color: "var(--color-fg-muted)" }}
-        >
-          <input
-            type="checkbox"
-            name="is_recurring"
-            checked={isRecurring}
-            onChange={(e) => setIsRecurring(e.target.checked)}
-            className="h-4 w-4 accent-[var(--color-accent)]"
-          />
-          Repetir todo mês
-        </label>
-      ) : !isTransfer ? (
-        <input type="hidden" name="is_recurring" value="on" />
-      ) : null}
-
-      {!isTransfer && (recurringMode || isRecurring) ? (
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            type="number"
-            name="recurrence_day"
-            min="1"
-            max="31"
-            required={recurringMode || isRecurring}
-            placeholder="Dia do mês"
-            defaultValue={defaultValues?.recurrence_day ?? defaultDay}
-            className={inputCls}
-            style={inputStyle}
-          />
-          <label
-            className="flex items-center gap-2 text-xs"
-            style={{ color: "var(--color-fg-muted)" }}
-          >
-            <input
-              type="checkbox"
-              name="reminder_enabled"
-              defaultChecked={defaultValues?.reminder_enabled ?? false}
-              className="h-4 w-4 accent-[var(--color-accent)]"
-            />
-            Lembrete via Telegram
-          </label>
-        </div>
-      ) : null}
 
       {error ? <p style={{ color: "var(--color-danger)" }}>{error}</p> : null}
 

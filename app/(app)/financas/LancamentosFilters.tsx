@@ -3,17 +3,12 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 
-interface Account {
-  id: string;
-  name: string;
-}
 interface Category {
   id: string;
   name: string;
   emoji: string | null;
 }
 interface Filters {
-  accountId: string | null;
   categoryId: string | null;
   kind: "income" | "expense" | null;
   q: string | null;
@@ -33,12 +28,10 @@ function monthLabel(month: string): string {
 }
 
 export function LancamentosFilters({
-  accounts,
   categories,
   month,
   filters,
 }: {
-  accounts: Account[];
   categories: Category[];
   month: string;
   filters: Filters;
@@ -58,7 +51,7 @@ export function LancamentosFilters({
     start(() => router.push(`${pathname}?${params.toString()}`));
   }
 
-  const hasFilters = !!(filters.accountId || filters.categoryId || filters.kind || filters.q);
+  const hasFilters = !!(filters.categoryId || filters.kind || filters.q);
 
   return (
     <div
@@ -120,20 +113,6 @@ export function LancamentosFilters({
         ))}
       </select>
 
-      <select
-        value={filters.accountId ?? ""}
-        onChange={(e) => update({ acc: e.target.value || null })}
-        className={selCls}
-        style={selStyle}
-      >
-        <option value="">Conta</option>
-        {accounts.map((a) => (
-          <option key={a.id} value={a.id}>
-            {a.name}
-          </option>
-        ))}
-      </select>
-
       <input
         type="search"
         defaultValue={filters.q ?? ""}
@@ -151,7 +130,7 @@ export function LancamentosFilters({
       {hasFilters ? (
         <button
           type="button"
-          onClick={() => update({ acc: null, cat: null, kind: null, q: null })}
+          onClick={() => update({ cat: null, kind: null, q: null })}
           className="rounded-md px-2 py-1 text-xs hover:opacity-70"
           style={{ color: "var(--color-accent)" }}
         >

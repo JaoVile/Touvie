@@ -1,36 +1,11 @@
 import { GlassCard } from "@/components/glass/GlassCard";
-import { ACCOUNT_KIND_LABELS, type AccountKind } from "@/lib/finance";
 import { formatBRL } from "@/lib/utils";
-import {
-  Banknote,
-  CreditCard,
-  Landmark,
-  type LucideIcon,
-  PiggyBank,
-  Tags,
-  TrendingUp,
-} from "lucide-react";
-import { AccountForm } from "./AccountForm";
+import { Tags, Wallet } from "lucide-react";
 import { AdjustBalanceButton } from "./AdjustBalanceButton";
 import { CategoryForm } from "./CategoryForm";
 import { CategoryRow } from "./CategoryRow";
 import { SeedCategoriesButton } from "./SeedCategoriesButton";
 
-const ACCOUNT_KIND_ICONS: Record<AccountKind, LucideIcon> = {
-  cash: Banknote,
-  checking: Landmark,
-  savings: PiggyBank,
-  credit: CreditCard,
-  investment: TrendingUp,
-};
-
-interface Account {
-  id: string;
-  name: string;
-  kind: AccountKind;
-  balance_cents: number;
-  current_cents: number;
-}
 interface Category {
   id: string;
   name: string;
@@ -40,11 +15,11 @@ interface Category {
 }
 
 interface Props {
-  accounts: Account[];
+  saldoTotal: number;
   categories: Category[];
 }
 
-export function SetupTab({ accounts, categories }: Props) {
+export function SetupTab({ saldoTotal, categories }: Props) {
   const incomeCats = categories.filter((c) => c.kind === "income");
   const expenseCats = categories.filter((c) => c.kind === "expense");
 
@@ -52,73 +27,34 @@ export function SetupTab({ accounts, categories }: Props) {
     <div className="grid gap-4 lg:grid-cols-2">
       <GlassCard>
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-          <Landmark size={16} />
-          Contas
+          <Wallet size={16} />
+          Saldo
         </h2>
-        {accounts.length === 0 ? (
-          <p className="mb-3 text-xs" style={{ color: "var(--color-fg-muted)" }}>
-            Crie a primeira conta abaixo.
-          </p>
-        ) : (
-          <ul className="mb-4 space-y-1.5">
-            {accounts.map((a) => (
-              <li
-                key={a.id}
-                className="flex items-center justify-between rounded-lg px-3 py-2 text-sm"
-                style={{ background: "var(--color-card)" }}
-              >
-                <span className="flex items-center gap-2">
-                  {(() => {
-                    const Icon = ACCOUNT_KIND_ICONS[a.kind];
-                    return (
-                      <Icon
-                        size={15}
-                        className="shrink-0"
-                        style={{ color: "var(--color-fg-muted)" }}
-                      />
-                    );
-                  })()}
-                  <span className="font-medium">{a.name}</span>
-                  <span className="text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
-                    {ACCOUNT_KIND_LABELS[a.kind]}
-                  </span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="flex flex-col items-end leading-tight">
-                    <span
-                      className="font-mono text-sm"
-                      style={{
-                        color: a.current_cents < 0 ? "var(--color-danger)" : "var(--color-fg)",
-                      }}
-                    >
-                      {formatBRL(a.current_cents)}
-                    </span>
-                    {a.current_cents !== a.balance_cents ? (
-                      <span
-                        className="font-mono text-[10px]"
-                        style={{ color: "var(--color-fg-subtle)" }}
-                      >
-                        inicial {formatBRL(a.balance_cents)}
-                      </span>
-                    ) : null}
-                  </span>
-                  <AdjustBalanceButton
-                    accountId={a.id}
-                    name={a.name}
-                    currentCents={a.current_cents}
-                  />
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-        <h3
-          className="mb-2 text-xs font-semibold uppercase tracking-wide"
-          style={{ color: "var(--color-fg-subtle)" }}
+        <div
+          className="mb-3 flex items-center justify-between rounded-xl border p-4"
+          style={{ borderColor: "var(--color-border)", background: "var(--color-card)" }}
         >
-          Nova conta
-        </h3>
-        <AccountForm />
+          <div>
+            <div
+              className="text-[10px] uppercase tracking-wide"
+              style={{ color: "var(--color-fg-subtle)" }}
+            >
+              Saldo total
+            </div>
+            <div
+              className="mt-0.5 font-mono text-2xl font-semibold"
+              style={{ color: saldoTotal < 0 ? "var(--color-danger)" : "var(--color-fg)" }}
+            >
+              {formatBRL(saldoTotal)}
+            </div>
+          </div>
+          <AdjustBalanceButton currentCents={saldoTotal} />
+        </div>
+        <p className="text-xs" style={{ color: "var(--color-fg-muted)" }}>
+          O saldo vem dos seus lançamentos. Se a realidade for outra, use{" "}
+          <strong>Ajustar saldo</strong> pra digitar o valor real — a gente gera o ajuste pela
+          diferença.
+        </p>
       </GlassCard>
 
       <GlassCard>

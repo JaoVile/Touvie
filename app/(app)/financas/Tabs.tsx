@@ -1,34 +1,16 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import {
-  BarChart3,
-  CalendarDays,
-  Download,
-  type LucideIcon,
-  PiggyBank,
-  Receipt,
-  Repeat,
-  Wrench,
-} from "lucide-react";
+import { BarChart3, CalendarDays, type LucideIcon, PiggyBank, Receipt, Wrench } from "lucide-react";
 import Link from "next/link";
 
-export type FinanceTab =
-  | "lancamentos"
-  | "recorrentes"
-  | "contas"
-  | "caixinhas"
-  | "graficos"
-  | "setup"
-  | "importar";
+export type FinanceTab = "lancamentos" | "contas" | "caixinhas" | "graficos" | "setup";
 
 const TABS: Array<{ id: FinanceTab; label: string; icon: LucideIcon }> = [
   { id: "lancamentos", label: "Lançamentos", icon: Receipt },
-  { id: "recorrentes", label: "Recorrentes", icon: Repeat },
   { id: "contas", label: "Contas", icon: CalendarDays },
   { id: "caixinhas", label: "Caixinhas", icon: PiggyBank },
   { id: "graficos", label: "Gráficos", icon: BarChart3 },
-  { id: "importar", label: "Importar", icon: Download },
   { id: "setup", label: "Setup", icon: Wrench },
 ];
 

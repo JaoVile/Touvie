@@ -1,26 +1,19 @@
 import { formatBRL } from "@/lib/utils";
 
 interface Props {
-  patrimonio: number; // soma dos saldos atuais (dívida de cartão entra negativa)
-  dividaCartao: number; // soma das dívidas de cartão (positivo)
+  saldoTotal: number; // soma de tudo
   aPagar: number; // contas pendentes
   sobraMes: number; // receitas - despesas do mês corrente
 }
 
-export function ResumoStrip({ patrimonio, dividaCartao, aPagar, sobraMes }: Props) {
+export function ResumoStrip({ saldoTotal, aPagar, sobraMes }: Props) {
   return (
-    <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div className="mb-4 grid grid-cols-3 gap-2">
       <Card
-        label="Patrimônio"
-        value={formatBRL(patrimonio)}
-        color={patrimonio >= 0 ? "var(--color-fg)" : "var(--color-danger)"}
-        hint="saldo de todas as contas"
-      />
-      <Card
-        label="Fatura / dívida"
-        value={formatBRL(dividaCartao)}
-        color={dividaCartao > 0 ? "var(--color-danger)" : "var(--color-fg-muted)"}
-        hint="cartões de crédito"
+        label="Saldo total"
+        value={formatBRL(saldoTotal)}
+        color={saldoTotal >= 0 ? "var(--color-fg)" : "var(--color-danger)"}
+        hint="tudo o que você tem"
       />
       <Card
         label="A pagar"
