@@ -92,8 +92,35 @@ Em `/config` → seletor visual. Temas disponíveis: `glass-purple`, `dark-minim
 - **P4** — bot Telegram + crons de lembrete ✅
 - **P5** — treino avançado (séries, PRs, progressão) ✅
 - **P6** — dieta (refeições, macros, medidas) ✅
-- **P5** — treino avançado (séries, PRs, progressão)
-- **P6** — dieta (refeições, macros, medidas)
+
+## 🧭 Estado atual (atualizado 2026-06-03)
+
+Tudo na `main`, buildando e deployado na Vercel. Migrations aplicadas até **0015**.
+
+**Em foco agora: upgrade do financeiro.** Os 3 essenciais estão fechados (pagar
+fatura, receita recorrente, ajustar saldo) e a criação de conta foi simplificada
+("um total só" — um saldo geral em vez de várias contas, pensado pra uso real).
+
+### ✅ Já feito nesta leva
+- Pagar conta → gera lançamento que abate o saldo
+- Pagar fatura do cartão + parcelamento
+- **Receita recorrente**: botão "Recebi"/"Lançar" + cron `/api/cron/post-recurring`,
+  idempotência via `external_ref = rec:<id>:<mês>` (sem migration nova)
+- Ajustar saldo manual
+- Criação de conta simplificada: atalhos + picker visual + opções avançadas ocultas
+- Modelo "um total só" (commit `0b0efc1`)
+
+### 🔜 Pra terminar no trabalho
+1. **Colar a URL do cron no cron-job.org** apontando pra `/api/cron/post-recurring`
+   (header `Authorization: Bearer $CRON_SECRET`) — sem isso a receita recorrente
+   não posta sozinha. É o único passo pendente da feature.
+2. **Polimento do financeiro** — não sobrou nenhuma feature grande, só acabamento
+   (revisar telas, microcopy, estados vazios).
+3. Opcional/depois: **segredo de escrita do diário** (destravar escrita via PIN de
+   4 dígitos no `/config`) — ainda NÃO começado; usar migration `0016+`.
+
+> ⚠️ Não rode `pnpm build` com o `pnpm dev` ativo (compartilham `.next` → 500).
+> Pra checar tipos use `pnpm tsc --noEmit`. Testar build sempre com **pnpm**.
 
 ## 🛠️ Scripts
 
