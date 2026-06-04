@@ -112,17 +112,25 @@ Lançamentos · Contas · Caixinhas · Gráficos · Setup.
 - Cron `regenerate-bills` (mensal) regenera as bills recorrentes do próximo mês
 - Bot Telegram: `/gasto`, `/receita`, `/saldo` (corrigidos — usavam tabela errada)
 
-### 🔜 Pendências (ver tasks)
-1. **Crons de lembrete sem scheduler.** Só `regenerate-bills` está na `vercel.json`.
+### ✅ Resolvido nesta leva (2026-06-04)
+- **Tipos do Supabase reais**: `lib/supabase/types.ts` cobre todas as tabelas/views
+  e o `<Database>` está plugado nos 3 clients (admin/server/browser) — `tsc` agora
+  pega nome de tabela/coluna errado. Exigiu subir `@supabase/ssr`→`^0.10` e
+  `supabase-js`→`^2.107`. Já pegou um bug latente (`exercise_logs.created_at` ghost).
+- **Rota `/sandbox/circle-text` removida.**
+- **PWA**: ícones PNG 192/512 + apple-touch-icon (gerados via `scripts/gen-icons.mjs`).
+
+### 🔜 Pendências
+1. **Aplicar migrations no Supabase de produção** (SQL Editor):
+   `0016_drop_transfers.sql` (dropa a tabela órfã `transfers`, vazia — recria a view
+   sem os termos dela antes do drop).
+2. **Crons de lembrete sem scheduler.** Só `regenerate-bills` está na `vercel.json`.
    `daily-reminders` (08:00), `evening-reminders` (20:00), `training-reminder` e
-   `work-clock` precisam ser agendados no **cron-job.org** (header
+   `work-clock` (4 tipos) precisam ser agendados no **cron-job.org** (header
    `Authorization: Bearer $CRON_SECRET`) — senão os lembretes do bot nunca disparam.
-2. **Tipos do Supabase ainda são placeholder** (`lib/supabase/types.ts`) — gerar os
-   reais pra o `tsc` virar rede de segurança (foi o que deixou o bug do bot passar).
-3. **Limpeza pré-lançamento**: deletar a rota `/sandbox/circle-text` e avaliar dropar
-   a tabela `transfers` (órfã desde o "um total só").
-4. Opcional/depois: **segredo de escrita do diário** (destravar escrita via PIN de
-   4 dígitos no `/config`) — ainda NÃO começado; usar migration `0016+`.
+3. Opcional/depois: **segredo de escrita do diário** (destravar escrita via PIN de
+   4 dígitos no `/config`) — ainda NÃO começado; usar migration `0017+` (a 0016 já
+   foi usada pelo drop de `transfers`).
 
 > ⚠️ Não rode `pnpm build` com o `pnpm dev` ativo (compartilham `.next` → 500).
 > Pra checar tipos use `pnpm tsc --noEmit`. Testar build sempre com **pnpm**.
