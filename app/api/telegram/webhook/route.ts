@@ -61,7 +61,7 @@ export async function POST(req: Request) {
 
 async function resolveProfile(
   chatId: number,
-): Promise<{ userId: string; accountId: string | null } | null> {
+): Promise<{ userId: string; accountId: string } | null> {
   const admin = createAdminClient();
   const { data: profile } = await admin
     .from("profiles")
@@ -70,16 +70,25 @@ async function resolveProfile(
     .maybeSingle();
   if (!profile) return null;
 
-  const { data: account } = await admin
-    .from("accounts")
-    .select("id")
+  // Modelo "um total só": o lançamento precisa de uma conta pra entrar no saldo
+  // (a view soma `where account_id = a.id`). Espelha o defaultAccountId do app:
+  // prefere a primeira conta não-cartão, ou cria a "Carteira" na hora.
+  const { data: accs } = await admin
+    .from("finance_accounts")
+    .select("id, kind")
     .eq("user_id", profile.id)
     .eq("archived", false)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: true });
+  const preferred = (accs ?? []).find((a) => a.kind !== "credit") ?? accs?.[0];
+  if (preferred) return { userId: profile.id, accountId: preferred.id as string };
 
-  return { userId: profile.id, accountId: account?.id ?? null };
+  const { data: created } = await admin
+    .from("finance_accounts")
+    .insert({ user_id: profile.id, name: "Carteira", kind: "cash", balance_cents: 0 })
+    .select("id")
+    .single();
+  if (!created) return null;
+  return { userId: profile.id, accountId: created.id as string };
 }
 
 function parseTxArgs(text: string): { amountCents: number; description: string } | null {
@@ -102,7 +111,7 @@ async function resolveCategoryId(
   if (!catName) return null;
   const admin = createAdminClient();
   const { data } = await admin
-    .from("categories")
+    .from("finance_categories")
     .select("id")
     .eq("user_id", userId)
     .eq("name", catName)
@@ -242,7 +251,7 @@ async function handleSaldo(chatId: number): Promise<string | null> {
 
   const { data: txs } = await admin
     .from("transactions")
-    .select("kind, amount_cents, category_id, categories(name)")
+    .select("kind, amount_cents, category_id, finance_categories(name)")
     .eq("user_id", profile.userId)
     .gte("occurred_on", firstDay);
 
@@ -255,7 +264,7 @@ async function handleSaldo(chatId: number): Promise<string | null> {
       income += tx.amount_cents;
     } else {
       expense += tx.amount_cents;
-      const cat = tx.categories as unknown as { name: string } | null;
+      const cat = tx.finance_categories as unknown as { name: string } | null;
       const catName = cat?.name ?? "Outros";
       byCategory[catName] = (byCategory[catName] ?? 0) + tx.amount_cents;
     }

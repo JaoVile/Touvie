@@ -93,30 +93,35 @@ Em `/config` → seletor visual. Temas disponíveis: `glass-purple`, `dark-minim
 - **P5** — treino avançado (séries, PRs, progressão) ✅
 - **P6** — dieta (refeições, macros, medidas) ✅
 
-## 🧭 Estado atual (atualizado 2026-06-03)
+## 🧭 Estado atual (atualizado 2026-06-04)
 
 Tudo na `main`, buildando e deployado na Vercel. Migrations aplicadas até **0015**.
 
-**Em foco agora: upgrade do financeiro.** Os 3 essenciais estão fechados (pagar
-fatura, receita recorrente, ajustar saldo) e a criação de conta foi simplificada
-("um total só" — um saldo geral em vez de várias contas, pensado pra uso real).
+**Financeiro no modelo "um total só".** Acabou o conceito de banco/conta na UI:
+existe UM saldo total (soma de tudo). O commit `0b0efc1` simplificou o módulo
+pensando em disponibilizar o app — e nessa leva foram **removidos** o cartão de
+crédito (fatura/parcelas), a aba Importar e a **receita recorrente** (junto com o
+cron `/api/cron/post-recurring`, que **não existe mais**). Abas atuais:
+Lançamentos · Contas · Caixinhas · Gráficos · Setup.
 
-### ✅ Já feito nesta leva
-- Pagar conta → gera lançamento que abate o saldo
-- Pagar fatura do cartão + parcelamento
-- **Receita recorrente**: botão "Recebi"/"Lançar" + cron `/api/cron/post-recurring`,
-  idempotência via `external_ref = rec:<id>:<mês>` (sem migration nova)
-- Ajustar saldo manual
-- Criação de conta simplificada: atalhos + picker visual + opções avançadas ocultas
-- Modelo "um total só" (commit `0b0efc1`)
+### ✅ Funcionando hoje
+- Lançamentos simples (entrou/saiu + valor + data + categoria + descrição)
+- Contas a pagar: marcar pago abate direto do saldo total
+- Ajustar saldo manual (gera lançamento de ajuste pela diferença)
+- Caixinhas (envelopes de orçamento) + Gráficos
+- Cron `regenerate-bills` (mensal) regenera as bills recorrentes do próximo mês
+- Bot Telegram: `/gasto`, `/receita`, `/saldo` (corrigidos — usavam tabela errada)
 
-### 🔜 Pra terminar no trabalho
-1. **Colar a URL do cron no cron-job.org** apontando pra `/api/cron/post-recurring`
-   (header `Authorization: Bearer $CRON_SECRET`) — sem isso a receita recorrente
-   não posta sozinha. É o único passo pendente da feature.
-2. **Polimento do financeiro** — não sobrou nenhuma feature grande, só acabamento
-   (revisar telas, microcopy, estados vazios).
-3. Opcional/depois: **segredo de escrita do diário** (destravar escrita via PIN de
+### 🔜 Pendências (ver tasks)
+1. **Crons de lembrete sem scheduler.** Só `regenerate-bills` está na `vercel.json`.
+   `daily-reminders` (08:00), `evening-reminders` (20:00), `training-reminder` e
+   `work-clock` precisam ser agendados no **cron-job.org** (header
+   `Authorization: Bearer $CRON_SECRET`) — senão os lembretes do bot nunca disparam.
+2. **Tipos do Supabase ainda são placeholder** (`lib/supabase/types.ts`) — gerar os
+   reais pra o `tsc` virar rede de segurança (foi o que deixou o bug do bot passar).
+3. **Limpeza pré-lançamento**: deletar a rota `/sandbox/circle-text` e avaliar dropar
+   a tabela `transfers` (órfã desde o "um total só").
+4. Opcional/depois: **segredo de escrita do diário** (destravar escrita via PIN de
    4 dígitos no `/config`) — ainda NÃO começado; usar migration `0016+`.
 
 > ⚠️ Não rode `pnpm build` com o `pnpm dev` ativo (compartilham `.next` → 500).
