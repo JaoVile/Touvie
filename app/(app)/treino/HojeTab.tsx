@@ -85,10 +85,10 @@ export async function HojeTab({ userId }: Props) {
         : Promise.resolve({ data: [] as Planned[] }),
       supabase
         .from("exercise_logs")
-        .select("id, exercise_id, set_number, reps, weight_kg, rpe, created_at")
+        .select("id, exercise_id, set_number, reps, weight_kg, rpe")
         .eq("user_id", userId)
         .eq("session_id", session.id)
-        .order("created_at"),
+        .order("set_number"),
     ]);
 
     const planned = (plannedRes.data ?? []) as Planned[];
@@ -213,5 +213,4 @@ type LogRow = {
   reps: number | null;
   weight_kg: number | null;
   rpe: number | null;
-  created_at: string;
 };

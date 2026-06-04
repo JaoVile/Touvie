@@ -24,7 +24,6 @@ interface Log {
   reps: number | null;
   weight_kg: number | null;
   rpe: number | null;
-  created_at: string;
 }
 
 interface Catalog {
