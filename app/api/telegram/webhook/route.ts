@@ -249,11 +249,21 @@ async function handleSaldo(chatId: number): Promise<string | null> {
   const now = new Date();
   const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
+  // .returns<T>() sobrescreve o tipo do embed: sem metadata de Relationship
+  // no Database type, o supabase-js não resolve `finance_categories(name)`
+  // sozinho e a row colapsaria pra `never`.
+  type SaldoRow = {
+    kind: "income" | "expense";
+    amount_cents: number;
+    category_id: string | null;
+    finance_categories: { name: string } | null;
+  };
   const { data: txs } = await admin
     .from("transactions")
     .select("kind, amount_cents, category_id, finance_categories(name)")
     .eq("user_id", profile.userId)
-    .gte("occurred_on", firstDay);
+    .gte("occurred_on", firstDay)
+    .returns<SaldoRow[]>();
 
   let income = 0;
   let expense = 0;
@@ -264,8 +274,7 @@ async function handleSaldo(chatId: number): Promise<string | null> {
       income += tx.amount_cents;
     } else {
       expense += tx.amount_cents;
-      const cat = tx.finance_categories as unknown as { name: string } | null;
-      const catName = cat?.name ?? "Outros";
+      const catName = tx.finance_categories?.name ?? "Outros";
       byCategory[catName] = (byCategory[catName] ?? 0) + tx.amount_cents;
     }
   }

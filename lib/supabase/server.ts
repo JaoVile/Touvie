@@ -1,5 +1,11 @@
 import { type CookieOptions, createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+// NOTA: o generic <Database> NÃO é threadado aqui de propósito. O
+// @supabase/ssr@0.6.1 foi compilado contra a assinatura antiga do
+// SupabaseClient; com supabase-js@2.104 (assinatura nova) o schema colapsa
+// pra `never` e toda query vira erro. Pra tipar este client, suba
+// @supabase/ssr p/ ^0.10 + supabase-js p/ ^2.105 (peer alinhado). O tipo
+// Database em ./types já existe e está plugado no admin client.
 
 export async function createClient() {
   const cookieStore = await cookies();

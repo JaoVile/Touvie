@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "./types";
 
 // Service-role client para cron jobs e webhooks (sem contexto de usuário).
 // NUNCA importe isto em código que roda no browser.
@@ -8,7 +9,7 @@ export function createAdminClient() {
   if (!url || !key) {
     throw new Error("SUPABASE_SERVICE_ROLE_KEY ou NEXT_PUBLIC_SUPABASE_URL ausente");
   }
-  return createSupabaseClient(url, key, {
+  return createSupabaseClient<Database>(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
