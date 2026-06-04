@@ -25,7 +25,6 @@ const SECTIONS: { prefix: string; label: string }[] = [
   { prefix: "/busca", label: "BUSCA" },
   { prefix: "/notificacoes", label: "NOTIFICAÇÕES" },
   { prefix: "/config", label: "CONFIG" },
-  { prefix: "/sandbox", label: "SANDBOX" },
 ];
 
 function sectionFor(pathname: string): string {
