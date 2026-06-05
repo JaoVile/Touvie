@@ -122,15 +122,23 @@ Lançamentos · Contas · Caixinhas · Gráficos · Setup.
 
 ### 🔜 Pendências
 1. **Aplicar migrations no Supabase de produção** (SQL Editor):
-   `0016_drop_transfers.sql` (dropa a tabela órfã `transfers`, vazia — recria a view
-   sem os termos dela antes do drop).
+   `0016_drop_transfers.sql` ✅ (rodada — dropa a tabela órfã `transfers`) e
+   `0017_profile_write_pin.sql` (coluna `profiles.write_pin_hash` pro código de
+   escrita do diário — **ainda falta rodar**; até lá a seção "Código de acesso" do
+   `/config` fica inerte, mas o resto da config segue normal — query isolada).
 2. **Crons de lembrete sem scheduler.** Só `regenerate-bills` está na `vercel.json`.
    `daily-reminders` (08:00), `evening-reminders` (20:00), `training-reminder` e
    `work-clock` (4 tipos) precisam ser agendados no **cron-job.org** (header
    `Authorization: Bearer $CRON_SECRET`) — senão os lembretes do bot nunca disparam.
-3. Opcional/depois: **segredo de escrita do diário** (destravar escrita via PIN de
-   4 dígitos no `/config`) — ainda NÃO começado; usar migration `0017+` (a 0016 já
-   foi usada pelo drop de `transfers`).
+
+### ✅ Feito: código de escrita do diário (2026-06-04)
+- **Dois níveis no diário**: `pin_hash` destrava a **leitura**; o novo
+  `write_pin_hash` (código de 4–8 díg, separado de propósito) destrava a **escrita**
+  no dispositivo atual setando o cookie de device confiável `rotina_edit`.
+- Seção **"Código de acesso"** (rótulo neutro) no `/config`: define/altera o código,
+  libera o device digitando o código, e revoga só naquele aparelho.
+- **Trava agora é server-side de verdade**: `saveEntry`/`saveMood` checam o device
+  confiável (antes a trava era só o `editable` client-side do editor).
 
 > ⚠️ Não rode `pnpm build` com o `pnpm dev` ativo (compartilham `.next` → 500).
 > Pra checar tipos use `pnpm tsc --noEmit`. Testar build sempre com **pnpm**.

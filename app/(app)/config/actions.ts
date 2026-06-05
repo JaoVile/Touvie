@@ -1,5 +1,6 @@
 "use server";
 
+import { TRUSTED_COOKIE, signTrustedDevice, trustedCookieOptions } from "@/lib/device";
 import { hashPin, verifyPin } from "@/lib/pin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -7,7 +8,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { deleteWebhook, getMe, sendMessage, setWebhook } from "@/lib/telegram";
 import { isValidTheme } from "@/lib/themes";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 export async function updateTheme(theme: string) {
   if (!isValidTheme(theme)) return { error: "Tema inválido" };
@@ -50,6 +51,91 @@ export async function changePin(fd: FormData): Promise<{ error?: string; ok?: bo
   const hash = await hashPin(next);
   const { error } = await supabase.from("profiles").update({ pin_hash: hash }).eq("id", user.id);
   if (error) return { error: error.message };
+  return { ok: true };
+}
+
+// --- CÓDIGO DE ESCRITA DO DIÁRIO -----------------------------------
+// Destrava a ESCRITA no dispositivo atual, separado do PIN de leitura.
+// Definir/acertar o código seta o cookie de device confiável (rotina_edit).
+
+/** Define ou altera o código de escrita. Ao salvar, confia no device atual. */
+export async function setWriteCode(fd: FormData): Promise<{ error?: string; ok?: boolean }> {
+  const current = fd.get("current")?.toString() ?? "";
+  const next = fd.get("next")?.toString() ?? "";
+  const confirm = fd.get("confirm")?.toString() ?? "";
+
+  if (!PIN_RE.test(next)) return { error: "O código deve ter 4 a 8 dígitos" };
+  if (next !== confirm) return { error: "Os códigos não conferem" };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "unauthenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("write_pin_hash")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // Já existe um código → exige o atual pra alterar.
+  if (profile?.write_pin_hash) {
+    const ok = await verifyPin(current, profile.write_pin_hash);
+    if (!ok) return { error: "Código atual incorreto" };
+  }
+
+  const hash = await hashPin(next);
+  const { error } = await supabase
+    .from("profiles")
+    .update({ write_pin_hash: hash })
+    .eq("id", user.id);
+  if (error) return { error: error.message };
+
+  // Confia neste dispositivo (libera a escrita aqui).
+  const cookieStore = await cookies();
+  cookieStore.set(TRUSTED_COOKIE, await signTrustedDevice(user.id), trustedCookieOptions());
+
+  revalidatePath("/config");
+  revalidatePath("/diario");
+  return { ok: true };
+}
+
+/** Digita o código pra confiar NESTE dispositivo. Erro genérico se errado. */
+export async function unlockWrite(fd: FormData): Promise<{ error?: string; ok?: boolean }> {
+  const code = fd.get("code")?.toString() ?? "";
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "unauthenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("write_pin_hash")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // Erro genérico tanto pra "sem código" quanto pra "código errado".
+  if (!profile?.write_pin_hash || !(await verifyPin(code, profile.write_pin_hash))) {
+    return { error: "Código incorreto" };
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set(TRUSTED_COOKIE, await signTrustedDevice(user.id), trustedCookieOptions());
+
+  revalidatePath("/config");
+  revalidatePath("/diario");
+  return { ok: true };
+}
+
+/** Revoga a escrita só neste dispositivo (apaga o cookie). */
+export async function revokeWriteHere(): Promise<{ ok?: boolean }> {
+  const cookieStore = await cookies();
+  cookieStore.delete(TRUSTED_COOKIE);
+  revalidatePath("/config");
+  revalidatePath("/diario");
   return { ok: true };
 }
 
@@ -134,7 +220,6 @@ export async function updateLocale(locale: string): Promise<{ ok?: boolean; erro
 
   await supabase.from("profiles").update({ locale }).eq("id", user.id);
 
-  const { cookies } = await import("next/headers");
   const cookieStore = await cookies();
   cookieStore.set("NEXT_LOCALE", locale, {
     path: "/",

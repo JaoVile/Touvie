@@ -33,6 +33,7 @@ export type Database = {
         full_name: string | null;
         telegram_chat_id: string | null;
         pin_hash: string | null;
+        write_pin_hash: string | null;
         pin_salt: string | null;
         pin_attempts: number;
         pin_locked_until: Timestamptz | null;

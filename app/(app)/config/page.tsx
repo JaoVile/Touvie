@@ -4,9 +4,11 @@ import { Reveal } from "@/components/Reveal";
 import { CardHead } from "@/components/glass/CardHead";
 import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
+import { TRUSTED_COOKIE, verifyTrustedDevice } from "@/lib/device";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_THEME } from "@/lib/themes";
 import {
+  KeyRound,
   Languages,
   Lock,
   Music,
@@ -18,7 +20,9 @@ import {
   User,
 } from "lucide-react";
 import { getLocale } from "next-intl/server";
+import { cookies } from "next/headers";
 import Link from "next/link";
+import { AccessCodeForm } from "./AccessCodeForm";
 import { DeleteAccountButton } from "./DeleteAccountButton";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { LogGeral } from "./LogGeral";
@@ -39,7 +43,7 @@ export default async function ConfigPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [profile, names, locale] = await Promise.all([
+  const [profile, names, writePin, locale] = await Promise.all([
     supabase
       .from("profiles")
       .select("theme, telegram_chat_id, pin_hash, locale")
@@ -54,11 +58,22 @@ export default async function ConfigPage() {
       .eq("id", user!.id)
       .maybeSingle()
       .then((r) => r.data),
+    // Idem: a 0017 (write_pin_hash) pode não ter rodado ainda — isola pra
+    // não derrubar o resto da config.
+    supabase
+      .from("profiles")
+      .select("write_pin_hash")
+      .eq("id", user!.id)
+      .maybeSingle()
+      .then((r) => r.data),
     getLocale(),
   ]);
 
   const theme = profile?.theme ?? DEFAULT_THEME;
   const hasPin = !!profile?.pin_hash;
+  const hasWriteCode = !!writePin?.write_pin_hash;
+  const cookieStore = await cookies();
+  const trustedDevice = await verifyTrustedDevice(cookieStore.get(TRUSTED_COOKIE)?.value, user!.id);
 
   // Index drives both the editorial corner figure and the reveal stagger.
   let i = 0;
@@ -138,6 +153,17 @@ export default async function ConfigPage() {
 
         <Reveal delay={4 * STAGGER_MS}>
           <FoldCard index={idx()}>
+            <CardHead icon={KeyRound} title="Código de acesso" />
+            <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+              Libera recursos de edição restritos neste dispositivo. Defina um código de 4 a 8
+              dígitos e digite-o em cada aparelho que você quiser autorizar.
+            </p>
+            <AccessCodeForm hasCode={hasWriteCode} trusted={trustedDevice} />
+          </FoldCard>
+        </Reveal>
+
+        <Reveal delay={5 * STAGGER_MS}>
+          <FoldCard index={idx()}>
             <CardHead icon={Send} title="Telegram" />
             <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
               Lembretes às 08:00 e 20:00 (BRT). Crons rodam só em produção (Vercel).
@@ -146,7 +172,7 @@ export default async function ConfigPage() {
           </FoldCard>
         </Reveal>
 
-        <Reveal delay={5 * STAGGER_MS}>
+        <Reveal delay={6 * STAGGER_MS}>
           <FoldCard index={idx()}>
             <CardHead icon={ScrollText} title="Log Geral" />
             <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
@@ -156,7 +182,7 @@ export default async function ConfigPage() {
           </FoldCard>
         </Reveal>
 
-        <Reveal delay={6 * STAGGER_MS}>
+        <Reveal delay={7 * STAGGER_MS}>
           <FoldCard index={idx()}>
             <CardHead icon={Languages} title="Idioma" />
             <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
@@ -166,7 +192,7 @@ export default async function ConfigPage() {
           </FoldCard>
         </Reveal>
 
-        <Reveal delay={7 * STAGGER_MS}>
+        <Reveal delay={8 * STAGGER_MS}>
           <FoldCard index={idx()}>
             <CardHead icon={ShieldCheck} title="Conta" />
             <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>

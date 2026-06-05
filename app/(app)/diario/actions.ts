@@ -1,5 +1,6 @@
 "use server";
 
+import { TRUSTED_COOKIE, verifyTrustedDevice } from "@/lib/device";
 import { DIARY_COOKIE, diaryCookieOptions, hashPin, signDiaryToken } from "@/lib/pin";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -13,6 +14,16 @@ async function requireUser() {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("unauthenticated");
   return { supabase, userId: user.id };
+}
+
+/**
+ * A escrita exige um dispositivo confiável (cookie `rotina_edit`), liberado pelo
+ * código de acesso no /config. Defesa server-side: o `editable` do editor é só
+ * client-side, então sem este check quem tem só o PIN de leitura escreveria.
+ */
+async function isTrustedDevice(userId: string): Promise<boolean> {
+  const cookieStore = await cookies();
+  return verifyTrustedDevice(cookieStore.get(TRUSTED_COOKIE)?.value, userId);
 }
 
 const pinSchema = z.string().regex(/^\d{4,8}$/, "PIN deve ter 4 a 8 dígitos");
@@ -50,6 +61,7 @@ export async function saveEntry(input: {
   if (!parsed.success) return { error: parsed.error.errors[0]?.message };
 
   const { supabase, userId } = await requireUser();
+  if (!(await isTrustedDevice(userId))) return { error: "Somente leitura." };
   const now = new Date().toISOString();
   const { error } = await supabase.from("journal_entries").upsert(
     {
@@ -80,6 +92,7 @@ export async function saveMood(input: {
   if (!parsed.success) return { error: parsed.error.errors[0]?.message };
 
   const { supabase, userId } = await requireUser();
+  if (!(await isTrustedDevice(userId))) return { error: "Somente leitura." };
   const { error } = await supabase.from("journal_entries").upsert(
     {
       user_id: userId,
