@@ -1,11 +1,11 @@
-import { Bell, PenLine, ScrollText, Settings, type LucideIcon } from "lucide-react";
 import { PageGlyphs } from "@/components/PageGlyphs";
 import { Reveal } from "@/components/Reveal";
 import { GradientHeader } from "@/components/glass/GradientHeader";
-import { getLogs, getTemplates, getWebhookStatus, type LogPeriod } from "./actions";
+import { Bell, type LucideIcon, PenLine, ScrollText, Settings } from "lucide-react";
 import { ConfigClient } from "./ConfigClient";
 import { LogsClient } from "./LogsClient";
 import { TemplatesClient } from "./TemplatesClient";
+import { type LogPeriod, getLogs, getTemplates, getWebhookStatus } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -18,11 +18,8 @@ export default async function NotificacoesPage({
   searchParams: Promise<{ v?: string; tab?: string }>;
 }) {
   const { v, tab } = await searchParams;
-  const section: Section =
-    v === "templates" ? "templates" : v === "config" ? "config" : "logs";
-  const activeTab: LogPeriod = VALID_TABS.includes(tab as LogPeriod)
-    ? (tab as LogPeriod)
-    : "hoje";
+  const section: Section = v === "templates" ? "templates" : v === "config" ? "config" : "logs";
+  const activeTab: LogPeriod = VALID_TABS.includes(tab as LogPeriod) ? (tab as LogPeriod) : "hoje";
 
   const [logs, templates, webhookStatus] = await Promise.all([
     section === "logs" ? getLogs(activeTab) : Promise.resolve([]),

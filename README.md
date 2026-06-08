@@ -51,7 +51,8 @@ openssl rand -base64 32
 pnpm dev
 ```
 
-Acessa http://localhost:3000, faz login. No notebook, marca **"Confiar neste dispositivo"**.
+Acessa http://localhost:3007, faz login. No notebook, marca **"Confiar neste dispositivo"**.
+(A porta padrão do dev do Touvie é a **3007**, fixada no script `dev`.)
 
 ## 📦 Deploy no Vercel
 
@@ -93,9 +94,9 @@ Em `/config` → seletor visual. Temas disponíveis: `glass-purple`, `dark-minim
 - **P5** — treino avançado (séries, PRs, progressão) ✅
 - **P6** — dieta (refeições, macros, medidas) ✅
 
-## 🧭 Estado atual (atualizado 2026-06-04)
+## 🧭 Estado atual (atualizado 2026-06-08)
 
-Tudo na `main`, buildando e deployado na Vercel. Migrations aplicadas até **0015**.
+Tudo na `main`, buildando e deployado na Vercel. Migrations aplicadas até **0017**.
 
 **Financeiro no modelo "um total só".** Acabou o conceito de banco/conta na UI:
 existe UM saldo total (soma de tudo). O commit `0b0efc1` simplificou o módulo
@@ -121,15 +122,11 @@ Lançamentos · Contas · Caixinhas · Gráficos · Setup.
 - **PWA**: ícones PNG 192/512 + apple-touch-icon (gerados via `scripts/gen-icons.mjs`).
 
 ### 🔜 Pendências
-1. **Aplicar migrations no Supabase de produção** (SQL Editor):
-   `0016_drop_transfers.sql` ✅ (rodada — dropa a tabela órfã `transfers`) e
-   `0017_profile_write_pin.sql` (coluna `profiles.write_pin_hash` pro código de
-   escrita do diário — **ainda falta rodar**; até lá a seção "Código de acesso" do
-   `/config` fica inerte, mas o resto da config segue normal — query isolada).
-2. **Crons de lembrete sem scheduler.** Só `regenerate-bills` está na `vercel.json`.
+1. **Crons de lembrete sem scheduler.** Só `regenerate-bills` está na `vercel.json`.
    `daily-reminders` (08:00), `evening-reminders` (20:00), `training-reminder` e
    `work-clock` (4 tipos) precisam ser agendados no **cron-job.org** (header
    `Authorization: Bearer $CRON_SECRET`) — senão os lembretes do bot nunca disparam.
+   Veja a seção [⏱️ Crons externos](#️-crons-externos-cron-joborg) abaixo.
 
 ### ✅ Feito: código de escrita do diário (2026-06-04)
 - **Dois níveis no diário**: `pin_hash` destrava a **leitura**; o novo
@@ -142,6 +139,56 @@ Lançamentos · Contas · Caixinhas · Gráficos · Setup.
 
 > ⚠️ Não rode `pnpm build` com o `pnpm dev` ativo (compartilham `.next` → 500).
 > Pra checar tipos use `pnpm tsc --noEmit`. Testar build sempre com **pnpm**.
+
+## 🔒 Segurança do PIN
+
+O PIN do diário tem **rate limit server-side** (migration `0005_pin_rate_limit`):
+`profiles.pin_attempts` é incrementado a cada erro e `profiles.pin_locked_until`
+trava o destrave por alguns minutos depois de N tentativas. Significa que mesmo
+quem souber que `/diario` exige PIN não consegue forçar bruta — depois de poucas
+tentativas erradas o usuário fica bloqueado até o timestamp expirar.
+
+## ⏱️ Crons externos (cron-job.org)
+
+Só `regenerate-bills` está no `vercel.json` (limite Hobby = 2 crons — guardado
+pra o cron de fatura recorrente). Os outros ficam no **cron-job.org**, cada um
+chamando a URL abaixo com header `Authorization: Bearer $CRON_SECRET`:
+
+| Cron | Path | Schedule sugerido (BRT) |
+| ---- | ---- | ---------------------- |
+| Lembrete manhã | `/api/cron/daily-reminders` | `0 11 * * *` (08:00 BRT = 11:00 UTC) |
+| Lembrete noite | `/api/cron/evening-reminders` | `0 23 * * *` (20:00 BRT) |
+| **Fluxo financeiro mensal** | `/api/cron/monthly-finance` | `0 0 28-31 * *` (21:00 BRT) — só dispara mesmo no último dia do mês |
+| Treino do dia | `/api/cron/training-reminder` | `0 21 * * *` (18:00 BRT) — ajuste à preferência |
+| Ponto: chegada manhã | `/api/cron/work-clock?type=clock-in-morning` | `50 11 * * 1-5` |
+| Ponto: almoço | `/api/cron/work-clock?type=lunch-break` | `50 15 * * 1-5` |
+| Ponto: chegada tarde | `/api/cron/work-clock?type=clock-in-afternoon` | `50 16 * * 1-5` |
+| Ponto: saída | `/api/cron/work-clock?type=clock-out` | `50 21 * * 1-5` |
+
+> O `monthly-finance` é blindado server-side: só envia mensagem se `amanhã` for
+> dia 1, então agendar 28-31 é seguro mesmo em fevereiro. Pra forçar manualmente
+> e testar: `…?force=1`.
+
+> Os schedules de ponto são exemplos — confira no painel do cron-job.org o que
+> você já cadastrou e ajuste se necessário. Os horários acima usam UTC porque
+> cron-job.org agenda em UTC (somar 3h ao horário local BRT).
+
+### 🧩 Notificações editáveis pela UI
+
+Os três crons de lembrete (`morning`/`evening`/`monthly-finance`) usam **templates
+no banco** (`notification_templates`) com sintaxe `{{nome_da_variavel}}`. Cada
+variável puxa uma seção pronta (saudação, contas a vencer, fluxo do mês, etc) ou
+some sozinha quando não tem dado. Pra editar:
+
+1. `/notificacoes` → aba **Templates** → grupo **🔔 Lembretes (cron)**
+2. Clique **Editar** num dos três
+3. As variáveis disponíveis aparecem como chips abaixo do textarea — clique pra inserir no cursor
+4. Salvar é instantâneo (sem deploy)
+5. Pra "desligar" um cron temporariamente, basta togglar **inativo**
+
+Catálogo de variáveis fica em `lib/notifications/catalog.ts`; renderers em
+`lib/notifications/variables.ts`. Pra adicionar uma variável nova: registra nos
+dois arquivos com o mesmo nome.
 
 ## 🛠️ Scripts
 

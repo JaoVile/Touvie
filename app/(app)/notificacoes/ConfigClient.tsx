@@ -1,17 +1,41 @@
 "use client";
 
 import { GlassCard } from "@/components/glass/GlassCard";
-import { useTransition, useState } from "react";
-import { registerWebhook, unregisterWebhook, type WebhookStatus } from "./actions";
+import { useState, useTransition } from "react";
+import { type WebhookStatus, registerWebhook, unregisterWebhook } from "./actions";
 
 const CRON_SCHEDULE = [
   { label: "Treino", path: "/api/cron/training-reminder", schedule: "06:30 BRT todos os dias" },
-  { label: "Lembrete matinal", path: "/api/cron/daily-reminders", schedule: "07:00 BRT todos os dias" },
-  { label: "Ponto — Entrada manhã", path: "/api/cron/work-clock?type=clock-in-morning", schedule: "08:30 BRT seg–sex" },
-  { label: "Ponto — Saída almoço", path: "/api/cron/work-clock?type=lunch-break", schedule: "12:00 BRT seg–sex" },
-  { label: "Ponto — Entrada tarde", path: "/api/cron/work-clock?type=clock-in-afternoon", schedule: "13:00 BRT seg–sex" },
-  { label: "Ponto — Saída", path: "/api/cron/work-clock?type=clock-out", schedule: "17:30 BRT seg–sex" },
-  { label: "Lembrete noturno", path: "/api/cron/evening-reminders", schedule: "20:00 BRT todos os dias" },
+  {
+    label: "Lembrete matinal",
+    path: "/api/cron/daily-reminders",
+    schedule: "07:00 BRT todos os dias",
+  },
+  {
+    label: "Ponto — Entrada manhã",
+    path: "/api/cron/work-clock?type=clock-in-morning",
+    schedule: "08:30 BRT seg–sex",
+  },
+  {
+    label: "Ponto — Saída almoço",
+    path: "/api/cron/work-clock?type=lunch-break",
+    schedule: "12:00 BRT seg–sex",
+  },
+  {
+    label: "Ponto — Entrada tarde",
+    path: "/api/cron/work-clock?type=clock-in-afternoon",
+    schedule: "13:00 BRT seg–sex",
+  },
+  {
+    label: "Ponto — Saída",
+    path: "/api/cron/work-clock?type=clock-out",
+    schedule: "17:30 BRT seg–sex",
+  },
+  {
+    label: "Lembrete noturno",
+    path: "/api/cron/evening-reminders",
+    schedule: "20:00 BRT todos os dias",
+  },
 ];
 
 export function ConfigClient({ webhookStatus }: { webhookStatus: WebhookStatus | null }) {
@@ -53,9 +77,14 @@ export function ConfigClient({ webhookStatus }: { webhookStatus: WebhookStatus |
       <GlassCard>
         <h3 className="mb-3 font-semibold">🤖 Webhook do Telegram</h3>
 
-        <div className="mb-3 rounded-lg p-3 text-sm space-y-1" style={{ background: "var(--color-surface)" }}>
+        <div
+          className="mb-3 rounded-lg p-3 text-sm space-y-1"
+          style={{ background: "var(--color-surface)" }}
+        >
           <div className="flex items-center gap-2">
-            <span className={`rounded-full w-2 h-2 shrink-0 ${webhookActive ? "bg-green-500" : "bg-zinc-500"}`} />
+            <span
+              className={`rounded-full w-2 h-2 shrink-0 ${webhookActive ? "bg-green-500" : "bg-zinc-500"}`}
+            />
             <span className="opacity-60">Status:</span>
             <span className="font-medium">{webhookActive ? "Registrado" : "Não registrado"}</span>
           </div>

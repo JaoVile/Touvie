@@ -7,7 +7,6 @@ import { DEFAULT_THEME } from "@/lib/themes";
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
-import { Instrument_Serif, JetBrains_Mono, Pinyon_Script } from "next/font/google";
 import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import "./globals.css";
@@ -26,32 +25,12 @@ const switzer = localFont({
 });
 
 /**
- * Instrument Serif — the display serif for headings. A high-contrast
- * editorial face standing in for the guide's (commercial) Voyage.
- */
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
-  variable: "--font-instrument-serif",
-  display: "swap",
-});
-
-/** Monospace for figures (finances, times, streaks). */
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-jetbrains",
-  display: "swap",
-});
-
-/**
  * Pinyon Script — formal copperplate, used as a personal-mark signature
- * face. Currently scoped to the hero's ghost "Touvie" wordmark.
+ * face. Self-hosted via @fontsource so it always loads, even when
+ * Google Fonts is unreachable (corporate proxy, cert revocation, etc).
  */
-const pinyonScript = Pinyon_Script({
-  subsets: ["latin"],
-  weight: "400",
+const pinyonScript = localFont({
+  src: [{ path: "./fonts/PinyonScript-Regular.woff2", weight: "400", style: "normal" }],
   variable: "--font-pinyon",
   display: "swap",
 });
@@ -124,10 +103,20 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html
       lang={locale}
       data-theme={theme}
-      className={`${switzer.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} ${pinyonScript.variable}`}
+      className={`${switzer.variable} ${pinyonScript.variable}`}
       suppressHydrationWarning
     >
       <body>
+        {/* Instrument Serif (display) + JetBrains Mono (figuras) via <link> —
+            antes vinham de next/font/google, mas o processo Node deste
+            ambiente não alcança o Google Fonts e derrubava o dev a cada
+            recompilação. O navegador baixa normal. (Self-host = TODO.) */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap"
+        />
         <CustomColorsBoot />
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider theme={theme}>{children}</ThemeProvider>

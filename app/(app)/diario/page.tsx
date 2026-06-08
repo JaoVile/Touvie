@@ -1,4 +1,3 @@
-import { Lock, NotebookPen } from "lucide-react";
 import { PageGlyphs } from "@/components/PageGlyphs";
 import { Reveal } from "@/components/Reveal";
 import { FoldCard } from "@/components/glass/FoldCard";
@@ -7,6 +6,7 @@ import { weekStartISO } from "@/lib/datetime";
 import { TRUSTED_COOKIE, verifyTrustedDevice } from "@/lib/device";
 import { DIARY_COOKIE, verifyDiaryToken } from "@/lib/pin";
 import { createClient } from "@/lib/supabase/server";
+import { Lock, NotebookPen } from "lucide-react";
 import { cookies } from "next/headers";
 import { DiaryEditor } from "./DiaryEditor";
 import { PinGate } from "./PinGate";
@@ -54,7 +54,8 @@ export default async function DiarioPage({ searchParams }: { searchParams: SP })
               <PinSetupForm />
             ) : (
               <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                Configure o PIN no <strong>notebook</strong> primeiro. O celular fica somente leitura.
+                Configure o PIN no <strong>notebook</strong> primeiro. O celular fica somente
+                leitura.
               </p>
             )}
           </FoldCard>

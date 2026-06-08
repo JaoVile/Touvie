@@ -1,8 +1,8 @@
 "use client";
 
+import { DatePicker } from "@/components/DatePicker";
 import { Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
-import { DatePicker } from "@/components/DatePicker";
 import { deleteTask, saveTask, toggleTaskDone } from "./actions";
 
 interface Task {
@@ -82,7 +82,10 @@ function TaskRow({ task }: { task: Task }) {
           onChange={(e) => start(() => toggleTaskDone(task.id, e.target.checked))}
           className="h-4 w-4 accent-[var(--color-accent)]"
         />
-        <span className={task.done ? "line-through" : ""} style={task.done ? { color: "var(--color-fg-subtle)" } : {}}>
+        <span
+          className={task.done ? "line-through" : ""}
+          style={task.done ? { color: "var(--color-fg-subtle)" } : {}}
+        >
           {task.title}
         </span>
         {task.due_date ? (

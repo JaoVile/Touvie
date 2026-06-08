@@ -1,3 +1,4 @@
+import { todayBRTISO } from "@/lib/datetime";
 import { guessCategory } from "@/lib/importers/csv";
 import { logEvent } from "@/lib/logger";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -7,7 +8,6 @@ import {
   sendMessage,
   verifyWebhookSecret,
 } from "@/lib/telegram";
-import { todayBRTISO } from "@/lib/datetime";
 import { formatBRL } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
@@ -96,17 +96,14 @@ function parseTxArgs(text: string): { amountCents: number; description: string }
   const parts = text.split(/\s+/).slice(1);
   if (parts.length < 1) return null;
   const raw = parts[0].replace(",", ".");
-  const amount = parseFloat(raw);
+  const amount = Number.parseFloat(raw);
   if (!isFinite(amount) || amount <= 0) return null;
   const amountCents = Math.round(amount * 100);
   const description = parts.slice(1).join(" ") || "Gasto avulso";
   return { amountCents, description };
 }
 
-async function resolveCategoryId(
-  userId: string,
-  description: string,
-): Promise<string | null> {
+async function resolveCategoryId(userId: string, description: string): Promise<string | null> {
   const catName = guessCategory(description);
   if (!catName) return null;
   const admin = createAdminClient();
@@ -175,9 +172,7 @@ async function handleGasto(chatId: number, text: string): Promise<string | null>
     return profile.userId;
   }
 
-  const [categoryId] = await Promise.all([
-    resolveCategoryId(profile.userId, parsed.description),
-  ]);
+  const [categoryId] = await Promise.all([resolveCategoryId(profile.userId, parsed.description)]);
 
   const admin = createAdminClient();
   const { error } = await admin.from("transactions").insert({

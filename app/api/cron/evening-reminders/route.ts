@@ -1,9 +1,10 @@
-import { addDaysISO, todayBRT, todayBRTISO, tomorrowBRTISO } from "@/lib/datetime";
-import { parseRecurrenceRule } from "@/lib/finance";
+import { todayBRT, todayBRTISO, tomorrowBRTISO } from "@/lib/datetime";
 import { logEvent } from "@/lib/logger";
+import { CRON_FALLBACK } from "@/lib/notification-defaults";
+import { renderTemplate } from "@/lib/notifications/render";
+import { EVENING_VARS, buildContext } from "@/lib/notifications/variables";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { escapeHtml, sendMessage } from "@/lib/telegram";
-import { formatBRL } from "@/lib/utils";
+import { sendMessage } from "@/lib/telegram";
 import { NextResponse } from "next/server";
 
 function authorized(req: Request): boolean {
@@ -23,8 +24,19 @@ export async function GET(req: Request) {
   const admin = createAdminClient();
   const today = todayBRTISO();
   const tomorrow = tomorrowBRTISO();
-  const tomorrowDay = Number.parseInt(tomorrow.slice(8, 10), 10);
   const weekday = todayBRT().getUTCDay();
+
+  const { data: tpl } = await admin
+    .from("notification_templates")
+    .select("content, is_active")
+    .eq("key", "cron:evening")
+    .maybeSingle();
+
+  const template =
+    tpl?.is_active === false ? null : (tpl?.content ?? CRON_FALLBACK["cron:evening"]);
+  if (!template) {
+    return NextResponse.json({ ok: true, sent: 0, reason: "template_inactive" });
+  }
 
   const { data: profiles } = await admin
     .from("profiles")
@@ -39,8 +51,12 @@ export async function GET(req: Request) {
   let firstText: string | undefined;
   for (const p of profiles) {
     if (!p.telegram_chat_id) continue;
-    const text = await buildEveningMessage(admin, p.id, today, tomorrowDay, weekday);
-    if (!text) continue;
+    const ctx = buildContext(admin, p.id, today, tomorrow, weekday);
+    const text = await renderTemplate(template, ctx, EVENING_VARS);
+    // Se o template virou só o "Boa noite!" (todas as seções dinâmicas
+    // vieram vazias), não envia ruído — exige pelo menos uma quebra de
+    // linha além do greeting.
+    if (!text || !text.includes("\n")) continue;
     if (!firstText) firstText = text;
     try {
       await sendMessage(p.telegram_chat_id, text);
@@ -60,125 +76,4 @@ export async function GET(req: Request) {
   });
 
   return NextResponse.json({ ok: true, sent });
-}
-
-async function buildEveningMessage(
-  admin: ReturnType<typeof createAdminClient>,
-  userId: string,
-  today: string,
-  tomorrowDay: number,
-  weekday: number,
-): Promise<string | null> {
-  const monthStart = `${today.slice(0, 8)}01`;
-
-  const in3Days = addDaysISO(today, 3);
-  const [txRes, recurringRes, billsRes] = await Promise.all([
-    admin
-      .from("transactions")
-      .select("amount_cents, kind")
-      .eq("user_id", userId)
-      .eq("is_recurring", false)
-      .gte("occurred_on", monthStart)
-      .lte("occurred_on", today),
-    admin
-      .from("transactions")
-      .select("amount_cents, kind, description, recurrence_rule, reminder_enabled")
-      .eq("user_id", userId)
-      .eq("is_recurring", true)
-      .eq("reminder_enabled", true),
-    admin
-      .from("bills")
-      .select("title, amount_cents, due_date")
-      .eq("user_id", userId)
-      .is("paid_at", null)
-      .gte("due_date", today)
-      .lte("due_date", in3Days)
-      .order("due_date", { ascending: true }),
-  ]);
-
-  const txs = txRes.data ?? [];
-  const recurring = recurringRes.data ?? [];
-  const upcomingBills = billsRes.data ?? [];
-
-  let income = 0;
-  let expense = 0;
-  for (const t of txs) {
-    if (t.kind === "income") income += t.amount_cents;
-    else expense += t.amount_cents;
-  }
-  const net = income - expense;
-
-  const tomorrowBills = recurring.filter((r) => {
-    const rule = parseRecurrenceRule(r.recurrence_rule);
-    return rule?.day === tomorrowDay;
-  });
-
-  const lines: string[] = [];
-  lines.push("🌙 <b>Boa noite!</b>");
-
-  if (txs.length > 0) {
-    lines.push("");
-    lines.push("💰 <b>Mês corrente</b>");
-    lines.push(`• Receitas: <code>${formatBRL(income)}</code>`);
-    lines.push(`• Despesas: <code>${formatBRL(expense)}</code>`);
-    lines.push(`• Saldo: <code>${formatBRL(net)}</code> ${net >= 0 ? "✅" : "⚠️"}`);
-  }
-
-  if (tomorrowBills.length > 0) {
-    lines.push("");
-    lines.push("📌 <b>Recorrências de amanhã</b>");
-    for (const r of tomorrowBills) {
-      const sign = r.kind === "income" ? "+" : "−";
-      const desc = r.description
-        ? escapeHtml(r.description)
-        : r.kind === "income"
-          ? "Receita"
-          : "Despesa";
-      lines.push(`• ${desc} — <code>${sign} ${formatBRL(r.amount_cents)}</code>`);
-    }
-  }
-
-  if (upcomingBills.length > 0) {
-    lines.push("");
-    lines.push("🔔 <b>Contas a vencer (próximos 3 dias)</b>");
-    for (const b of upcomingBills) {
-      const daysUntil = Math.round((new Date(b.due_date).getTime() - new Date(today).getTime()) / 86400000);
-      const when = daysUntil === 0 ? "hoje" : daysUntil === 1 ? "amanhã" : `em ${daysUntil} dias`;
-      lines.push(`• ${escapeHtml(b.title)} — <code>${formatBRL(b.amount_cents)}</code> (${when})`);
-    }
-  }
-
-  if (weekday === 0) {
-    // Weekly habit recap
-    const weekAgo = addDaysISO(today, -7);
-    const { data: weekCompletions } = await admin
-      .from("routine_completions")
-      .select("routine_id, completed_on")
-      .eq("user_id", userId)
-      .gte("completed_on", weekAgo)
-      .lte("completed_on", today);
-
-    const { data: activeHabits } = await admin
-      .from("routine_daily")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("active", true);
-
-    const habitCount = activeHabits?.length ?? 0;
-    const completionCount = weekCompletions?.length ?? 0;
-    const maxPossible = habitCount * 7;
-    const weekScore = maxPossible > 0 ? Math.min(100, Math.round((completionCount / maxPossible) * 100)) : 0;
-
-    lines.push("");
-    if (habitCount > 0) {
-      const medal = weekScore >= 80 ? "🥇" : weekScore >= 50 ? "🥈" : "🥉";
-      lines.push(`${medal} <b>Recap da semana</b>`);
-      lines.push(`• Hábitos: <code>${completionCount}/${maxPossible}</code> — <b>${weekScore}%</b> de consistência`);
-    }
-    lines.push("🔒 <b>Domingo é dia de scripting.</b> Abra o diário e escreva como se já tivesse acontecido.");
-  }
-
-  // Se só tem o "Boa noite" e nada mais, não envia
-  if (lines.length <= 1) return null;
-  return lines.join("\n");
 }

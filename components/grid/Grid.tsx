@@ -1,6 +1,6 @@
+import { Reveal } from "@/components/Reveal";
 import { cn } from "@/lib/utils";
 import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
-import { Reveal } from "@/components/Reveal";
 
 /**
  * Editorial column grid, ported from the design guide

@@ -29,7 +29,9 @@ export function DailyList({ blocks, completedToday, streaks, todayISO }: Props) 
     if (next.has(id)) next.delete(id);
     else next.add(id);
     setLocalDone(next);
-    start(async () => { await toggleCompletion(id, todayISO); });
+    start(async () => {
+      await toggleCompletion(id, todayISO);
+    });
   }
 
   if (blocks.length === 0) {
@@ -84,7 +86,10 @@ export function DailyList({ blocks, completedToday, streaks, todayISO }: Props) 
                     {b.time_slot.slice(0, 5)}
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium" style={{ textDecoration: done ? "line-through" : "none" }}>
+                    <p
+                      className="truncate text-sm font-medium"
+                      style={{ textDecoration: done ? "line-through" : "none" }}
+                    >
                       {b.emoji ? <span className="mr-1.5">{b.emoji}</span> : null}
                       {b.title}
                     </p>

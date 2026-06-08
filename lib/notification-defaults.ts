@@ -196,10 +196,59 @@ Recuperação ativa, não preguiça.
   },
 ];
 
+export const CRON_DEFAULTS: TemplateDefault[] = [
+  {
+    key: "cron:morning",
+    name: "Cron — Lembrete da manhã",
+    content: `{{greeting}}
+
+{{daily_routine}}
+
+{{weekly_blocks}}
+
+{{bills_today}}
+
+{{pending_tasks}}
+
+{{pinned_notes}}`,
+  },
+  {
+    key: "cron:evening",
+    name: "Cron — Lembrete da noite",
+    content: `{{greeting}}
+
+{{tasks_due_tomorrow}}
+
+{{upcoming_bills_3d}}
+
+{{tomorrow_recurrences}}
+
+{{weekly_recap}}
+
+{{sunday_scripting}}`,
+  },
+  {
+    key: "cron:monthly-finance",
+    name: "Cron — Fluxo financeiro mensal",
+    content: `📅 <b>{{month_label}}</b>
+
+{{month_summary}}
+
+{{tx_count}}
+
+{{top_expense_categories}}`,
+  },
+];
+
 export const ALL_DEFAULTS: TemplateDefault[] = [
   ...WORK_CLOCK_DEFAULTS,
   ...TRAINING_DEFAULTS,
+  ...CRON_DEFAULTS,
 ];
+
+export const CRON_FALLBACK: Record<string, string> = Object.fromEntries(
+  CRON_DEFAULTS.map((t) => [t.key, t.content]),
+);
 
 export const WORK_CLOCK_FALLBACK: Record<string, string> = Object.fromEntries(
   WORK_CLOCK_DEFAULTS.map((t) => [t.key.replace("work-clock:", ""), t.content]),

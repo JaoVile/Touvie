@@ -1,7 +1,7 @@
+import { readFileSync } from "node:fs";
 // Gera os PNGs do PWA a partir de public/icons/icon.svg.
 // One-off: rode com `node scripts/gen-icons.mjs` após mexer no SVG.
 import sharp from "sharp";
-import { readFileSync } from "node:fs";
 
 const svg = readFileSync("public/icons/icon.svg");
 const targets = [

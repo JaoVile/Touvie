@@ -12,7 +12,9 @@ type Params = Promise<{ id: string }>;
 export default async function NotePage({ params }: { params: Params }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const userId = user!.id;
 
   const { data: note } = await supabase
@@ -25,7 +27,11 @@ export default async function NotePage({ params }: { params: Params }) {
   if (!note) notFound();
 
   const date = new Date(note.updated_at).toLocaleDateString("pt-BR", {
-    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 
   return (
@@ -35,7 +41,11 @@ export default async function NotePage({ params }: { params: Params }) {
         title={note.title || "Nota sem título"}
         subtitle={`Editada em ${date}`}
         action={
-          <Link href="/notas" className="text-sm hover:opacity-80" style={{ color: "var(--color-accent)" }}>
+          <Link
+            href="/notas"
+            className="text-sm hover:opacity-80"
+            style={{ color: "var(--color-accent)" }}
+          >
             ← Notas
           </Link>
         }

@@ -67,7 +67,13 @@ export async function POST(req: Request) {
       })
       .eq("id", user.id);
 
-    logEvent({ userId: user.id, eventType: "api", source: "diary/unlock", status: "error", messagePreview: "PIN incorreto" });
+    logEvent({
+      userId: user.id,
+      eventType: "api",
+      source: "diary/unlock",
+      status: "error",
+      messagePreview: "PIN incorreto",
+    });
 
     const msg = locked
       ? `PIN bloqueado por ${LOCKOUT_MINUTES} min após ${MAX_ATTEMPTS} tentativas.`
@@ -76,13 +82,22 @@ export async function POST(req: Request) {
   }
 
   // Reset attempts on success
-  await admin.from("profiles").update({ pin_attempts: 0, pin_locked_until: null }).eq("id", user.id);
+  await admin
+    .from("profiles")
+    .update({ pin_attempts: 0, pin_locked_until: null })
+    .eq("id", user.id);
 
   const token = await signDiaryToken(user.id);
   const cookieStore = await cookies();
   cookieStore.set(DIARY_COOKIE, token, diaryCookieOptions());
 
-  logEvent({ userId: user.id, eventType: "api", source: "diary/unlock", status: "success", messagePreview: "Diário desbloqueado" });
+  logEvent({
+    userId: user.id,
+    eventType: "api",
+    source: "diary/unlock",
+    status: "success",
+    messagePreview: "Diário desbloqueado",
+  });
 
   return NextResponse.json({ ok: true });
 }

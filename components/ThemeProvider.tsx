@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import { DEFAULT_THEME, type ThemeId, isValidTheme } from "@/lib/themes";
+import type { ReactNode } from "react";
 
 interface ThemeProviderProps {
   theme: string | null | undefined;

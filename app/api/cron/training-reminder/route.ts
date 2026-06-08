@@ -14,7 +14,7 @@ function authorized(req: Request): boolean {
   return false;
 }
 
-const WEEKDAY_KEYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+const WEEKDAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
 export async function GET(req: Request) {
   if (!authorized(req)) {

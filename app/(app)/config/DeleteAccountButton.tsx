@@ -52,7 +52,11 @@ export function DeleteAccountButton() {
         className="w-full rounded-lg border px-3 py-1.5 text-sm"
         style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
       />
-      {error && <p className="text-xs" style={{ color: "var(--color-danger)" }}>{error}</p>}
+      {error && (
+        <p className="text-xs" style={{ color: "var(--color-danger)" }}>
+          {error}
+        </p>
+      )}
       <div className="flex gap-2">
         <button
           type="button"
@@ -65,7 +69,11 @@ export function DeleteAccountButton() {
         </button>
         <button
           type="button"
-          onClick={() => { setConfirming(false); setTyped(""); setError(""); }}
+          onClick={() => {
+            setConfirming(false);
+            setTyped("");
+            setError("");
+          }}
           className="rounded-lg border px-4 py-1.5 text-sm hover:opacity-80"
           style={{ borderColor: "var(--color-border)" }}
         >

@@ -1,13 +1,15 @@
 "use server";
 
 import { todayBRTISO } from "@/lib/datetime";
+import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
 
 async function requireUser() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error("unauthenticated");
   return { supabase, userId: user.id };
 }
@@ -126,7 +128,9 @@ export async function toggleCompletion(
     return { completed: false };
   }
 
-  await supabase.from("routine_completions").insert({ user_id: userId, routine_id: routineId, completed_on: completedOn });
+  await supabase
+    .from("routine_completions")
+    .insert({ user_id: userId, routine_id: routineId, completed_on: completedOn });
   revalidatePath("/rotina");
   revalidatePath("/");
   return { completed: true };

@@ -1,67 +1,17 @@
-import {
-  CalendarDays,
-  CheckCircle2,
-  Circle,
-  Flame,
-  ListChecks,
-  Target,
-  Trophy,
-  Wallet,
-} from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
-import { CircleText } from "@/components/CircleText";
-import { Magnetic } from "@/components/Magnetic";
-import { Marquee } from "@/components/Marquee";
-import { Parallax } from "@/components/Parallax";
-import { Reveal } from "@/components/Reveal";
-import { ScrollFade } from "@/components/ScrollFade";
-import { CardHead } from "@/components/glass/CardHead";
-import { FoldCard } from "@/components/glass/FoldCard";
 import { Col, Grid } from "@/components/grid/Grid";
-import { addDaysISO, formatDateBRT, greetingForHour, todayBRTISO } from "@/lib/datetime";
+import { addDaysISO, todayBRTISO } from "@/lib/datetime";
 import { createClient } from "@/lib/supabase/server";
-import { formatBRL } from "@/lib/utils";
-import Link from "next/link";
 import type { ReactNode } from "react";
+import { FinanceCard } from "./_dashboard/FinanceCard";
+import { GoalsCard } from "./_dashboard/GoalsCard";
+import { Hero } from "./_dashboard/Hero";
+import { RoutineCard, type TopStreak } from "./_dashboard/RoutineCard";
+import { TasksCard } from "./_dashboard/TasksCard";
+import { Ticker } from "./_dashboard/Ticker";
+import { computeStreak, scoreColor } from "./_dashboard/shared";
 
 export const dynamic = "force-dynamic";
-
-/* Faint editorial glyphs drifting behind the dashboard, each at its
-   own scroll rhythm. Tune size / position / opacity / speed here. */
-const PARALLAX_GLYPHS = [
-  { char: "✦", size: "18rem", top: "20%", left: "6%", speed: -0.18, opacity: 0.05, color: "var(--color-accent)" },
-  { char: "♪", size: "12rem", top: "54%", left: "80%", speed: -0.34, opacity: 0.05, color: "var(--color-fg)" },
-  { char: "♫", size: "15rem", top: "82%", left: "36%", speed: -0.09, opacity: 0.04, color: "var(--color-accent)" },
-] as const;
-
-/* Hero composition — a small greeting arc crowning the visible NAME
-   (not the ghost wordmark), with the "Touvie" ghost watermarked below,
-   floating just above the date row's golden hairlines. */
-const HERO_CONFIG = {
-  wordmarkFontSize: "9rem",
-  wordmarkOpacity: 0.07,
-  // Distance from the date row's bottom to the wordmark's bottom edge.
-  // Tune so "Touvie" floats just above the golden hairlines.
-  wordmarkBottom: "-0.5rem",
-  // Horizontal nudge from centre, in % of the wordmark's own width
-  // (negative = left). Stacked onto the -50% centring offset.
-  wordmarkOffsetX: "-5%",
-  wordmarkParallaxSpeed: -0.06,
-
-  arcRadius: 65,
-  arcStartOffset: 0.5,
-  arcFontSize: 12,
-  arcLetterSpacing: "0.3em",
-  // Arc is centred above the name via left:50% + translate(-50%, Y).
-  // arcOffsetX shifts it sideways, in % of the arc's own width
-  // (positive = right). arcTranslateY pushes it down toward the name
-  // (positive = overlap with the name top).
-  arcOffsetX: "28%",
-  arcTranslateY: "1.5rem",
-  arcRotate: 32,
-
-  nameSize: "text-[3.25rem] sm:text-[4.75rem]",
-} as const;
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -109,11 +59,7 @@ export default async function DashboardPage() {
       .eq("user_id", userId)
       .gte("completed_on", since90)
       .order("completed_on", { ascending: false }),
-    supabase
-      .from("profiles")
-      .select("display_name, full_name")
-      .eq("id", userId)
-      .maybeSingle(),
+    supabase.from("profiles").select("display_name, full_name").eq("id", userId).maybeSingle(),
   ]);
 
   const routine = dailyRes.data ?? [];
@@ -123,18 +69,14 @@ export default async function DashboardPage() {
   const completions = completionsRes.data ?? [];
   const profile = profileRes.data;
 
-  // Hero name: the chosen nickname wins, then full name, then the
-  // email handle as a last resort.
+  // Hero name: nickname > full name > email handle.
   const heroName =
-    profile?.display_name?.trim() ||
-    profile?.full_name?.trim() ||
-    displayName(user?.email ?? "");
+    profile?.display_name?.trim() || profile?.full_name?.trim() || displayName(user?.email ?? "");
 
   const monthIncome = txs.reduce((s, t) => (t.kind === "income" ? s + t.amount_cents : s), 0);
   const monthExpense = txs.reduce((s, t) => (t.kind === "expense" ? s + t.amount_cents : s), 0);
   const monthNet = monthIncome - monthExpense;
 
-  // Streak & completion stats
   const completedToday = new Set(
     completions.filter((c) => c.completed_on === today).map((c) => c.routine_id),
   );
@@ -152,13 +94,13 @@ export default async function DashboardPage() {
   const doneCount = routine.filter((r) => completedToday.has(r.id)).length;
   const allDone = totalHabits > 0 && doneCount === totalHabits;
 
-  const topStreaks = routine
+  const topStreaks: TopStreak[] = routine
     .map((r) => ({ title: r.title, emoji: r.emoji, streak: streaks[r.id] ?? 0 }))
     .filter((r) => r.streak > 0)
     .sort((a, b) => b.streak - a.streak)
     .slice(0, 3);
 
-  // Consistency score: completions in last 30 days / (30 × habits)
+  // Consistency: completions in last 30 days / (30 × habits)
   const since30 = addDaysISO(today, -30);
   const last30 = completions.filter((c) => c.completed_on >= since30);
   const consistencyScore =
@@ -190,475 +132,39 @@ export default async function DashboardPage() {
 
   return (
     <>
-      {/* ── Parallax depth layer — faint glyphs drifting on scroll ── */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
-      >
-        {PARALLAX_GLYPHS.map((g) => (
-          <Parallax
-            key={g.char}
-            speed={g.speed}
-            className="absolute"
-            style={{ top: g.top, left: g.left }}
-          >
-            <span
-              className="block select-none leading-none"
-              style={{ fontSize: g.size, color: g.color, opacity: g.opacity }}
-            >
-              {g.char}
-            </span>
-          </Parallax>
-        ))}
-      </div>
-
-      {/* ── Hero — recedes on scroll, handing off to the cards ── */}
-      <ScrollFade>
-        <Reveal>
-          <header className="relative mb-16 flex flex-col items-center pb-10 pt-16 text-center">
-            {/* Greeting arc + name — the arc crowns the visible name,
-                centred above. Both live in one `relative inline-block`
-                so the arc's absolute positioning is anchored to the h1's
-                box (centred via left:50%, sits via bottom:100%). */}
-            <div className="relative inline-block">
-              <CircleText
-                text={`· ${greetingForHour().toUpperCase()} ·`}
-                radius={HERO_CONFIG.arcRadius}
-                arc="top"
-                startOffset={HERO_CONFIG.arcStartOffset}
-                textAnchor="middle"
-                fontSize={HERO_CONFIG.arcFontSize}
-                letterSpacing={HERO_CONFIG.arcLetterSpacing}
-                style={{
-                  color: "var(--color-accent)",
-                  position: "absolute",
-                  bottom: "100%",
-                  left: "50%",
-                  transform: `translate(calc(-50% + ${HERO_CONFIG.arcOffsetX}), ${HERO_CONFIG.arcTranslateY}) rotate(${HERO_CONFIG.arcRotate}deg)`,
-                  pointerEvents: "none",
-                }}
-              />
-              <h1
-                className={`display relative leading-[1.05] ${HERO_CONFIG.nameSize}`}
-              >
-                <span className="display-i gradient-text-anim">{heroName}</span>
-              </h1>
-            </div>
-
-            {/* Date framed by a pair of hairlines, with the "Touvie"
-                ghost watermark floating just above the golden hairlines.
-                Parallax overwrites its child's transform, so the centring
-                lives on the outer wrapper, not the Parallax itself. */}
-            <div className="relative mt-3 flex items-center gap-3">
-              <div
-                className="pointer-events-none absolute left-1/2"
-                style={{
-                  bottom: HERO_CONFIG.wordmarkBottom,
-                  transform: `translateX(calc(-50% + ${HERO_CONFIG.wordmarkOffsetX}))`,
-                }}
-              >
-                <Parallax speed={HERO_CONFIG.wordmarkParallaxSpeed}>
-                  <span
-                    aria-hidden
-                    className="block select-none whitespace-nowrap leading-none"
-                    style={{
-                      fontFamily: "var(--font-pinyon), cursive",
-                      fontSize: HERO_CONFIG.wordmarkFontSize,
-                      color: "var(--color-accent)",
-                      opacity: HERO_CONFIG.wordmarkOpacity,
-                    }}
-                  >
-                    Touvie
-                  </span>
-                </Parallax>
-              </div>
-              <span className="h-px w-10" style={{ background: "var(--color-border)" }} />
-              <p
-                className="text-sm first-letter:uppercase"
-                style={{ color: "var(--color-fg-muted)" }}
-              >
-                {formatDateBRT(now)}
-              </p>
-              <span className="h-px w-10" style={{ background: "var(--color-border)" }} />
-            </div>
-
-            {/* Stat strip */}
-            <dl className="glass mt-10 flex w-full overflow-hidden">
-              {stats.map((s, i) => (
-                <div
-                  key={s.label}
-                  className="flex-1 px-4 py-3.5 sm:px-6"
-                  style={i > 0 ? { borderLeft: "1px solid var(--color-border)" } : undefined}
-                >
-                  <dt
-                    className="text-eyebrow font-semibold uppercase tracking-[0.13em]"
-                    style={{ color: "var(--color-fg-subtle)" }}
-                  >
-                    {s.label}
-                  </dt>
-                  <dd
-                    className="mt-1 font-mono text-lg font-semibold leading-none sm:text-xl"
-                    style={{ color: s.color }}
-                  >
-                    {s.node}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </header>
-        </Reveal>
-      </ScrollFade>
-
-      {/* ── Editorial ticker — silent rhythm between hero and cards ── */}
-      <div
-        className="mb-6 border-y py-3"
-        style={{ borderColor: "var(--color-border)" }}
-      >
-        <Marquee
-          duration={48}
-          gap="2.5rem"
-          className="eyebrow"
-          style={{ color: "var(--color-accent)", "--marquee-fade": "48px" } as React.CSSProperties}
-        >
-          {[
-            "Touvie",
-            "Rotina",
-            "Metas",
-            "Tarefas",
-            "Finanças",
-            "Hábitos",
-            "Diário",
-            "Editorial · 2026",
-          ].map((label) => (
-            <span key={label}>
-              <span style={{ opacity: 0.5 }}>✦</span>&nbsp;&nbsp;{label}
-            </span>
-          ))}
-        </Marquee>
-      </div>
-
-      {/* ── Cards — editorial 12-col grid, mirrored 7/5 asymmetry ── */}
+      <Hero heroName={heroName} stats={stats} now={now} />
+      <Ticker />
       <Grid>
-        {/* Rotina + streaks */}
         <Col span={7} spanSm={6} reveal>
-          <FoldCard index={1}>
-            <CardHead
-              icon={CalendarDays}
-              title="Rotina de hoje"
-              badge={
-                totalHabits > 0 ? (
-                  <span
-                    className="rounded-full px-2.5 py-0.5 font-mono text-[11px] font-semibold"
-                    style={{
-                      background: allDone ? "var(--color-success)" : "var(--color-card)",
-                      color: allDone ? "#fff" : "var(--color-fg-muted)",
-                      border: "1px solid var(--color-border)",
-                    }}
-                  >
-                    {doneCount}/{totalHabits}
-                  </span>
-                ) : undefined
-              }
-            />
-
-            {routine.length === 0 ? (
-              <EmptyState href="/rotina" label="Criar bloco">
-                Nenhum bloco de rotina cadastrado.
-              </EmptyState>
-            ) : (
-              <ul className="space-y-2.5">
-                {routine.slice(0, 6).map((r) => {
-                  const done = completedToday.has(r.id);
-                  const streak = streaks[r.id] ?? 0;
-                  return (
-                    <li key={r.id} className="flex items-center justify-between gap-3 text-sm">
-                      <span
-                        className="flex min-w-0 items-center gap-2"
-                        style={{ opacity: done ? 0.5 : 1 }}
-                      >
-                        {done ? (
-                          <CheckCircle2
-                            size={15}
-                            strokeWidth={1.75}
-                            style={{ color: "var(--color-success)" }}
-                          />
-                        ) : (
-                          <Circle
-                            size={15}
-                            strokeWidth={1.75}
-                            style={{ color: "var(--color-fg-subtle)" }}
-                          />
-                        )}
-                        {r.emoji ? <span>{r.emoji}</span> : null}
-                        <span className={done ? "truncate line-through" : "truncate"}>
-                          {r.title}
-                        </span>
-                      </span>
-                      <span className="flex shrink-0 items-center gap-2">
-                        {streak > 0 ? (
-                          <span
-                            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold"
-                            style={{ background: "var(--color-card)" }}
-                          >
-                            <Flame size={11} strokeWidth={2} style={{ color: "var(--color-accent)" }} />
-                            {streak}
-                          </span>
-                        ) : null}
-                        <span
-                          className="font-mono text-xs"
-                          style={{ color: "var(--color-fg-subtle)" }}
-                        >
-                          {r.time_slot.slice(0, 5)}
-                        </span>
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-
-            {totalHabits > 0 ? (
-              <div className="mt-4 border-t pt-3" style={{ borderColor: "var(--color-border)" }}>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <p
-                    className="text-eyebrow font-semibold uppercase tracking-[0.1em]"
-                    style={{ color: "var(--color-fg-subtle)" }}
-                  >
-                    Consistência · 30 dias
-                  </p>
-                  <span
-                    className="font-mono text-xs font-semibold"
-                    style={{ color: consistencyColor }}
-                  >
-                    {consistencyScore}%
-                  </span>
-                </div>
-                <div
-                  className="h-2 w-full overflow-hidden rounded-full"
-                  style={{ background: "var(--color-border)" }}
-                >
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{ width: `${consistencyScore}%`, background: consistencyColor }}
-                  />
-                </div>
-              </div>
-            ) : null}
-
-            {topStreaks.length > 0 ? (
-              <div className="mt-3.5">
-                <p
-                  className="mb-1.5 flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.1em]"
-                  style={{ color: "var(--color-fg-subtle)" }}
-                >
-                  <Trophy size={12} strokeWidth={1.75} style={{ color: "var(--color-accent)" }} />
-                  Maiores sequências
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {topStreaks.map((s) => {
-                    const badge =
-                      s.streak >= 100 ? "🥇" : s.streak >= 30 ? "🥈" : s.streak >= 7 ? "🥉" : null;
-                    return (
-                      <span
-                        key={s.title}
-                        className="rounded-full px-2.5 py-1 text-xs"
-                        style={{
-                          background: "var(--color-card)",
-                          border: "1px solid var(--color-border)",
-                        }}
-                      >
-                        {s.emoji ?? "🔥"} {s.title} ·{" "}
-                        <span className="font-mono font-semibold">{s.streak}d</span>
-                        {badge ? ` ${badge}` : ""}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-
-            <CardLink href="/rotina">Marcar hábitos</CardLink>
-          </FoldCard>
+          <RoutineCard
+            routine={routine}
+            completedToday={completedToday}
+            streaks={streaks}
+            topStreaks={topStreaks}
+            consistencyScore={consistencyScore}
+            consistencyColor={consistencyColor}
+            doneCount={doneCount}
+            totalHabits={totalHabits}
+            allDone={allDone}
+          />
         </Col>
-
-        {/* Metas */}
         <Col span={5} spanSm={3} reveal delay={80}>
-          <FoldCard variant="bookmark" index={2}>
-            <CardHead icon={Target} title="Metas ativas" />
-            {goals.length === 0 ? (
-              <div className="flex flex-col items-center pb-1 pt-2 text-center">
-                <CircleText
-                  text="FAÇA UMA META · COMECE HOJE"
-                  radius={80}
-                  arc="top"
-                  fontSize={11}
-                  letterSpacing="0.4em"
-                  style={{ color: "var(--color-accent)" }}
-                />
-                <div className="-mt-2">
-                  <EmptyState href="/metas" label="Criar meta">
-                    Nenhuma meta ativa.
-                  </EmptyState>
-                </div>
-              </div>
-            ) : (
-              <ul className="space-y-2.5 text-sm">
-                {goals.slice(0, 5).map((g) => (
-                  <li key={g.id} className="flex items-center gap-2">
-                    <span style={{ color: "var(--color-accent)" }}>→</span>
-                    <span className="truncate">{g.title}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <CardLink href="/metas">Ver todas</CardLink>
-          </FoldCard>
+          <GoalsCard goals={goals} />
         </Col>
-
-        {/* Tarefas */}
         <Col span={5} spanSm={3} reveal delay={160}>
-          <FoldCard variant="spine" index={3}>
-            <CardHead icon={ListChecks} title="Próximas tarefas" />
-            {tasks.length === 0 ? (
-              <EmptyState href="/metas" label="Criar tarefa">
-                Nenhuma tarefa pendente.
-              </EmptyState>
-            ) : (
-              <ul className="space-y-2.5 text-sm">
-                {tasks.map((t) => (
-                  <li key={t.id} className="flex items-center justify-between gap-3">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span style={{ color: "var(--color-fg-subtle)" }}>○</span>
-                      <span className="truncate">{t.title}</span>
-                    </span>
-                    {t.due_date ? (
-                      <span
-                        className="shrink-0 font-mono text-xs"
-                        style={{ color: "var(--color-fg-subtle)" }}
-                      >
-                        {t.due_date.slice(5)}
-                      </span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
-            <CardLink href="/metas">Gerenciar</CardLink>
-          </FoldCard>
+          <TasksCard tasks={tasks} />
         </Col>
-
-        {/* Finanças */}
         <Col span={7} spanSm={6} reveal delay={240}>
-          <FoldCard index={4}>
-            <CardHead icon={Wallet} title="Mês corrente" />
-            {txs.length === 0 ? (
-              <EmptyState href="/financas" label="Lançar">
-                Nenhum lançamento neste mês.
-              </EmptyState>
-            ) : (
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span style={{ color: "var(--color-fg-muted)" }}>Receitas</span>
-                  <span className="font-mono" style={{ color: "var(--color-success)" }}>
-                    {formatBRL(monthIncome)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span style={{ color: "var(--color-fg-muted)" }}>Despesas</span>
-                  <span className="font-mono" style={{ color: "var(--color-danger)" }}>
-                    {formatBRL(monthExpense)}
-                  </span>
-                </div>
-                <div
-                  className="flex justify-between border-t pt-2"
-                  style={{ borderColor: "var(--color-border)" }}
-                >
-                  <span className="font-semibold">Saldo</span>
-                  <span
-                    className="font-mono font-semibold"
-                    style={{
-                      color: monthNet >= 0 ? "var(--color-success)" : "var(--color-danger)",
-                    }}
-                  >
-                    {formatBRL(monthNet)}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-auto">
-              <CardLink href="/financas?t=graficos">Ver gráficos</CardLink>
-              <p
-                className="mt-3 border-t pt-3 text-[0.7rem] italic"
-                style={{ borderColor: "var(--color-border)", color: "var(--color-fg-subtle)" }}
-              >
-                "A maneira mais confiável de prever o futuro é criá-lo."
-              </p>
-            </div>
-          </FoldCard>
+          <FinanceCard
+            hasTransactions={txs.length > 0}
+            monthIncome={monthIncome}
+            monthExpense={monthExpense}
+            monthNet={monthNet}
+          />
         </Col>
       </Grid>
     </>
   );
-}
-
-/* ── Local presentation helpers ─────────────────────────────── */
-
-function CardLink({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <div className="mt-auto flex justify-end pt-4">
-      <Magnetic strength={0.35} radius={70}>
-        <Link
-          href={href}
-          className="group/lnk flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.1em] transition-colors"
-          style={{ color: "var(--color-accent)" }}
-        >
-          <span className="link-underline">{children}</span>
-          <span className="transition-transform group-hover/lnk:translate-x-0.5">→</span>
-        </Link>
-      </Magnetic>
-    </div>
-  );
-}
-
-function EmptyState({
-  href,
-  label,
-  children,
-}: {
-  href: string;
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-      {children}{" "}
-      <Link
-        className="link-underline font-medium"
-        href={href}
-        style={{ color: "var(--color-accent)" }}
-      >
-        {label}
-      </Link>
-    </p>
-  );
-}
-
-function computeStreak(dates: Set<string>, today: string): number {
-  let current = today;
-  let streak = 0;
-  if (!dates.has(current)) current = addDaysISO(current, -1);
-  while (dates.has(current)) {
-    streak++;
-    current = addDaysISO(current, -1);
-  }
-  return streak;
-}
-
-function scoreColor(score: number): string {
-  if (score >= 70) return "var(--color-success)";
-  if (score >= 40) return "var(--color-accent)";
-  return "var(--color-danger)";
 }
 
 function displayName(email: string): string {

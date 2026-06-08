@@ -3,15 +3,7 @@
 import { GlassCard } from "@/components/glass/GlassCard";
 import { EVENT_COLORS, EVENT_LABELS, STATUS_COLORS, fmtRelative, fmtSource } from "@/lib/log-fmt";
 import Link from "next/link";
-import {
-  Bar,
-  BarChart,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { AppLog, LogPeriod } from "./actions";
 
 const TAB_LABELS: Record<LogPeriod, string> = {

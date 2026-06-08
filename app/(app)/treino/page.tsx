@@ -1,8 +1,8 @@
-import { Dumbbell } from "lucide-react";
 import { PageGlyphs } from "@/components/PageGlyphs";
 import { Reveal } from "@/components/Reveal";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { createClient } from "@/lib/supabase/server";
+import { Dumbbell } from "lucide-react";
 import { HistoricoTab } from "./HistoricoTab";
 import { HojeTab } from "./HojeTab";
 import { PRsTab } from "./PRsTab";

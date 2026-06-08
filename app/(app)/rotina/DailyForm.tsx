@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
 import { TimePicker } from "@/components/TimePicker";
+import { useState, useTransition } from "react";
 import { EmojiPicker } from "./EmojiPicker";
 import { saveDailyBlock } from "./actions";
 
@@ -33,7 +33,10 @@ export function DailyForm({ defaultValues, onDone }: Props) {
     <form action={submit} className="space-y-3 text-sm">
       {defaultValues?.id ? <input type="hidden" name="id" value={defaultValues.id} /> : null}
       <div className="grid grid-cols-[110px_64px_1fr] gap-2">
-        <TimePicker name="time_slot" defaultValue={defaultValues?.time_slot?.slice(0, 5) ?? "07:00"} />
+        <TimePicker
+          name="time_slot"
+          defaultValue={defaultValues?.time_slot?.slice(0, 5) ?? "07:00"}
+        />
         <EmojiPicker name="emoji" defaultValue={defaultValues?.emoji ?? ""} />
         <input
           type="text"
@@ -67,8 +70,7 @@ export function DailyForm({ defaultValues, onDone }: Props) {
   );
 }
 
-const inputCls =
-  "w-full rounded-lg border px-3 py-2 outline-none transition focus:ring-2";
+const inputCls = "w-full rounded-lg border px-3 py-2 outline-none transition focus:ring-2";
 const inputStyle: React.CSSProperties = {
   background: "var(--color-card)",
   borderColor: "var(--color-border)",

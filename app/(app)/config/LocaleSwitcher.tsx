@@ -1,7 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
 import { useTranslations } from "next-intl";
+import { useTransition } from "react";
 import { updateLocale } from "./actions";
 
 const LOCALES = [

@@ -43,8 +43,8 @@ export default function Error({
           Essa tela teve um soluço
         </h1>
         <p className="max-w-sm text-sm" style={{ color: "var(--color-fg-muted)" }}>
-          Pode ter sido uma falha momentânea de conexão. Tenta de novo — o resto
-          do app continua funcionando.
+          Pode ter sido uma falha momentânea de conexão. Tenta de novo — o resto do app continua
+          funcionando.
         </p>
       </div>
 

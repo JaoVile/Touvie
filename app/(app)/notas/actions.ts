@@ -7,7 +7,9 @@ import { z } from "zod";
 
 async function requireUser() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error("unauthenticated");
   return { supabase, userId: user.id };
 }

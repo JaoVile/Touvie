@@ -30,7 +30,12 @@ interface Props {
   compact?: boolean;
 }
 
-export function TimePicker({ name, defaultValue = "", placeholder = "--:--", compact = false }: Props) {
+export function TimePicker({
+  name,
+  defaultValue = "",
+  placeholder = "--:--",
+  compact = false,
+}: Props) {
   const [value, setValue] = useState(defaultValue ? defaultValue.slice(0, 5) : "");
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -90,9 +95,17 @@ export function TimePicker({ name, defaultValue = "", placeholder = "--:--", com
         className={`flex w-full items-center justify-between gap-2 border outline-none transition focus:ring-2 ${
           compact ? "rounded px-2 py-1 text-xs" : "rounded-lg px-3 py-2 text-sm"
         }`}
-        style={{ background: "var(--color-card)", borderColor: "var(--color-border)", color: "var(--color-fg)" }}
+        style={{
+          background: "var(--color-card)",
+          borderColor: "var(--color-border)",
+          color: "var(--color-fg)",
+        }}
       >
-        <span style={value ? { fontVariantNumeric: "tabular-nums" } : { color: "var(--color-fg-subtle)" }}>
+        <span
+          style={
+            value ? { fontVariantNumeric: "tabular-nums" } : { color: "var(--color-fg-subtle)" }
+          }
+        >
           {value || placeholder}
         </span>
         <Clock size={compact ? 13 : 15} style={{ color: "var(--color-fg-subtle)" }} />
@@ -103,7 +116,10 @@ export function TimePicker({ name, defaultValue = "", placeholder = "--:--", com
             <div ref={popRef} className="picker-pop" style={{ top: pos.top, left: pos.left }}>
               <div className="flex gap-2">
                 <div>
-                  <div className="mb-1 text-center text-[11px] font-semibold uppercase" style={{ color: "var(--color-fg-subtle)" }}>
+                  <div
+                    className="mb-1 text-center text-[11px] font-semibold uppercase"
+                    style={{ color: "var(--color-fg-subtle)" }}
+                  >
                     Hora
                   </div>
                   <div ref={hourColRef} className="picker-col w-14">
@@ -121,7 +137,10 @@ export function TimePicker({ name, defaultValue = "", placeholder = "--:--", com
                   </div>
                 </div>
                 <div>
-                  <div className="mb-1 text-center text-[11px] font-semibold uppercase" style={{ color: "var(--color-fg-subtle)" }}>
+                  <div
+                    className="mb-1 text-center text-[11px] font-semibold uppercase"
+                    style={{ color: "var(--color-fg-subtle)" }}
+                  >
                     Min
                   </div>
                   <div ref={minColRef} className="picker-col w-14">
@@ -140,7 +159,10 @@ export function TimePicker({ name, defaultValue = "", placeholder = "--:--", com
                 </div>
               </div>
 
-              <div className="mt-2 flex items-center justify-between border-t pt-2" style={{ borderColor: "var(--color-border)" }}>
+              <div
+                className="mt-2 flex items-center justify-between border-t pt-2"
+                style={{ borderColor: "var(--color-border)" }}
+              >
                 <button
                   type="button"
                   onClick={() => {

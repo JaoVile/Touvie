@@ -1,7 +1,10 @@
-import { todayBRT, todayBRTISO } from "@/lib/datetime";
+import { todayBRT, todayBRTISO, tomorrowBRTISO } from "@/lib/datetime";
 import { logEvent } from "@/lib/logger";
+import { CRON_FALLBACK } from "@/lib/notification-defaults";
+import { renderTemplate } from "@/lib/notifications/render";
+import { MORNING_VARS, buildContext } from "@/lib/notifications/variables";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { escapeHtml, sendMessage } from "@/lib/telegram";
+import { sendMessage } from "@/lib/telegram";
 import { NextResponse } from "next/server";
 
 function authorized(req: Request): boolean {
@@ -9,7 +12,6 @@ function authorized(req: Request): boolean {
   if (!expected) return false;
   const auth = req.headers.get("authorization");
   if (auth === `Bearer ${expected}`) return true;
-  // Permite header customizado pra teste manual via curl
   if (req.headers.get("x-cron-secret") === expected) return true;
   return false;
 }
@@ -21,7 +23,20 @@ export async function GET(req: Request) {
 
   const admin = createAdminClient();
   const today = todayBRTISO();
-  const weekday = todayBRT().getUTCDay(); // 0=dom .. 6=sáb
+  const tomorrow = tomorrowBRTISO();
+  const weekday = todayBRT().getUTCDay();
+
+  const { data: tpl } = await admin
+    .from("notification_templates")
+    .select("content, is_active")
+    .eq("key", "cron:morning")
+    .maybeSingle();
+
+  const template =
+    tpl?.is_active === false ? null : (tpl?.content ?? CRON_FALLBACK["cron:morning"]);
+  if (!template) {
+    return NextResponse.json({ ok: true, sent: 0, reason: "template_inactive" });
+  }
 
   const { data: profiles } = await admin
     .from("profiles")
@@ -36,7 +51,8 @@ export async function GET(req: Request) {
   let firstText: string | undefined;
   for (const p of profiles) {
     if (!p.telegram_chat_id) continue;
-    const text = await buildMorningMessage(admin, p.id, today, weekday);
+    const ctx = buildContext(admin, p.id, today, tomorrow, weekday);
+    const text = await renderTemplate(template, ctx, MORNING_VARS);
     if (!text) continue;
     if (!firstText) firstText = text;
     try {
@@ -57,78 +73,4 @@ export async function GET(req: Request) {
   });
 
   return NextResponse.json({ ok: true, sent });
-}
-
-async function buildMorningMessage(
-  admin: ReturnType<typeof createAdminClient>,
-  userId: string,
-  today: string,
-  weekday: number,
-): Promise<string | null> {
-  const [dailyRes, weeklyRes, tasksRes] = await Promise.all([
-    admin
-      .from("routine_daily")
-      .select("time_slot, title, emoji")
-      .eq("user_id", userId)
-      .eq("active", true)
-      .order("time_slot"),
-    admin
-      .from("routine_weekly")
-      .select("block, title, emoji")
-      .eq("user_id", userId)
-      .eq("weekday", weekday)
-      .order("block"),
-    admin
-      .from("tasks")
-      .select("title, due_date")
-      .eq("user_id", userId)
-      .eq("done", false)
-      .lte("due_date", today)
-      .order("due_date"),
-  ]);
-
-  const daily = dailyRes.data ?? [];
-  const weekly = weeklyRes.data ?? [];
-  const overdue = tasksRes.data ?? [];
-
-  const lines: string[] = [];
-  const weekdayName = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"][
-    weekday
-  ];
-  lines.push(`☀️ <b>Bom dia!</b> Hoje é ${weekdayName}.`);
-
-  if (daily.length > 0) {
-    lines.push("");
-    lines.push("📅 <b>Rotina do dia</b>");
-    for (const r of daily.slice(0, 12)) {
-      const time = r.time_slot.slice(0, 5);
-      const emoji = r.emoji ? `${r.emoji} ` : "";
-      lines.push(`• <code>${time}</code> ${emoji}${escapeHtml(r.title)}`);
-    }
-  }
-
-  if (weekly.length > 0) {
-    lines.push("");
-    lines.push("📌 <b>Blocos de hoje</b>");
-    for (const w of weekly) {
-      const emoji = w.emoji ? `${w.emoji} ` : "";
-      lines.push(`• ${emoji}${escapeHtml(w.title)} <i>(${escapeHtml(w.block)})</i>`);
-    }
-  }
-
-  if (overdue.length > 0) {
-    lines.push("");
-    lines.push(`✅ <b>Tarefas pendentes</b> (${overdue.length})`);
-    for (const t of overdue.slice(0, 8)) {
-      const due = t.due_date && t.due_date < today ? ` <i>(venceu ${t.due_date})</i>` : "";
-      lines.push(`• ${escapeHtml(t.title)}${due}`);
-    }
-    if (overdue.length > 8) lines.push(`<i>… +${overdue.length - 8} no app</i>`);
-  }
-
-  if (daily.length === 0 && weekly.length === 0 && overdue.length === 0) {
-    return null; // nada a reportar — não envia ruído
-  }
-
-  return lines.join("\n");
 }

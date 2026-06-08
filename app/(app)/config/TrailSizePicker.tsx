@@ -41,8 +41,7 @@ export function TrailSizePicker() {
           )}
           style={{
             background: "var(--color-card)",
-            borderColor:
-              scale === o.value ? "var(--color-accent)" : "var(--color-border)",
+            borderColor: scale === o.value ? "var(--color-accent)" : "var(--color-border)",
             // @ts-expect-error ring-color custom property
             "--tw-ring-color": "var(--color-accent)",
           }}

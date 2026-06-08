@@ -1,10 +1,10 @@
-import { NotebookPen, Pin } from "lucide-react";
 import { Magnetic } from "@/components/Magnetic";
 import { PageGlyphs } from "@/components/PageGlyphs";
 import { Reveal } from "@/components/Reveal";
 import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { createClient } from "@/lib/supabase/server";
+import { NotebookPen, Pin } from "lucide-react";
 import Link from "next/link";
 import { createNote } from "./actions";
 
@@ -16,7 +16,9 @@ const STAGGER_CAP = 6;
 
 export default async function NotasPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const userId = user!.id;
 
   const { data: notes } = await supabase
@@ -84,12 +86,22 @@ export default async function NotasPage() {
 }
 
 function NoteCard(props: {
-  note: { id: string; title: string; content: string; tags: string[]; pinned: boolean; updated_at: string };
+  note: {
+    id: string;
+    title: string;
+    content: string;
+    tags: string[];
+    pinned: boolean;
+    updated_at: string;
+  };
   delay: number;
 }) {
   const { note: n, delay } = props;
   const preview = n.content.trim().slice(0, 120);
-  const date = new Date(n.updated_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  const date = new Date(n.updated_at).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+  });
 
   return (
     <Reveal delay={delay} className="h-full">
@@ -98,22 +110,35 @@ function NoteCard(props: {
           <div className="mb-1 flex items-start justify-between gap-2">
             <p className="flex min-w-0 items-center gap-1.5 truncate text-sm font-semibold">
               {n.pinned ? (
-                <Pin size={13} strokeWidth={2} className="shrink-0" style={{ color: "var(--color-accent)" }} />
+                <Pin
+                  size={13}
+                  strokeWidth={2}
+                  className="shrink-0"
+                  style={{ color: "var(--color-accent)" }}
+                />
               ) : null}
               {n.title || <span style={{ color: "var(--color-fg-muted)" }}>Sem título</span>}
             </p>
-            <span className="shrink-0 text-xs" style={{ color: "var(--color-fg-subtle)" }}>{date}</span>
+            <span className="shrink-0 text-xs" style={{ color: "var(--color-fg-subtle)" }}>
+              {date}
+            </span>
           </div>
           {preview ? (
-            <p className="text-xs leading-relaxed line-clamp-3" style={{ color: "var(--color-fg-muted)" }}>
+            <p
+              className="text-xs leading-relaxed line-clamp-3"
+              style={{ color: "var(--color-fg-muted)" }}
+            >
               {preview}
             </p>
           ) : null}
           {n.tags.length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-1">
               {n.tags.slice(0, 4).map((tag) => (
-                <span key={tag} className="rounded-full px-1.5 py-0.5 text-[10px]"
-                  style={{ background: "var(--color-border)", color: "var(--color-fg-muted)" }}>
+                <span
+                  key={tag}
+                  className="rounded-full px-1.5 py-0.5 text-[10px]"
+                  style={{ background: "var(--color-border)", color: "var(--color-fg-muted)" }}
+                >
                   #{tag}
                 </span>
               ))}

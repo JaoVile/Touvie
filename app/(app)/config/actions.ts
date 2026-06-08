@@ -4,9 +4,9 @@ import { TRUSTED_COOKIE, signTrustedDevice, trustedCookieOptions } from "@/lib/d
 import { hashPin, verifyPin } from "@/lib/pin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { deleteWebhook, getMe, sendMessage, setWebhook } from "@/lib/telegram";
 import { isValidTheme } from "@/lib/themes";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 
@@ -215,7 +215,9 @@ export async function updateLocale(locale: string): Promise<{ ok?: boolean; erro
   if (!allowed.includes(locale)) return { error: "Invalid locale" };
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { error: "unauthenticated" };
 
   await supabase.from("profiles").update({ locale }).eq("id", user.id);
@@ -237,9 +239,7 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const PW_MIN = 8;
 
 /** Update the formal name + the dashboard nickname (apelido). */
-export async function updateProfileNames(
-  fd: FormData,
-): Promise<{ error?: string; ok?: boolean }> {
+export async function updateProfileNames(fd: FormData): Promise<{ error?: string; ok?: boolean }> {
   const fullName = fd.get("full_name")?.toString().trim() ?? "";
   const displayName = fd.get("display_name")?.toString().trim() ?? "";
 

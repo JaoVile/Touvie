@@ -36,7 +36,9 @@ function periodStart(period: LogPeriod): string {
 
 export async function getLogs(period: LogPeriod): Promise<AppLog[]> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return [];
 
   const { data } = await supabase
@@ -63,20 +65,21 @@ export type NotificationTemplate = {
 
 export async function getTemplates(): Promise<NotificationTemplate[]> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data } = await supabase
-    .from("notification_templates")
-    .select("*")
-    .order("key");
+  const { data } = await supabase.from("notification_templates").select("*").order("key");
 
   return (data ?? []) as NotificationTemplate[];
 }
 
 export async function updateTemplate(id: string, content: string, name: string): Promise<void> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
   await supabase
@@ -89,7 +92,9 @@ export async function updateTemplate(id: string, content: string, name: string):
 
 export async function toggleTemplate(id: string, isActive: boolean): Promise<void> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
   await supabase
@@ -102,20 +107,20 @@ export async function toggleTemplate(id: string, isActive: boolean): Promise<voi
 
 export async function seedTemplates(): Promise<{ created: number; skipped: number }> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  const { data: existing } = await supabase
-    .from("notification_templates")
-    .select("key");
+  const { data: existing } = await supabase.from("notification_templates").select("key");
 
   const existingKeys = new Set((existing ?? []).map((r: { key: string }) => r.key));
   const toInsert = ALL_DEFAULTS.filter((t) => !existingKeys.has(t.key));
 
   if (toInsert.length > 0) {
-    await supabase.from("notification_templates").insert(
-      toInsert.map((t) => ({ key: t.key, name: t.name, content: t.content })),
-    );
+    await supabase
+      .from("notification_templates")
+      .insert(toInsert.map((t) => ({ key: t.key, name: t.name, content: t.content })));
   }
 
   revalidatePath("/notificacoes");
@@ -145,7 +150,9 @@ export async function getWebhookStatus(): Promise<WebhookStatus | null> {
 
 export async function registerWebhook(): Promise<{ ok: boolean; url: string; error?: string }> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
   const appUrl =
@@ -163,7 +170,9 @@ export async function registerWebhook(): Promise<{ ok: boolean; url: string; err
 
 export async function unregisterWebhook(): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
   try {

@@ -12,35 +12,162 @@ export type ParsedTx = {
 
 const KEYWORD_MAP: Array<{ words: string[]; cat: string }> = [
   {
-    words: ["supermercado", "mercado", "atacadao", "carrefour", "pao de acucar", "assai", "hortifruti", "sacolao", "feira"],
+    words: [
+      "supermercado",
+      "mercado",
+      "atacadao",
+      "carrefour",
+      "pao de acucar",
+      "assai",
+      "hortifruti",
+      "sacolao",
+      "feira",
+    ],
     cat: "Mercado",
   },
   {
-    words: ["ifood", "rappi", "uber eats", "ubereats", "james", "restaurante", "lanchonete", "padaria", "pizzaria", "sushi", "mcdonald", "mc donald", "burger", "subway", "kfc", "bob's", "bobs", "giraffas", "outback", "churrascaria", "espetinho", "porcao", "acai"],
+    words: [
+      "ifood",
+      "rappi",
+      "uber eats",
+      "ubereats",
+      "james",
+      "restaurante",
+      "lanchonete",
+      "padaria",
+      "pizzaria",
+      "sushi",
+      "mcdonald",
+      "mc donald",
+      "burger",
+      "subway",
+      "kfc",
+      "bob's",
+      "bobs",
+      "giraffas",
+      "outback",
+      "churrascaria",
+      "espetinho",
+      "porcao",
+      "acai",
+    ],
     cat: "Alimentação",
   },
   {
-    words: ["uber", "99pop", "99taxi", "cabify", "posto ", "gasolina", "combustivel", "estacionamento", "metro", "passagem", "latam", "gol ", "azul "],
+    words: [
+      "uber",
+      "99pop",
+      "99taxi",
+      "cabify",
+      "posto ",
+      "gasolina",
+      "combustivel",
+      "estacionamento",
+      "metro",
+      "passagem",
+      "latam",
+      "gol ",
+      "azul ",
+    ],
     cat: "Transporte",
   },
   {
-    words: ["netflix", "spotify", "disney", "amazon prime", "hbo", "paramount", "youtube premium", "apple one", "microsoft 365", "google one", "dropbox", "adobe", "canva", "notion", "chatgpt", "openai", "github", "vercel", "cursor"],
+    words: [
+      "netflix",
+      "spotify",
+      "disney",
+      "amazon prime",
+      "hbo",
+      "paramount",
+      "youtube premium",
+      "apple one",
+      "microsoft 365",
+      "google one",
+      "dropbox",
+      "adobe",
+      "canva",
+      "notion",
+      "chatgpt",
+      "openai",
+      "github",
+      "vercel",
+      "cursor",
+    ],
     cat: "Assinaturas",
   },
   {
-    words: ["aluguel", "condominio", "iptu", "enel", "cpfl", "cemig", "coelba", "sabesp", "copasa", "internet", "claro", "vivo", "tim ", " oi ", "net "],
+    words: [
+      "aluguel",
+      "condominio",
+      "iptu",
+      "enel",
+      "cpfl",
+      "cemig",
+      "coelba",
+      "sabesp",
+      "copasa",
+      "internet",
+      "claro",
+      "vivo",
+      "tim ",
+      " oi ",
+      "net ",
+    ],
     cat: "Moradia",
   },
   {
-    words: ["farmacia", "drogasil", "droga raia", "ultrafarma", "panvel", "hospital", "clinica", "medico", "dentista", "academia", "smartfit", "biolab", "fleury", "laboratorio", "unimed", "amil", "plano de saude"],
+    words: [
+      "farmacia",
+      "drogasil",
+      "droga raia",
+      "ultrafarma",
+      "panvel",
+      "hospital",
+      "clinica",
+      "medico",
+      "dentista",
+      "academia",
+      "smartfit",
+      "biolab",
+      "fleury",
+      "laboratorio",
+      "unimed",
+      "amil",
+      "plano de saude",
+    ],
     cat: "Saúde",
   },
   {
-    words: ["cinema", "teatro", "show ", "clube", "steam", "playstation", "xbox", "nintendo", "ingresso", "sympla", "eventbrite", "balada", "parque"],
+    words: [
+      "cinema",
+      "teatro",
+      "show ",
+      "clube",
+      "steam",
+      "playstation",
+      "xbox",
+      "nintendo",
+      "ingresso",
+      "sympla",
+      "eventbrite",
+      "balada",
+      "parque",
+    ],
     cat: "Lazer",
   },
   {
-    words: ["escola", "faculdade", "curso", "udemy", "alura", "coursera", "duolingo", "hotmart", "livraria", "amazon kindle"],
+    words: [
+      "escola",
+      "faculdade",
+      "curso",
+      "udemy",
+      "alura",
+      "coursera",
+      "duolingo",
+      "hotmart",
+      "livraria",
+      "amazon kindle",
+    ],
     cat: "Educação",
   },
 ];
@@ -58,7 +185,7 @@ export function guessCategory(description: string): string | null {
 function parseBRL(raw: string): number {
   // "1.234,56" → 123456  |  "50,90" → 5090  |  "-50,90" → -5090
   const clean = raw.trim().replace(/\./g, "").replace(",", ".");
-  return Math.round(parseFloat(clean) * 100);
+  return Math.round(Number.parseFloat(clean) * 100);
 }
 
 function splitCsv(line: string): string[] {
@@ -129,8 +256,7 @@ export function parseNubank(text: string): ParsedTx[] {
 // ─── Mercado Pago ──────────────────────────────────────────────────
 // Format: Data;Descrição;Valor;Tipo;...  (positive = income, negative = expense)
 
-const stripDiacritics = (s: string) =>
-  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const stripDiacritics = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
 export function parseMercadoPago(text: string): ParsedTx[] {
   const lines = text.replace(/\r/g, "").split("\n").filter(Boolean);
@@ -156,8 +282,12 @@ export function parseMercadoPago(text: string): ParsedTx[] {
   if (headerIdx < 0) return [];
 
   const dateIdx = header.findIndex((h) => h.includes("data") || h.includes("date"));
-  const descIdx = header.findIndex((h) => h.includes("descri") || h.includes("detalhe") || h.includes("detail"));
-  const valIdx  = header.findIndex((h) => h.includes("valor") || h.includes("value") || h.includes("quantia"));
+  const descIdx = header.findIndex(
+    (h) => h.includes("descri") || h.includes("detalhe") || h.includes("detail"),
+  );
+  const valIdx = header.findIndex(
+    (h) => h.includes("valor") || h.includes("value") || h.includes("quantia"),
+  );
 
   if (dateIdx < 0 || valIdx < 0) return [];
 
@@ -200,7 +330,10 @@ export function parseMercadoPago(text: string): ParsedTx[] {
 
 // ─── Auto-detect ───────────────────────────────────────────────────
 
-export function detectAndParse(text: string): { source: "nubank" | "mercadopago" | "unknown"; rows: ParsedTx[] } {
+export function detectAndParse(text: string): {
+  source: "nubank" | "mercadopago" | "unknown";
+  rows: ParsedTx[];
+} {
   const clean = text.replace(/^﻿/, ""); // strip UTF-8 BOM
   const lines = clean.split("\n").filter(Boolean);
   const firstLine = lines[0]?.toUpperCase() ?? "";

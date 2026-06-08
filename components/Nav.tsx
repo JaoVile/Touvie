@@ -14,26 +14,26 @@ import {
   Target,
   Wallet,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
 
 export function Nav() {
   const pathname = usePathname();
   const t = useTranslations("nav");
 
   const LINKS = [
-    { href: "/",             label: t("today"),         Icon: House },
-    { href: "/rotina",       label: t("routine"),       Icon: CalendarDays },
-    { href: "/metas",        label: t("goals"),         Icon: Target },
-    { href: "/diario",       label: t("diary"),         Icon: Lock },
-    { href: "/financas",     label: t("finances"),      Icon: Wallet },
-    { href: "/treino",       label: t("training"),      Icon: Dumbbell },
-    { href: "/dieta",        label: t("diet"),          Icon: Salad },
-    { href: "/notas",        label: t("notes"),         Icon: StickyNote },
-    { href: "/busca",        label: t("search"),        Icon: Search },
+    { href: "/", label: t("today"), Icon: House },
+    { href: "/rotina", label: t("routine"), Icon: CalendarDays },
+    { href: "/metas", label: t("goals"), Icon: Target },
+    { href: "/diario", label: t("diary"), Icon: Lock },
+    { href: "/financas", label: t("finances"), Icon: Wallet },
+    { href: "/treino", label: t("training"), Icon: Dumbbell },
+    { href: "/dieta", label: t("diet"), Icon: Salad },
+    { href: "/notas", label: t("notes"), Icon: StickyNote },
+    { href: "/busca", label: t("search"), Icon: Search },
     { href: "/notificacoes", label: t("notifications"), Icon: Bell },
-    { href: "/config",       label: t("config"),        Icon: Settings },
+    { href: "/config", label: t("config"), Icon: Settings },
   ] as const;
 
   return (
@@ -48,8 +48,7 @@ export function Nav() {
     >
       <ul className="flex w-full items-stretch gap-0.5 px-1 py-1">
         {LINKS.map((link) => {
-          const active =
-            link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+          const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
           return (
             <li key={link.href} className="flex flex-1">
               <Link
@@ -58,9 +57,7 @@ export function Nav() {
                   "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1.5 text-[10px] font-medium transition-all duration-200 ease-out",
                   "sm:flex-row sm:gap-1.5 sm:px-2 sm:py-2 sm:text-[11px]",
                   "hover:-translate-y-0.5",
-                  active
-                    ? "gradient-brand text-white shadow"
-                    : "opacity-60 hover:opacity-100",
+                  active ? "gradient-brand text-white shadow" : "opacity-60 hover:opacity-100",
                 )}
               >
                 <link.Icon size={17} strokeWidth={1.75} className="shrink-0" />

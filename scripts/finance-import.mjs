@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 // Importa extratos REAIS para o Touvie (Supabase) via service role.
 // IDEMPOTENTE — dedup por external_ref (índice único user_id+external_ref).
 //
@@ -13,7 +14,6 @@
 //
 // Uso: node scripts/finance-import.mjs <nubank.csv> <mercadopago.csv>
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync } from "node:fs";
 
 function loadEnv(path) {
   const out = {};
@@ -21,7 +21,8 @@ function loadEnv(path) {
     const m = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)\s*$/);
     if (!m) continue;
     let v = m[2];
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))
+      v = v.slice(1, -1);
     out[m[1]] = v;
   }
   return out;
@@ -115,7 +116,12 @@ function parseMercadoPago(text) {
 
 // ─── conta por nome (cria se faltar) ────────────────────────────────
 async function accountId(uid, name, kind) {
-  const { data } = await db.from("finance_accounts").select("id").eq("user_id", uid).ilike("name", name).maybeSingle();
+  const { data } = await db
+    .from("finance_accounts")
+    .select("id")
+    .eq("user_id", uid)
+    .ilike("name", name)
+    .maybeSingle();
   if (data?.id) return data.id;
   const { data: created } = await db
     .from("finance_accounts")
@@ -138,7 +144,8 @@ async function importInto(uid, rows, accId, cats) {
   const catId = (name, kind) => cats.find((c) => c.name === name && c.kind === kind)?.id ?? null;
 
   const payload = fresh.map((r) => {
-    const catName = r.kind === "income" ? guessIncomeCat(r.description) : guessExpenseCat(r.description);
+    const catName =
+      r.kind === "income" ? guessIncomeCat(r.description) : guessExpenseCat(r.description);
     return {
       user_id: uid,
       account_id: accId,

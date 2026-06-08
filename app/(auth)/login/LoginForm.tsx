@@ -66,7 +66,10 @@ export function LoginForm({ next, initialError }: { next?: string; initialError?
         </span>
       </label>
       {error ? (
-        <p className="rounded-md border px-3 py-2 text-sm" style={{ borderColor: "var(--color-danger)", color: "var(--color-danger)" }}>
+        <p
+          className="rounded-md border px-3 py-2 text-sm"
+          style={{ borderColor: "var(--color-danger)", color: "var(--color-danger)" }}
+        >
           {error}
         </p>
       ) : null}

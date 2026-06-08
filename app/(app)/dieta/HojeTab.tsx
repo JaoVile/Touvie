@@ -15,10 +15,10 @@ import {
   Coffee,
   Croissant,
   Dumbbell,
-  type LucideIcon,
   GlassWater,
-  UtensilsCrossed,
+  type LucideIcon,
   Utensils,
+  UtensilsCrossed,
 } from "lucide-react";
 import Link from "next/link";
 import { MacrosBar } from "./MacrosBar";

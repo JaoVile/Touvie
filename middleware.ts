@@ -3,7 +3,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 import { type NextRequest, NextResponse } from "next/server";
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "DELETE", "PATCH"]);
-const PUBLIC_ROUTES = ["/login", "/auth/callback"];
+const PUBLIC_ROUTES = ["/login", "/auth/callback", "/conceito"];
 const SYSTEM_PREFIXES = ["/api/cron/", "/api/telegram/"];
 // Auth-only flows that may be invoked from untrusted devices (e.g. PIN gate on celular)
 const TRUST_BYPASS_PREFIXES = ["/api/diary/"];
@@ -41,11 +41,7 @@ export async function middleware(request: NextRequest) {
 
   // Trusted-device guard — production only. In local dev the notebook
   // is implicitly trusted, so Server Actions aren't blocked by 403.
-  if (
-    process.env.NODE_ENV === "production" &&
-    user &&
-    MUTATING_METHODS.has(request.method)
-  ) {
+  if (process.env.NODE_ENV === "production" && user && MUTATING_METHODS.has(request.method)) {
     const trustBypass = TRUST_BYPASS_PREFIXES.some((p) => pathname.startsWith(p));
     if (!trustBypass) {
       const cookie = request.cookies.get(TRUSTED_COOKIE)?.value;

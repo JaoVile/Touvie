@@ -59,9 +59,7 @@ export default function GlobalError({
           Recarregar
         </button>
         {error.digest ? (
-          <p style={{ fontSize: "0.7rem", opacity: 0.45, margin: 0 }}>
-            Código: {error.digest}
-          </p>
+          <p style={{ fontSize: "0.7rem", opacity: 0.45, margin: 0 }}>Código: {error.digest}</p>
         ) : null}
       </body>
     </html>

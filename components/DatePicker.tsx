@@ -14,8 +14,18 @@ import { createPortal } from "react-dom";
 
 const WEEKDAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
 const MONTHS = [
-  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
-  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
 ];
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -41,7 +51,12 @@ interface Props {
   compact?: boolean;
 }
 
-export function DatePicker({ name, defaultValue = "", placeholder = "dd/mm/aaaa", compact = false }: Props) {
+export function DatePicker({
+  name,
+  defaultValue = "",
+  placeholder = "dd/mm/aaaa",
+  compact = false,
+}: Props) {
   const [value, setValue] = useState(defaultValue);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -123,7 +138,11 @@ export function DatePicker({ name, defaultValue = "", placeholder = "dd/mm/aaaa"
         className={`flex w-full items-center justify-between gap-2 border outline-none transition focus:ring-2 ${
           compact ? "rounded px-2 py-1 text-xs" : "rounded-lg px-3 py-2 text-sm"
         }`}
-        style={{ background: "var(--color-card)", borderColor: "var(--color-border)", color: "var(--color-fg)" }}
+        style={{
+          background: "var(--color-card)",
+          borderColor: "var(--color-border)",
+          color: "var(--color-fg)",
+        }}
       >
         <span style={value ? undefined : { color: "var(--color-fg-subtle)" }}>
           {displayBR(value) || placeholder}
@@ -133,16 +152,30 @@ export function DatePicker({ name, defaultValue = "", placeholder = "dd/mm/aaaa"
 
       {open && pos
         ? createPortal(
-            <div ref={popRef} className="picker-pop" style={{ top: pos.top, left: pos.left, width: "16.5rem" }}>
+            <div
+              ref={popRef}
+              className="picker-pop"
+              style={{ top: pos.top, left: pos.left, width: "16.5rem" }}
+            >
               <div className="mb-2 flex items-center justify-between">
                 <span className="font-semibold" style={{ color: "var(--color-fg)" }}>
                   {MONTHS[view.m]} <span style={{ color: "var(--color-fg-subtle)" }}>{view.y}</span>
                 </span>
                 <div className="flex gap-1">
-                  <button type="button" onClick={() => shift(-1)} className="picker-nav" aria-label="Mês anterior">
+                  <button
+                    type="button"
+                    onClick={() => shift(-1)}
+                    className="picker-nav"
+                    aria-label="Mês anterior"
+                  >
                     <ChevronLeft size={16} />
                   </button>
-                  <button type="button" onClick={() => shift(1)} className="picker-nav" aria-label="Próximo mês">
+                  <button
+                    type="button"
+                    onClick={() => shift(1)}
+                    className="picker-nav"
+                    aria-label="Próximo mês"
+                  >
                     <ChevronRight size={16} />
                   </button>
                 </div>
@@ -179,7 +212,10 @@ export function DatePicker({ name, defaultValue = "", placeholder = "dd/mm/aaaa"
                 )}
               </div>
 
-              <div className="mt-2 flex items-center justify-between border-t pt-2" style={{ borderColor: "var(--color-border)" }}>
+              <div
+                className="mt-2 flex items-center justify-between border-t pt-2"
+                style={{ borderColor: "var(--color-border)" }}
+              >
                 <button
                   type="button"
                   onClick={() => {

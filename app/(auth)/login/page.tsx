@@ -10,7 +10,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
     <main className="flex min-h-screen items-center justify-center px-4 py-12">
       <GlassCard className="w-full max-w-md p-8">
         <div className="mb-6 text-center">
-          {/* Spinning seal — ✨ sits centered inside the slow rotation. */}
+          {/* Spinning seal — Pinyon "T" monogram (the Touvie wordmark
+             distilled) sits centred inside the slow rotation. */}
           <div className="relative mx-auto mb-2 inline-flex">
             <CircleText
               text="· EM ALGUM LUGAR · NO TOUVIE · "
@@ -23,9 +24,20 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
             />
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 flex items-center justify-center text-3xl"
+              className="pointer-events-none absolute inset-0 flex select-none items-center justify-center leading-none gradient-text-anim"
+              style={{
+                fontFamily: "var(--font-pinyon), cursive",
+                fontSize: "3.75rem",
+                // Pinyon's "T" leans right and has a big bottom-left
+                // swash; bounding-box centering puts the visual mass
+                // right of centre. Nudge LEFT to compensate and DOWN so
+                // the crossbar lines up with the seal centre.
+                transform: "rotate(-6deg) translate(-1.1rem, 0.5rem)",
+                filter:
+                  "drop-shadow(0 1px 0 rgba(0,0,0,0.22)) drop-shadow(0 0 14px var(--color-accent))",
+              }}
             >
-              ✨
+              T
             </span>
           </div>
           <h1 className="text-2xl font-bold gradient-text">Rotina</h1>

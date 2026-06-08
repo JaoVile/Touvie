@@ -36,7 +36,11 @@ export function GradientHeader({
   action,
 }: GradientHeaderProps) {
   const chip = Icon ? (
-    <Icon size={CONFIG.iconPx} strokeWidth={CONFIG.iconStroke} style={{ color: "var(--color-accent)" }} />
+    <Icon
+      size={CONFIG.iconPx}
+      strokeWidth={CONFIG.iconStroke}
+      style={{ color: "var(--color-accent)" }}
+    />
   ) : emoji ? (
     <span className="text-xl">{emoji}</span>
   ) : null;

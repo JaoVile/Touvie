@@ -1,5 +1,3 @@
-import { CalendarDays, CalendarPlus, CalendarRange, LayoutList, Sun, type LucideIcon } from "lucide-react";
-import Link from "next/link";
 import { PageGlyphs } from "@/components/PageGlyphs";
 import { Reveal } from "@/components/Reveal";
 import { CardHead } from "@/components/glass/CardHead";
@@ -7,6 +5,15 @@ import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { addDaysISO, todayBRTISO } from "@/lib/datetime";
 import { createClient } from "@/lib/supabase/server";
+import {
+  CalendarDays,
+  CalendarPlus,
+  CalendarRange,
+  LayoutList,
+  type LucideIcon,
+  Sun,
+} from "lucide-react";
+import Link from "next/link";
 import { DailyForm } from "./DailyForm";
 import { DailyList } from "./DailyList";
 import { WeeklyGrid } from "./WeeklyGrid";
@@ -18,7 +25,9 @@ type SearchParams = Promise<{ tab?: "diaria" | "semanal" }>;
 export default async function RotinaPage({ searchParams }: { searchParams: SearchParams }) {
   const { tab = "diaria" } = await searchParams;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const userId = user!.id;
   const today = todayBRTISO();
   const since90 = addDaysISO(today, -90);
@@ -72,9 +81,17 @@ export default async function RotinaPage({ searchParams }: { searchParams: Searc
         />
       </Reveal>
 
-      <div className="mb-6 flex gap-1 overflow-x-auto border-b" style={{ borderColor: "var(--color-border)" }}>
+      <div
+        className="mb-6 flex gap-1 overflow-x-auto border-b"
+        style={{ borderColor: "var(--color-border)" }}
+      >
         <TabLink href="/rotina?tab=diaria" active={tab === "diaria"} label="Diária" icon={Sun} />
-        <TabLink href="/rotina?tab=semanal" active={tab === "semanal"} label="Semanal" icon={CalendarRange} />
+        <TabLink
+          href="/rotina?tab=semanal"
+          active={tab === "semanal"}
+          label="Semanal"
+          icon={CalendarRange}
+        />
       </div>
 
       {tab === "diaria" ? (

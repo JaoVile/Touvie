@@ -1,8 +1,8 @@
 "use client";
 
+import { DatePicker } from "@/components/DatePicker";
 import { Check, Pencil, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
-import { DatePicker } from "@/components/DatePicker";
 import { deleteGoal, saveGoal, setGoalStatus } from "./actions";
 
 interface Goal {
@@ -166,7 +166,10 @@ function GoalRow({
   );
 }
 
-function GoalForm({ defaultValues, onDone }: { defaultValues?: Partial<Goal>; onDone: () => void }) {
+function GoalForm({
+  defaultValues,
+  onDone,
+}: { defaultValues?: Partial<Goal>; onDone: () => void }) {
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string>();
   function submit(fd: FormData) {

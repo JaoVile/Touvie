@@ -3,7 +3,5 @@
   "framework": "nextjs",
   "buildCommand": "pnpm run build",
   "installCommand": "pnpm install",
-  "crons": [
-    { "path": "/api/cron/regenerate-bills", "schedule": "0 9 28 * *" }
-  ]
+  "crons": [{ "path": "/api/cron/regenerate-bills", "schedule": "0 9 28 * *" }]
 }

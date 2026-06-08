@@ -1,10 +1,10 @@
 "use server";
 
+import { TRUSTED_COOKIE, signTrustedDevice, trustedCookieOptions } from "@/lib/device";
+import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { TRUSTED_COOKIE, signTrustedDevice, trustedCookieOptions } from "@/lib/device";
-import { createClient } from "@/lib/supabase/server";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),

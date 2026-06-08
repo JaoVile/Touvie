@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev -p 3007",
     "build": "next build",
     "start": "next start",
     "lint": "biome check .",
@@ -11,6 +11,7 @@
     "check": "biome check --write ."
   },
   "dependencies": {
+    "@fontsource/pinyon-script": "^5.2.8",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.107.0",
     "bcryptjs": "^2.4.3",

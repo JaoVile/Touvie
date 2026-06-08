@@ -1,6 +1,6 @@
 "use client";
 
-import { Ruler, Salad, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { type LucideIcon, Ruler, Salad, UtensilsCrossed } from "lucide-react";
 import Link from "next/link";
 
 export type DietTab = "hoje" | "alimentos" | "medidas";

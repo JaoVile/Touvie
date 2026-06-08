@@ -7,12 +7,42 @@ import { createPortal } from "react-dom";
 /* A small, curated set for routine blocks — workout, study, work, meals,
    rest, chores, leisure. Tune the list here. */
 const EMOJIS = [
-  "🏃", "🏋️", "🧘", "🚴", "⚽", "🏊",
-  "📚", "✏️", "💻", "💼", "📝", "🧠",
-  "🍳", "🍽️", "☕", "🥗", "💊", "💧",
-  "😴", "🚿", "🧹", "🛒", "🐕", "🌱",
-  "🎸", "🎮", "🎨", "🎧", "📺", "✈️",
-  "🙏", "❤️", "🔥", "⭐", "💪", "✨",
+  "🏃",
+  "🏋️",
+  "🧘",
+  "🚴",
+  "⚽",
+  "🏊",
+  "📚",
+  "✏️",
+  "💻",
+  "💼",
+  "📝",
+  "🧠",
+  "🍳",
+  "🍽️",
+  "☕",
+  "🥗",
+  "💊",
+  "💧",
+  "😴",
+  "🚿",
+  "🧹",
+  "🛒",
+  "🐕",
+  "🌱",
+  "🎸",
+  "🎮",
+  "🎨",
+  "🎧",
+  "📺",
+  "✈️",
+  "🙏",
+  "❤️",
+  "🔥",
+  "⭐",
+  "💪",
+  "✨",
 ];
 
 interface Props {
@@ -75,7 +105,11 @@ export function EmojiPicker({ name, defaultValue = "", compact = false }: Props)
         className={`flex w-full items-center justify-between gap-1 border outline-none transition focus:ring-2 ${
           compact ? "rounded px-2 py-1" : "rounded-lg px-3 py-2"
         }`}
-        style={{ background: "var(--color-card)", borderColor: "var(--color-border)", color: "var(--color-fg)" }}
+        style={{
+          background: "var(--color-card)",
+          borderColor: "var(--color-border)",
+          color: "var(--color-fg)",
+        }}
       >
         {value ? (
           <span className="text-base leading-none">{value}</span>

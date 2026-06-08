@@ -122,9 +122,7 @@ function EmailForm({ email }: { email: string }) {
       />
       <Feedback
         error={error}
-        success={
-          success ? "✓ Confirme o novo email — enviamos um link de verificação" : undefined
-        }
+        success={success ? "✓ Confirme o novo email — enviamos um link de verificação" : undefined}
       />
       <SubmitButton pending={pending}>Alterar email</SubmitButton>
     </form>

@@ -1,9 +1,9 @@
-import { Salad } from "lucide-react";
 import { PageGlyphs } from "@/components/PageGlyphs";
 import { Reveal } from "@/components/Reveal";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { todayBRTISO } from "@/lib/datetime";
 import { createClient } from "@/lib/supabase/server";
+import { Salad } from "lucide-react";
 import { AlimentosTab } from "./AlimentosTab";
 import { HojeTab } from "./HojeTab";
 import { MedidasTab } from "./MedidasTab";

@@ -74,6 +74,14 @@
   --dur-slow: 0.9s; /* entrance reveals */
 }
 
+/* Instrument Serif (display) e JetBrains Mono (mono) agora chegam via <link>
+   no <head> (browser-side) — ver app/layout.tsx. Aqui apontamos os tokens que
+   o @theme referencia (--font-serif / --font-mono) para os nomes reais. */
+:root {
+  --font-instrument-serif: "Instrument Serif";
+  --font-jetbrains: "JetBrains Mono";
+}
+
 html,
 body {
   height: 100%;
