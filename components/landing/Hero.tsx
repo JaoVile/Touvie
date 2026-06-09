@@ -114,12 +114,13 @@ export function Hero() {
       <Reveal delay={620} className="pb-10">
         <Marquee
           duration={36}
+          repeat={3}
           className="eyebrow"
           style={
             {
               color: "var(--color-fg-subtle)",
               opacity: 0.55,
-              "--marquee-fade": "12rem",
+              "--marquee-fade": "clamp(4rem, 18vw, 22rem)",
             } as CSSProperties
           }
         >

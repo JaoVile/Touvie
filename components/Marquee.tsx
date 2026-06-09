@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 /**
@@ -10,6 +11,9 @@ import type { CSSProperties, ReactNode } from "react";
  *   - duration       seconds for one full loop (lower = faster)
  *   - direction      "left" (default) or "right"
  *   - gap            spacing between repeated items (CSS length)
+ *   - repeat         times to repeat children inside each group — bump it so a
+ *                    short phrase still fills a wide viewport (else the loop
+ *                    seam and the duplicated copy read as a glitch)
  *   - pauseOnHover   whether hovering halts the scroll
  *   - className      typically used to set text size / color
  */
@@ -18,6 +22,7 @@ export interface MarqueeProps {
   duration?: number;
   direction?: "left" | "right";
   gap?: string;
+  repeat?: number;
   pauseOnHover?: boolean;
   className?: string;
   style?: CSSProperties;
@@ -28,10 +33,15 @@ export function Marquee({
   duration = 40,
   direction = "left",
   gap = "3rem",
+  repeat = 1,
   pauseOnHover = true,
   className,
   style,
 }: MarqueeProps) {
+  const content =
+    repeat > 1
+      ? Array.from({ length: repeat }, (_, i) => <Fragment key={i}>{children}</Fragment>)
+      : children;
   return (
     <div
       className={`marquee ${pauseOnHover ? "marquee--pauseable" : ""} ${className ?? ""}`.trim()}
@@ -46,11 +56,11 @@ export function Marquee({
     >
       <div className="marquee__track">
         <div className="marquee__group" aria-hidden={false}>
-          {children}
+          {content}
         </div>
         {/* Duplicate hidden from assistive tech — purely visual loop. */}
         <div className="marquee__group" aria-hidden="true">
-          {children}
+          {content}
         </div>
       </div>
     </div>

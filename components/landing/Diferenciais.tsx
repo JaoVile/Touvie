@@ -1,4 +1,3 @@
-import { Parallax } from "@/components/Parallax";
 import { Reveal } from "@/components/Reveal";
 import { type LucideIcon, Music4, Palette, Send, ShieldCheck } from "lucide-react";
 import { SectionHeading } from "./SectionHeading";
@@ -43,7 +42,7 @@ export function Diferenciais() {
   return (
     <section id="diferenciais" className="mx-auto w-full max-w-6xl px-6 py-24 sm:py-28">
       <SectionHeading
-        index="03"
+        index="04"
         eyebrow="O diferencial"
         title={
           <>
@@ -73,25 +72,31 @@ export function Diferenciais() {
                 </p>
               </Reveal>
               <Reveal delay={120} className={flip ? "sm:order-1" : ""}>
-                <Parallax speed={-0.06}>
-                  <div className="glass flex min-h-[14rem] flex-col items-center justify-center gap-4 p-8 text-center">
-                    <span
-                      className="grid h-16 w-16 place-items-center rounded-2xl"
-                      style={{
-                        background: "color-mix(in srgb, var(--color-accent) 12%, var(--color-card))",
-                        border: "1px solid var(--color-border)",
-                      }}
-                    >
-                      <Icon size={28} strokeWidth={1.5} style={{ color: "var(--color-accent)" }} />
-                    </span>
-                    <p
-                      className="font-mono text-[11px] uppercase tracking-[0.14em]"
-                      style={{ color: "var(--color-fg-subtle)" }}
-                    >
-                      {it.note}
-                    </p>
-                  </div>
-                </Parallax>
+                <div className="glass relative flex min-h-[14rem] flex-col items-center justify-center gap-4 overflow-hidden p-8 text-center">
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      background:
+                        "radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 62%)",
+                    }}
+                  />
+                  <span
+                    className="relative grid h-16 w-16 place-items-center rounded-2xl"
+                    style={{
+                      background: "color-mix(in srgb, var(--color-accent) 12%, var(--color-card))",
+                      border: "1px solid var(--color-border)",
+                    }}
+                  >
+                    <Icon size={28} strokeWidth={1.5} style={{ color: "var(--color-accent)" }} />
+                  </span>
+                  <p
+                    className="relative font-mono text-[11px] uppercase tracking-[0.14em]"
+                    style={{ color: "var(--color-fg-subtle)" }}
+                  >
+                    {it.note}
+                  </p>
+                </div>
               </Reveal>
             </div>
           );

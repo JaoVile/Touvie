@@ -1,6 +1,7 @@
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { Marquee } from "@/components/Marquee";
 import { Reveal } from "@/components/Reveal";
+import type { CSSProperties } from "react";
 
 const STATS: { to: number; suffix?: string; label: string }[] = [
   { to: 8, label: "módulos num só lugar" },
@@ -18,8 +19,14 @@ export function Numeros() {
       <Reveal>
         <Marquee
           duration={48}
+          repeat={3}
           className="display"
-          style={{ color: "color-mix(in srgb, var(--color-accent) 20%, transparent)" }}
+          style={
+            {
+              color: "color-mix(in srgb, var(--color-accent) 20%, transparent)",
+              "--marquee-fade": "clamp(4rem, 18vw, 22rem)",
+            } as CSSProperties
+          }
         >
           <span className="text-display sm:text-hero">Em algum lugar, no Touvie</span>
           <span className="text-display sm:text-hero" style={{ color: "var(--color-accent)" }}>
