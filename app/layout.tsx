@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     title: "Touvie",
   },
   icons: {
-    icon: "/icons/icon.svg",
+    icon: "/brand/touvie-icon.svg",
     apple: "/icons/apple-touch-icon.png",
   },
 };

@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   // Browsers probe /favicon.ico unconditionally; point it at our SVG icon
   // so the request 200s instead of logging a 404 in the console.
   async rewrites() {
-    return [{ source: "/favicon.ico", destination: "/icons/icon.svg" }];
+    return [{ source: "/favicon.ico", destination: "/brand/touvie-icon.svg" }];
   },
 };
 

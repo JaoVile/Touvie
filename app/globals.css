@@ -353,6 +353,149 @@ a,
   animation: float-note 3.6s ease-in-out infinite;
 }
 
+/* ── Marca animada — respiração + brilho dourado pulsante ─────────
+   Vida sutil pro emblema (login, abertura): sobe alguns px, respira de
+   leve e o glow de ouro pulsa. Eco do "cursor que canta", sem exagero. */
+.touvie-logo-anim {
+  animation: touvie-breathe 6s var(--ease-cubic) infinite;
+}
+@keyframes touvie-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 6px 16px rgb(224 184 62 / 0.1));
+  }
+  50% {
+    transform: translateY(-4px) scale(1.015);
+    filter: drop-shadow(0 12px 30px rgb(224 184 62 / 0.24));
+  }
+}
+
+/* ── Emblema animado (TouvieEmblem) — vida POR CIMA da arte ───────
+   A marca (touvie-mark.svg) é a base fiel; uma camada leve se move
+   sobre ela: um shimmer dourado varre o ouro (clipado à forma do
+   emblema via mask), dois satélites orbitam o centro, a estrela
+   cintila e notinhas sobem. A arte não é tocada. Knobs por satélite:
+   --tilt (inclinação), --flat (achatamento elíptico), --dur, --r.
+   Os dourados aqui são literais de propósito: acompanham a ARTE
+   (fixed-gold #FBB430/#FCE3AA), não o token --color-accent do tema. */
+.te-root {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  animation: touvie-breathe 6s var(--ease-cubic) infinite;
+}
+.te-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.te-shimmer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 42%, rgb(255 247 214 / 0.7) 50%, transparent 58%);
+  background-size: 250% 100%;
+  /* mask acoplada ao arquivo touvie-mark.svg (mesmo do <img>): clipa o
+     shimmer à forma do emblema. Se renomear o asset, atualizar aqui também. */
+  -webkit-mask: url("/brand/touvie-mark.svg") center / contain no-repeat;
+  mask: url("/brand/touvie-mark.svg") center / contain no-repeat;
+  mask-mode: alpha;
+  mix-blend-mode: screen;
+  /* `backwards` adota o estado do 1º keyframe durante o delay (sem flash). */
+  animation: te-shimmer 6s ease-in-out 1s infinite backwards;
+}
+.te-orbit {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  transform: rotate(var(--tilt, 30deg)) scaleY(var(--flat, 0.4));
+}
+.te-spin {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  animation: te-spin var(--dur, 10s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+.te-sat {
+  position: absolute;
+  top: var(--r, 10%);
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff7dc 10%, #e0b83e 55%, transparent 72%);
+  box-shadow: 0 0 8px 2px rgb(224 184 62 / 0.55);
+  transform: scaleY(calc(1 / var(--flat, 0.4)));
+}
+.te-sat--sm {
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+}
+.te-twinkle {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff7dc, transparent 65%);
+  animation: te-twinkle 3.4s ease-in-out infinite;
+}
+.te-note {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: #f5dd8e;
+  box-shadow: 0 0 6px 1px rgb(224 184 62 / 0.5);
+  opacity: 0;
+  animation: te-note 4.2s ease-in-out infinite;
+}
+@keyframes te-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes te-shimmer {
+  0% {
+    background-position: 160% 0;
+  }
+  60%,
+  100% {
+    background-position: -60% 0;
+  }
+}
+@keyframes te-twinkle {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+}
+@keyframes te-note {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(0.8);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  80% {
+    opacity: 0;
+    transform: translateY(-16px) scale(1);
+  }
+}
+
 /* ── Editorial column grid ───────────────────────────────────────
    Ported from the design guide (obsidianassembly.com). One stacked
    column on mobile, 6 on tablet, 12 on desktop. Children are placed
@@ -499,6 +642,12 @@ a,
 @media (prefers-reduced-motion: reduce) {
   .fold-card,
   .float-note,
+  .touvie-logo-anim,
+  .te-root,
+  .te-shimmer,
+  .te-spin,
+  .te-twinkle,
+  .te-note,
   .gradient-text-anim,
   .rise-in,
   .marquee__track,

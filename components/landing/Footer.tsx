@@ -1,3 +1,4 @@
+import { TouvieLogo } from "@/components/brand/TouvieLogo";
 import Link from "next/link";
 
 /**
@@ -9,17 +10,7 @@ export function Footer() {
     <footer className="border-t" style={{ borderColor: "var(--color-border)" }}>
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-6 px-6 py-10 sm:flex-row">
         <div className="flex items-center gap-3">
-          <span
-            aria-hidden="true"
-            style={{
-              fontFamily: "var(--font-pinyon), cursive",
-              fontSize: "2.25rem",
-              lineHeight: 1,
-              color: "var(--color-accent)",
-            }}
-          >
-            T
-          </span>
+          <TouvieLogo emblem size={46} alt="" />
           <div>
             <p className="font-semibold" style={{ color: "var(--color-fg)" }}>
               Touvie
@@ -30,10 +21,7 @@ export function Footer() {
           </div>
         </div>
 
-        <nav
-          className="flex items-center gap-6 text-sm"
-          style={{ color: "var(--color-fg-muted)" }}
-        >
+        <nav className="flex items-center gap-6 text-sm" style={{ color: "var(--color-fg-muted)" }}>
           <Link href="/login" className="group/lnk">
             <span className="link-underline">Entrar</span>
           </Link>
