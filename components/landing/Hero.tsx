@@ -8,7 +8,7 @@ import type { CSSProperties } from "react";
 import { Seal } from "./Seal";
 
 // Os módulos, na ordem em que viram a fita do rodapé da dobra.
-const MODULES = ["rotina", "metas", "finanças", "treino", "diário", "dieta", "notas"];
+const MODULES = ["rotina", "metas", "finanças", "treino", "diário", "dieta", "notas", "busca"];
 
 /**
  * Hero "selo central, cerimonial" — primeira dobra da landing. Simétrico e

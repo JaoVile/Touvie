@@ -26,6 +26,14 @@ export async function middleware(request: NextRequest) {
 
   const isPublic = PUBLIC_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
+  // Root decides by auth: anonymous visitors get the landing (rewrite keeps
+  // the URL at "/"), signed-in users fall through to the (app) dashboard.
+  if (!user && pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/conceito";
+    return NextResponse.rewrite(url);
+  }
+
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";

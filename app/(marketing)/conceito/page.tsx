@@ -11,9 +11,32 @@ import { Numeros } from "@/components/landing/Numeros";
 import { UmDia } from "@/components/landing/UmDia";
 import type { Metadata } from "next";
 
+const TITLE = "Touvie — seu life OS pessoal";
+const DESCRIPTION = "Rotina, finanças, treino, diário e mais — um sistema que te conhece.";
+
 export const metadata: Metadata = {
-  title: "Touvie — seu life OS pessoal",
-  description: "Rotina, finanças, treino, diário e mais — um sistema que te conhece.",
+  title: TITLE,
+  description: DESCRIPTION,
+  // A landing também é servida na raiz (rewrite do middleware p/ anônimos);
+  // o canonical aponta as duas URLs pro mesmo lugar.
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "Touvie",
+    locale: "pt_BR",
+    url: "/",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: [
+      { url: "/brand/touvie-og.png", width: 1200, height: 630, alt: "Touvie — Monograma Celeste" },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ["/brand/touvie-og.png"],
+  },
 };
 
 /**

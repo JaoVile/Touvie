@@ -1,6 +1,7 @@
 import { CursorTrail } from "@/components/CursorTrail";
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { ScrollProgress } from "@/components/ScrollProgress";
+import { SideLabel } from "@/components/SideLabel";
 import type { ReactNode } from "react";
 
 /**
@@ -14,6 +15,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
     <>
       <CursorTrail />
       <ScrollProgress />
+      <SideLabel label="TOUVIE" />
       <LandingHeader />
       {children}
     </>

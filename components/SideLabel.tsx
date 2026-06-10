@@ -32,9 +32,11 @@ function sectionFor(pathname: string): string {
   return SECTIONS.find((s) => pathname.startsWith(s.prefix))?.label ?? "TOUVIE";
 }
 
-export function SideLabel() {
+export function SideLabel({ label }: { label?: string } = {}) {
   const pathname = usePathname();
-  const section = sectionFor(pathname);
+  // A fixed label opts out of pathname mapping — the landing is served at
+  // "/" too (middleware rewrite), where sectionFor would say "DASHBOARD".
+  const section = label ?? sectionFor(pathname);
 
   return (
     <div

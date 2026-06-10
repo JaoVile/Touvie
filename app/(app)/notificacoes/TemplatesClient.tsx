@@ -264,6 +264,7 @@ export function TemplatesClient({ templates }: { templates: NotificationTemplate
                                   <div className="min-w-0 flex-1">
                                     <button
                                       type="button"
+                                      onMouseDown={(e) => e.preventDefault()}
                                       onClick={() => insertVariable(t.id, v.name)}
                                       className="font-mono text-[12px] font-semibold transition hover:underline"
                                       style={{ color: "var(--color-accent)" }}
@@ -276,6 +277,7 @@ export function TemplatesClient({ templates }: { templates: NotificationTemplate
                                   </div>
                                   <button
                                     type="button"
+                                    onMouseDown={(e) => e.preventDefault()}
                                     onClick={() => insertVariable(t.id, v.name)}
                                     className="shrink-0 rounded px-2 py-0.5 text-[10px] font-semibold opacity-60 hover:opacity-100"
                                     title="Inserir no cursor"

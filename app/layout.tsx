@@ -35,7 +35,40 @@ const pinyonScript = localFont({
   display: "swap",
 });
 
+/**
+ * Instrument Serif — the editorial display face (single weight; the italic
+ * cut is the showpiece). Self-hosted from the Fontsource files so neither
+ * dev (sandbox can't reach Google Fonts) nor prod depends on a third-party
+ * CDN at runtime.
+ */
+const instrumentSerif = localFont({
+  src: [
+    { path: "./fonts/InstrumentSerif-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/InstrumentSerif-Italic.woff2", weight: "400", style: "italic" },
+  ],
+  variable: "--font-instrument-serif",
+  display: "swap",
+});
+
+/** JetBrains Mono — numerals and labels. Same self-hosting rationale. */
+const jetbrainsMono = localFont({
+  src: [
+    { path: "./fonts/JetBrainsMono-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/JetBrainsMono-Medium.woff2", weight: "500", style: "normal" },
+  ],
+  variable: "--font-jetbrains",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
+  // Resolves relative og:image/canonical URLs: explicit env first, then the
+  // Vercel production domain, then local dev.
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ??
+      (process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : "http://localhost:3007"),
+  ),
   title: "Touvie",
   description: "Tudo da sua vida — rotina, metas, finanças, treino, diário e mais.",
   manifest: "/manifest.json",
@@ -103,20 +136,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html
       lang={locale}
       data-theme={theme}
-      className={`${switzer.variable} ${pinyonScript.variable}`}
+      className={`${switzer.variable} ${pinyonScript.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
       <body>
-        {/* Instrument Serif (display) + JetBrains Mono (figuras) via <link> —
-            antes vinham de next/font/google, mas o processo Node deste
-            ambiente não alcança o Google Fonts e derrubava o dev a cada
-            recompilação. O navegador baixa normal. (Self-host = TODO.) */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap"
-        />
         <CustomColorsBoot />
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider theme={theme}>{children}</ThemeProvider>

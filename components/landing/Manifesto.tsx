@@ -37,6 +37,20 @@ export function Manifesto() {
           </span>
         </p>
       </Reveal>
+      {/* Pull-quote — o aparte editorial que arremata o manifesto, deslocado
+          à direita como numa página de revista. */}
+      <Reveal delay={260}>
+        <blockquote
+          className="mt-12 max-w-sm border-l pl-5 sm:ml-auto"
+          style={{
+            borderColor: "color-mix(in srgb, var(--color-accent) 45%, transparent)",
+          }}
+        >
+          <p className="display display-i text-h3" style={{ color: "var(--color-fg-muted)" }}>
+            Dez abas a menos. Um dia inteiro a mais.
+          </p>
+        </blockquote>
+      </Reveal>
     </section>
   );
 }

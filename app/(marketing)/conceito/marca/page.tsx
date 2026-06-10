@@ -5,6 +5,8 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Touvie — marca (preview)",
   description: "Preview do Monograma Celeste — a marca do Touvie.",
+  // Showcase interno da marca — público pra visualizar, mas fora do índice.
+  robots: { index: false, follow: false },
 };
 
 const EMBLEM_SIZES = [120, 64, 48, 32, 24, 16];
