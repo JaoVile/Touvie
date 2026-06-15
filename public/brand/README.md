@@ -1,35 +1,44 @@
-# Marca Touvie
+# Touvie — marca
 
-> **Monograma Celeste** — o "T" caligráfico orbitado por quatro elipses (átomo / flor cósmica), uma delas ondulando numa **fita melódica** com notas. *A imensidão de uma vida, reunida num lugar só — que canta.*
+O **Monograma Celeste**: o "T" caligráfico dourado varrido por uma órbita-cometa,
+com estrelas de 4 pontas, notas musicais e a clave de sol na ponta da órbita —
+a imensidão (o céu) e "um lugar só" (o emblema), com a música do "cursor que
+canta". Montagem final do autor (2026-06-11), vetorial pura.
 
 <table>
   <tr>
-    <td align="center"><img src="touvie-logo.svg" width="340" alt="Touvie — logo principal"></td>
-    <td align="center"><img src="touvie-logo-alt.svg" width="340" alt="Touvie — logo enxuta"></td>
+    <td align="center"><img src="touvie-logo-alt.svg" width="300" alt="Touvie — lockup completo"></td>
+    <td align="center"><img src="touvie-mark.svg" width="300" alt="Touvie — emblema"></td>
   </tr>
   <tr>
-    <td align="center"><code>touvie-logo.svg</code><br>detalhada · fundo navy · 55 formas</td>
-    <td align="center"><code>touvie-logo-alt.svg</code><br>enxuta · 38 formas</td>
+    <td align="center"><code>touvie-logo-alt.svg</code><br>lockup · transparente</td>
+    <td align="center"><code>touvie-mark.svg</code><br>só o emblema</td>
   </tr>
 </table>
 
-## Ficha técnica
-- **Formato:** SVG vetorial (`viewBox 0 0 1024 1024`) — escala infinita, sem perda, do favicon ao outdoor.
-- **Paleta:** navy `#08112E` (fundo) · navy elevado `#161F4A` · ouro `#E0B83E` → ouro-claro `#F5DD8E` (gradiente) · creme `#F2E6C2`.
-- **Conceito:** "T" + 4 órbitas + estrela de 4 pontas + fita melódica — eco do cursor do app que toca dó-ré-mi ("até o cursor canta").
-- **Wordmark:** *Touvie* em serifa editorial (Instrument Serif, a fonte de título do app).
-
-## Uso
-- Preferir sempre **fundo escuro / navy** — é onde a marca brilha.
-- **Não** distorcer, girar nem recolorir fora da paleta.
-- Manter respiro generoso ao redor (área de proteção ≈ a altura do "T").
-- Para favicon (16–32 px), derivar uma versão simplificada (só o "T" + uma órbita) — a fazer.
-
 ## Arquivos
-| Arquivo | O que é |
-|---|---|
-| [`touvie-logo.svg`](touvie-logo.svg) | Versão principal — detalhada, com fundo navy. |
-| [`touvie-logo-alt.svg`](touvie-logo-alt.svg) | Versão enxuta — menos formas, mais leve. |
 
----
-*Masters vetoriais da marca — versionados aqui pra nunca mais se perder. Conceito desenvolvido em jun/2026; arte assistida por IA, vetorizada e curada. Direção de marca registrada na memória do projeto (Monograma Celeste).*
+| Arquivo | O que é |
+| --- | --- |
+| [`touvie-logo.svg`](touvie-logo.svg) | Lockup completo (emblema + "Touvie") **com fundo navy**. Fonte da OG image. |
+| [`touvie-logo-alt.svg`](touvie-logo-alt.svg) | Lockup completo **transparente** — login, materiais sobre qualquer fundo. |
+| [`touvie-mark.svg`](touvie-mark.svg) | Só o emblema, transparente (paisagem ~1.4:1) — header, footer. |
+| [`touvie-mark-bg.svg`](touvie-mark-bg.svg) | Só o emblema, com fundo navy. |
+| [`touvie-icon.svg`](touvie-icon.svg) | O emblema em recorte **quadrado**, transparente — favicon da aba (`/favicon.ico` aponta aqui). |
+| `touvie-og.png` | OG image 1200×630, gerada do `touvie-logo.svg`. |
+
+Os PNGs do PWA (`public/icons/icon-192/512.png`, `apple-touch-icon.png`) são
+gerados do `touvie-icon.svg` com fundo navy e safe zone maskable — regenere com
+`node scripts/gen-icons.mjs` após mexer nos SVGs.
+
+## Paleta da arte
+
+| Cor | Uso |
+| --- | --- |
+| `#FDB431` | Dourado vivo — órbita, "Tou" |
+| `#FEE3AB` | Creme — T, estrelas, "vie" |
+| `#BD9E6C` | Dourado sombreado — profundidade dos traços |
+| `#1A2346` | Navy de fundo da arte |
+
+Os viewBox foram recortados no conteúdo real (margens do canvas removidas);
+as coordenadas internas são as da montagem original (canvas 2000×1414).

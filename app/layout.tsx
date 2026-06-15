@@ -1,3 +1,4 @@
+import { CursorTrail } from "@/components/CursorTrail";
 import { CustomColorsBoot } from "@/components/CustomColorsBoot";
 import { NativePickerOpener } from "@/components/NativePickerOpener";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
@@ -144,6 +145,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider theme={theme}>{children}</ThemeProvider>
         </NextIntlClientProvider>
+        {/* O cursor-fita é assinatura do site INTEIRO (login incluso) — mora
+            aqui no root, não nos layouts de grupo. Desktop-only (gates no
+            próprio componente). */}
+        <CursorTrail />
         <ServiceWorkerRegister />
         <NativePickerOpener />
       </body>

@@ -89,11 +89,28 @@ const SCALE = [
   { name: "si", freq: 987.77 },
 ] as const;
 
-const GLYPH_CHARS = ["♪", "♫"] as const;
+// Notas especiais na fita: a DUPLA é o "♫" (duas notinhas numa só, barra em
+// cima — maior que a normal pra ler de longe); a CLAVE DE SOL é a da própria
+// marca (path real #6 de public/brand/touvie-mark.svg via Path2D, coordenadas
+// no espaço da arte; o box centro+altura normaliza pro tamanho do trail).
+// Cadência: a cada 2 normais entra uma DUPLA; a cada 5 normais, a CLAVE —
+// N N D N N D N C.
+const CLEF_D =
+  "M1692.7 505.461C1697.68 507.491 1702.02 518.192 1702.78 523.475C1705.34 541.381 1698.6 554.602 1688.17 568.541L1691.83 582.859C1700.66 584.408 1706.93 585.603 1712.66 593.748C1716.09 598.658 1717.3 604.787 1715.99 610.633C1714.02 619.337 1708.89 623.545 1701.95 628.156C1716.74 697.721 1652.39 659.344 1678.55 643.287L1679.55 642.68C1684.36 642.741 1687.14 644.332 1689.49 648.259C1690.09 654.524 1683.71 659.656 1686.17 664.435C1688.6 665.029 1689.61 664.903 1692.09 664.324C1706.79 660.892 1701.01 640.25 1698.67 630.104C1697.69 630.162 1696.7 630.201 1695.71 630.221C1676.52 630.59 1658.6 619.913 1658.79 598.765C1658.95 580.451 1669.92 568.316 1682.28 556.216C1678.3 535.232 1676.67 521.499 1692.7 505.461ZM1694.98 612.018C1693.99 607.301 1692.88 598.416 1688.85 595.785C1679.28 598.366 1681.16 610.092 1685.76 616.725C1684.11 617.825 1684.9 617.194 1682.81 616.915C1674.9 615.858 1675.04 608.026 1676.38 601.794C1678.19 593.356 1682.44 589.007 1688.73 583.412C1687.71 579.34 1686.82 574.864 1685.03 571.123C1641.33 607.578 1684.35 635.944 1697.01 627.263C1698.17 624.371 1695.75 615.836 1694.98 612.018ZM1686.83 552.273C1692.95 543.9 1706.85 526.129 1695.05 517.216C1684.65 527.967 1681.14 537.132 1684.29 552.294C1686.11 552.66 1685.31 552.839 1686.83 552.273ZM1705.99 621.679C1712.24 607.373 1709.63 598.266 1693.73 594.099C1694.81 598.894 1699.59 622.433 1702.15 624.305C1703.26 623.555 1704.99 622.471 1705.99 621.679Z";
+const CLEF_BOX = { cx: 1687.5, cy: 587, h: 164 } as const;
+// Alvo de tamanho relativo ao glyphSize: especiais maiores que a normal.
+const DOUBLE_SIZE = 1.35;
+const CLEF_SIZE = 1.55;
+// Especiais emitidas no ritmo automático não podem sumir: opacidade própria,
+// acima das auto-normais (0.42) e abaixo das de clique (0.85).
+const ALPHA_AUTO_SPECIAL = 0.68;
+
+type GlyphKind = "normal" | "double" | "clef";
 
 type Glyph = {
   born: number;
   idx: number; // scale step — also picks the staff line the note rides on
+  kind: GlyphKind; // normal (♪) | colcheia dupla da marca | clave de sol
   auto?: boolean; // emitida automaticamente (mais transparente) vs. por clique
 };
 
@@ -284,6 +301,29 @@ export function CursorTrail() {
     let audioCtx: AudioContext | null = null;
     let noteIndex = 0;
 
+    // A clave da marca, pronta pro canvas (Path2D só existe no client —
+    // por isso aqui dentro do effect, não no module scope).
+    const clefPath = new Path2D(CLEF_D);
+
+    // Cadência: N N D N N D N C (5 normais por ciclo; dupla após cada 2
+    // normais; a 5ª normal puxa a clave e o ciclo recomeça).
+    let sincePair = 0;
+    let sinceClef = 0;
+    const nextKind = (): GlyphKind => {
+      if (sinceClef >= 5) {
+        sinceClef = 0;
+        sincePair = 0;
+        return "clef";
+      }
+      if (sincePair >= 2) {
+        sincePair = 0;
+        return "double";
+      }
+      sincePair++;
+      sinceClef++;
+      return "normal";
+    };
+
     const playNote = (freq: number, vol: number = CONFIG.melodyVolume) => {
       try {
         if (!audioCtx) {
@@ -325,7 +365,7 @@ export function CursorTrail() {
     const onClick = () => {
       playNote(SCALE[noteIndex].freq);
       // The note joins the ribbon — no spawn position, it rides the spine.
-      glyphs.push({ born: performance.now(), idx: noteIndex });
+      glyphs.push({ born: performance.now(), idx: noteIndex, kind: nextKind() });
       if (glyphs.length > 24) glyphs.shift();
       noteIndex = (noteIndex + 1) % SCALE.length;
     };
@@ -358,7 +398,12 @@ export function CursorTrail() {
           continue;
         }
         // Auto notes are half-transparent; click notes carry full presence.
-        const maxAlpha = g.auto ? CONFIG.glyphAlphaAuto : CONFIG.glyphAlphaClick;
+        // Special kinds (dupla/clave) keep presence even when auto-emitted.
+        const maxAlpha = g.auto
+          ? g.kind === "normal"
+            ? CONFIG.glyphAlphaAuto
+            : ALPHA_AUTO_SPECIAL
+          : CONFIG.glyphAlphaClick;
 
         let x: number;
         let y: number;
@@ -411,22 +456,40 @@ export function CursorTrail() {
           alpha = maxAlpha * (1 - e);
         }
 
-        const char = GLYPH_CHARS[g.idx % GLYPH_CHARS.length];
         ctx.save();
         ctx.translate(x, y);
-        ctx.scale(scale, scale);
         ctx.shadowBlur = palette.glowBlur ?? 5;
         ctx.globalAlpha = alpha;
-        ctx.font = `${glyphSize}px "Times New Roman", serif`;
-        ctx.fillText(char, 0, 0);
-        // Optional crisp outline ("contorno") — drawn over the fill, with the
-        // bloom switched off so the edge stays sharp.
-        if (palette.noteOutline) {
-          ctx.shadowBlur = 0;
-          ctx.lineWidth = 1.5;
-          ctx.lineJoin = "round";
-          ctx.strokeStyle = palette.noteOutline;
-          ctx.strokeText(char, 0, 0);
+        if (g.kind === "clef") {
+          // A clave da MARCA (Path2D nas coordenadas da arte): normaliza
+          // pelo box medido — centra no ponto e escala pra altura-alvo.
+          const s = (glyphSize * CLEF_SIZE * scale) / CLEF_BOX.h;
+          ctx.scale(s, s);
+          ctx.translate(-CLEF_BOX.cx, -CLEF_BOX.cy);
+          ctx.fill(clefPath);
+          if (palette.noteOutline) {
+            ctx.shadowBlur = 0;
+            ctx.lineWidth = 1.5 / s;
+            ctx.lineJoin = "round";
+            ctx.strokeStyle = palette.noteOutline;
+            ctx.stroke(clefPath);
+          }
+        } else {
+          // ♪ normal | ♫ dupla ("2 notinhas em uma só"), maior pra destacar.
+          const char = g.kind === "double" ? "♫" : "♪";
+          const fs = g.kind === "double" ? glyphSize * DOUBLE_SIZE : glyphSize;
+          ctx.scale(scale, scale);
+          ctx.font = `${fs}px "Times New Roman", serif`;
+          ctx.fillText(char, 0, 0);
+          // Optional crisp outline ("contorno") — drawn over the fill, with
+          // the bloom switched off so the edge stays sharp.
+          if (palette.noteOutline) {
+            ctx.shadowBlur = 0;
+            ctx.lineWidth = 1.5;
+            ctx.lineJoin = "round";
+            ctx.strokeStyle = palette.noteOutline;
+            ctx.strokeText(char, 0, 0);
+          }
         }
         ctx.restore();
       }
@@ -461,7 +524,7 @@ export function CursorTrail() {
           if (aliveAuto >= CONFIG.autoMaxAlive && oldestAuto !== -1) {
             glyphs.splice(oldestAuto, 1);
           }
-          glyphs.push({ born: nowA, idx: noteIndex, auto: true });
+          glyphs.push({ born: nowA, idx: noteIndex, kind: nextKind(), auto: true });
           if (glyphs.length > 24) glyphs.shift();
           if (CONFIG.autoSound && audioCtx && audioCtx.state === "running") {
             playNote(SCALE[noteIndex].freq, CONFIG.melodyVolume * CONFIG.autoVolumeMul);

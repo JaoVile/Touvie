@@ -1,43 +1,46 @@
 import { cn } from "@/lib/utils";
 import type { CSSProperties } from "react";
+import { MarkArt } from "./MarkArt";
 
 /**
- * A marca *viva*. A arte fiel (touvie-mark.svg — emblema sem wordmark) fica de
- * base; uma camada leve se move POR CIMA sem tocá-la: o ouro reluz num shimmer
- * (clipado à forma do emblema via mask), dois satélites orbitam o centro, a
- * estrela cintila e notinhas sobem — o eco do "cursor que canta".
+ * A marca *viva*, animada por camadas REAIS: o MarkArt empilha camadas-svg
+ * no palco 3D (.te-stage, preserve-3d) — cada anel da auréola num BALANÇO
+ * próprio que parte do repouso e volta (sem volta completa: a composição
+ * original fica legível o tempo todo): o arco grosso pende no plano (com a
+ * fagulha-cabeça na ponta), o arco de cima balança pra cima/baixo (eixo X)
+ * e o traço fino de um lado pro outro (eixo Y), ganhando profundidade real
+ * (depth sorting). O T fica firme; estrelas respiram e derivam, a clave
+ * pende, as notinhas dançam. Por cima, spans somam brilho: glow nas
+ * estrelas e pings arpejo na clave/notas.
  *
- * As posições (% do viewBox do mark, 286.3 236.5 437.3 437.3) vêm das
- * coordenadas reais medidas na arte. Toda a animação é CSS (ver globals.css,
- * classes `te-*`) e respeita `prefers-reduced-motion`.
+ * Tudo CSS (classes te-* no globals.css), respeitando reduced-motion.
+ * O box é QUADRADO (size × size): o viewBox das camadas é o palco do disco
+ * de rotação ("68 -270 1900 1900") — giro nunca corta; a arte estática
+ * ocupa o miolo (~81% da largura). Spans em % do palco (centros medidos).
  */
-const STAR: CSSProperties = { left: "51.6%", top: "17.9%" };
+type Spot = CSSProperties & Record<`--te-${string}`, string>;
 
-const NOTES: CSSProperties[] = [
-  { left: "85%", top: "53%", animationDelay: "0s" },
-  { left: "81%", top: "37%", animationDelay: "1.7s" },
-  { left: "86%", top: "70%", animationDelay: "3.1s" },
+/** Glow cintilante por cima das 3 estrelas da arte. */
+const STARS: Spot[] = [
+  { left: "35.0%", top: "31.0%", "--te-glow-scale": "1", "--te-glow-delay": "0s" },
+  { left: "58.4%", top: "27.5%", "--te-glow-scale": "0.62", "--te-glow-delay": "1.4s" },
+  { left: "44.4%", top: "72.7%", "--te-glow-scale": "0.62", "--te-glow-delay": "2.6s" },
 ];
 
-const ORBITS = [
-  {
-    key: "a",
-    small: false,
-    vars: { "--tilt": "32deg", "--flat": "0.4", "--dur": "9s", "--r": "9%" },
-  },
-  {
-    key: "b",
-    small: true,
-    vars: { "--tilt": "-30deg", "--flat": "0.42", "--dur": "13s", "--delay": "-5s", "--r": "12%" },
-  },
+/** Pings de luz: clave → nota → nota, um arpejo por ciclo. */
+const CHIMES: Spot[] = [
+  { left: "85.2%", top: "45.1%", "--te-chime-delay": "0s", "--te-chime-scale": "1.3" },
+  { left: "80.9%", top: "50.9%", "--te-chime-delay": "0.35s", "--te-chime-scale": "1" },
+  { left: "74.1%", top: "53.2%", "--te-chime-delay": "0.7s", "--te-chime-scale": "0.85" },
 ];
 
 export function TouvieEmblem({
-  size = 220,
+  size = 280,
   className,
   style,
   alt = "Touvie",
 }: {
+  /** Lado do palco quadrado em px (a arte ocupa ~81% da largura dele). */
   size?: number;
   className?: string;
   style?: CSSProperties;
@@ -45,26 +48,12 @@ export function TouvieEmblem({
 }) {
   return (
     <div className={cn("te-root", className)} style={{ width: size, height: size, ...style }}>
-      <img
-        src="/brand/touvie-mark.svg"
-        alt={alt}
-        width={size}
-        height={size}
-        className="te-art"
-        draggable={false}
-        decoding="async"
-      />
-      <span aria-hidden="true" className="te-shimmer" />
-      {ORBITS.map((o) => (
-        <span key={o.key} aria-hidden="true" className="te-orbit" style={o.vars as CSSProperties}>
-          <span className="te-spin">
-            <span className={cn("te-sat", o.small && "te-sat--sm")} />
-          </span>
-        </span>
+      <MarkArt title={alt || undefined} />
+      {STARS.map((s, i) => (
+        <span key={`star-${i}`} aria-hidden="true" className="te-star" style={s} />
       ))}
-      <span aria-hidden="true" className="te-twinkle" style={STAR} />
-      {NOTES.map((n) => (
-        <span key={`${n.left}-${n.top}`} aria-hidden="true" className="te-note" style={n} />
+      {CHIMES.map((c, i) => (
+        <span key={`chime-${i}`} aria-hidden="true" className="te-chime" style={c} />
       ))}
     </div>
   );

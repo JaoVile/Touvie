@@ -58,11 +58,14 @@ export function LoginForm({ next, initialError }: { next?: string; initialError?
         <input
           type="checkbox"
           name="trustDevice"
-          defaultChecked={false}
+          defaultChecked={true}
           className="mt-0.5 h-4 w-4 accent-[var(--color-accent)]"
         />
-        <span>
-          Confiar neste dispositivo <em>(marque só no notebook — celular deve ficar só-leitura)</em>
+        <span className="flex flex-col gap-0.5">
+          <span style={{ color: "var(--color-fg)" }}>Confiar neste dispositivo</span>
+          <span className="text-xs" style={{ color: "var(--color-fg-subtle)" }}>
+            Dispositivos confiáveis têm acesso completo — os demais entram em modo leitura.
+          </span>
         </span>
       </label>
       {error ? (

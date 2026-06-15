@@ -40,11 +40,12 @@ export const metadata: Metadata = {
 };
 
 /**
- * Landing do Touvie (preview em /conceito). Narrativa completa em scroll:
+ * Landing do Touvie (em /landpage; a raiz "/" faz rewrite pra cá quando
+ * deslogado). Narrativa completa em scroll:
  * hero → manifesto → antes/depois → módulos → um dia → diferenciais → números
  * → FAQ → CTA → footer, com filetes de ouro marcando a cadência entre capítulos.
  */
-export default function ConceitoPage() {
+export default function LandingPage() {
   return (
     <main id="top">
       <Hero />

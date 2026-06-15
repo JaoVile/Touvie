@@ -363,128 +363,309 @@ a,
   }
 }
 
-/* ── Emblema animado (TouvieEmblem) — vida POR CIMA da arte ───────
-   A marca (touvie-mark.svg) é a base fiel; uma camada leve se move
-   sobre ela: um shimmer dourado varre o ouro (clipado à forma do
-   emblema via mask), dois satélites orbitam o centro, a estrela
-   cintila e notinhas sobem. A arte não é tocada. Knobs por satélite:
-   --tilt (inclinação), --flat (achatamento elíptico), --dur, --r.
-   Os dourados aqui são literais de propósito: acompanham a ARTE
-   (fixed-gold #FBB430/#FCE3AA), não o token --color-accent do tema. */
+/* ── Emblema vivo (TouvieEmblem + MarkArt) — animação por CAMADAS ─
+   O SVG da mark entra inline (MarkArt.tsx, gerado da arte), um grupo
+   por elemento. A AURÉOLA gira 360° contínua em torno do centro do
+   traço (pivot por sanduíche de translate no próprio SVG; os dois
+   sub-grupos atrás/frente do T compartilham a animação → corpo
+   rígido). T firme; estrelas, clave e notas com vida própria.
+   Transforms nos grupos pequenos usam transform-box: fill-box
+   (px = unidades do viewBox). Dourados literais: acompanham a ARTE
+   (#FDB431 / #FEE3AB), não o token --color-accent do tema. */
 .te-root {
   position: relative;
   display: inline-block;
   line-height: 0;
-  animation: touvie-breathe 6s var(--ease-cubic) infinite;
+  /* respiração SEM filter: animar drop-shadow por cima do subtree 3D
+     corrompe o alpha das camadas no Chrome (manchas escuras do tamanho
+     do plano rotacionado) — só transform aqui. */
+  animation: te-breathe 7s var(--ease-cubic) infinite;
 }
-.te-art {
-  display: block;
+/* O palco 3D — perspective dá o tombamento dos anéis, mas SEM
+   preserve-3d: planos que se intersectam são FATIADOS pelo navegador
+   (comia o swash do T e gerava artefatos de luz). Flat = cada camada
+   composta inteira, na ordem do desenho original (anel grosso atrás
+   do T, traço fino na frente), e bem mais barato de compor. */
+.te-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  perspective: 900px;
+}
+.te-layer {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
 }
-.te-shimmer {
+/* Cada anel num BALANÇO próprio, partindo do repouso (a composição
+   original da arte) e voltando — sem volta completa, a logo fica fiel
+   a ela mesma o tempo todo: A pende no plano, B pra cima/baixo (eixo
+   X), C de um lado pro outro (eixo Y). Assimetria leve = orgânico. */
+.te-layer--ring-a,
+.te-layer--ring-b,
+.te-layer--ring-c {
+  /* camada GPU própria desde o início — rasterização 3D estável */
+  will-change: transform;
+}
+.te-layer--ring-a {
+  animation: te-sway-z 11s ease-in-out infinite;
+}
+.te-layer--ring-b {
+  animation: te-sway-x 15s ease-in-out infinite;
+}
+.te-layer--ring-c {
+  animation: te-sway-y 13s ease-in-out infinite;
+}
+/* A fagulha na cabeça do cometa: pulsa enquanto gira com o traço. */
+.te-g-comet {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: te-comet-pulse 2.6s ease-in-out infinite;
+}
+/* Estrelas: respiram, giram de leve e brilham — cada uma no seu tempo. */
+.te-g-star {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: te-star-live 5.2s ease-in-out infinite;
+}
+.te-g-star--b {
+  animation-duration: 6.1s;
+  animation-delay: -2.2s;
+}
+.te-g-star--c {
+  animation-duration: 6.8s;
+  animation-delay: -3.9s;
+}
+/* Clave de sol: pêndulo suave, pendurada pelo topo. */
+.te-g-clef {
+  transform-box: fill-box;
+  transform-origin: 50% 8%;
+  animation: te-clef-sway 5.6s ease-in-out infinite;
+}
+/* Notinhas: dançam — sobem e descem defasadas, com um giro de leve. */
+.te-g-note {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: te-note-bob 3.6s ease-in-out infinite;
+}
+.te-g-note--b {
+  animation-duration: 4.4s;
+  animation-delay: -1.6s;
+}
+/* Glow cintilante por cima das estrelas reais (span aditivo). */
+.te-star {
   position: absolute;
-  inset: 0;
   pointer-events: none;
-  background: linear-gradient(115deg, transparent 42%, rgb(255 247 214 / 0.7) 50%, transparent 58%);
-  background-size: 250% 100%;
-  /* mask acoplada ao arquivo touvie-mark.svg (mesmo do <img>): clipa o
-     shimmer à forma do emblema. Se renomear o asset, atualizar aqui também. */
-  -webkit-mask: url("/brand/touvie-mark.svg") center / contain no-repeat;
-  mask: url("/brand/touvie-mark.svg") center / contain no-repeat;
-  mask-mode: alpha;
-  mix-blend-mode: screen;
-  /* `backwards` adota o estado do 1º keyframe durante o delay (sem flash). */
-  animation: te-shimmer 6s ease-in-out 1s infinite backwards;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff7dc 0%, rgb(254 227 171 / 0.55) 40%, transparent 70%);
+  /* sem mix-blend-mode: blend lendo backdrop de camada 3D = retângulo
+     escuro no Chrome; o gradiente translúcido já soma luz o bastante */
+  /* base centrada: com reduced-motion (animation: none) ficam acesas e no lugar */
+  opacity: 0.6;
+  transform: translate(-50%, -50%) scale(var(--te-glow-scale, 1));
+  animation: te-twinkle 3.8s ease-in-out var(--te-glow-delay, 0s) infinite;
 }
-.te-orbit {
+/* Ping de luz na clave/notinhas — um arpejo (dó-ré-mi) por ciclo.
+   Discreto: 20px e pico 0.85, pra ler como "soou", não como bolha. */
+.te-chime {
   position: absolute;
-  inset: 0;
   pointer-events: none;
-  transform-origin: 50% 50%;
-  transform: rotate(var(--tilt, 30deg)) scaleY(var(--flat, 0.4));
-}
-.te-spin {
-  position: absolute;
-  inset: 0;
-  transform-origin: 50% 50%;
-  animation: te-spin var(--dur, 10s) linear infinite;
-  animation-delay: var(--delay, 0s);
-}
-.te-sat {
-  position: absolute;
-  top: var(--r, 10%);
-  left: 50%;
-  width: 7px;
-  height: 7px;
-  margin-left: -3.5px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: radial-gradient(circle, #fff7dc 10%, #e0b83e 55%, transparent 72%);
-  box-shadow: 0 0 8px 2px rgb(224 184 62 / 0.55);
-  transform: scaleY(calc(1 / var(--flat, 0.4)));
-}
-.te-sat--sm {
-  width: 5px;
-  height: 5px;
-  margin-left: -2.5px;
-}
-.te-twinkle {
-  position: absolute;
-  width: 11px;
-  height: 11px;
-  margin: -5.5px 0 0 -5.5px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #fff7dc, transparent 65%);
-  animation: te-twinkle 3.4s ease-in-out infinite;
-}
-.te-note {
-  position: absolute;
-  width: 5px;
-  height: 5px;
-  margin: -2.5px 0 0 -2.5px;
-  border-radius: 50%;
-  background: #f5dd8e;
-  box-shadow: 0 0 6px 1px rgb(224 184 62 / 0.5);
+  background: radial-gradient(circle, rgb(255 248 226 / 0.85) 0%, rgb(253 180 49 / 0.4) 45%, transparent 70%);
   opacity: 0;
-  animation: te-note 4.2s ease-in-out infinite;
+  transform: translate(-50%, -50%);
+  animation: te-chime 7s ease-out var(--te-chime-delay, 0s) infinite;
 }
-@keyframes te-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes te-shimmer {
-  0% {
-    background-position: 160% 0;
-  }
-  60%,
+/* Respiração do emblema — versão SEM filter (3D-safe). */
+@keyframes te-breathe {
+  0%,
   100% {
-    background-position: -60% 0;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.03);
+  }
+}
+/* Balanços dos anéis — 0% = repouso (arte original exata). */
+@keyframes te-sway-z {
+  0%,
+  100% {
+    transform: rotateZ(0deg);
+  }
+  30% {
+    transform: rotateZ(-8deg);
+  }
+  70% {
+    transform: rotateZ(9deg);
+  }
+}
+@keyframes te-sway-x {
+  0%,
+  100% {
+    transform: rotateX(0deg);
+  }
+  30% {
+    transform: rotateX(26deg);
+  }
+  70% {
+    transform: rotateX(-24deg);
+  }
+}
+@keyframes te-sway-y {
+  0%,
+  100% {
+    transform: rotateY(0deg);
+  }
+  30% {
+    transform: rotateY(-32deg);
+  }
+  70% {
+    transform: rotateY(28deg);
+  }
+}
+@keyframes te-comet-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.5);
+  }
+}
+@keyframes te-star-live {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: scale(0.73) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.25) rotate(16deg);
+  }
+}
+@keyframes te-clef-sway {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(9deg);
+  }
+}
+@keyframes te-note-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-6deg);
+  }
+  50% {
+    transform: translateY(-28px) rotate(8deg);
   }
 }
 @keyframes te-twinkle {
   0%,
   100% {
-    opacity: 0.3;
-    transform: scale(0.7);
+    opacity: 0.25;
+    transform: translate(-50%, -50%) scale(calc(var(--te-glow-scale, 1) * 0.44));
   }
   50% {
     opacity: 1;
-    transform: scale(1.18);
+    transform: translate(-50%, -50%) scale(var(--te-glow-scale, 1));
   }
 }
-@keyframes te-note {
-  0%,
+@keyframes te-chime {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(calc(var(--te-chime-scale, 1) * 0.45));
+  }
+  4% {
+    opacity: 0.85;
+    transform: translate(-50%, -50%) scale(var(--te-chime-scale, 1));
+  }
+  13%,
   100% {
     opacity: 0;
-    transform: translateY(0) scale(0.8);
+    transform: translate(-50%, -50%) scale(calc(var(--te-chime-scale, 1) * 1.25));
   }
-  20% {
-    opacity: 0.9;
+}
+
+/* ── Login — palco ambiente da marca ─────────────────────────────
+   Dois halos dourados muito fracos (atrás do emblema e rente ao chão)
+   dão profundidade ao navy sem competir com a animação. */
+.login-halo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      42rem 30rem at 50% 32%,
+      color-mix(in srgb, var(--color-accent) 9%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      30rem 20rem at 50% 88%,
+      color-mix(in srgb, var(--color-accent) 4%, transparent),
+      transparent 70%
+    );
+}
+
+/* ── Wordmark vivo (TouvieWordmark) — "Touvie" emanando ──────────
+   Uma emanação de luz respira atrás das letras e um sheen dourado
+   varre o texto, clipado pelo próprio glifo (mask no asset). */
+.tw-root {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+.tw-art {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.tw-glow {
+  position: absolute;
+  inset: -34% -8%;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgb(253 180 49 / 0.26), transparent 70%);
+  animation: tw-glow 5s ease-in-out infinite;
+}
+.tw-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 40%, rgb(255 248 226 / 0.9) 50%, transparent 60%);
+  background-size: 240% 100%;
+  -webkit-mask: url("/brand/touvie-wordmark.svg") center / contain no-repeat;
+  mask: url("/brand/touvie-wordmark.svg") center / contain no-repeat;
+  mask-mode: alpha;
+  /* `backwards` adota o 1º keyframe durante o delay (sem flash). */
+  animation: tw-sheen 6.5s ease-in-out 1.2s infinite backwards;
+}
+@keyframes tw-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
   }
-  80% {
-    opacity: 0;
-    transform: translateY(-16px) scale(1);
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+@keyframes tw-sheen {
+  0% {
+    background-position: 170% 0;
+  }
+  45%,
+  100% {
+    background-position: -70% 0;
   }
 }
 
@@ -636,10 +817,15 @@ a,
   .float-note,
   .touvie-logo-anim,
   .te-root,
-  .te-shimmer,
-  .te-spin,
-  .te-twinkle,
-  .te-note,
+  .te-star,
+  .te-chime,
+  .te-layer,
+  .te-g-comet,
+  .te-g-star,
+  .te-g-clef,
+  .te-g-note,
+  .tw-glow,
+  .tw-sheen,
   .gradient-text-anim,
   .rise-in,
   .marquee__track,

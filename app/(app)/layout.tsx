@@ -1,4 +1,3 @@
-import { CursorTrail } from "@/components/CursorTrail";
 import { Nav } from "@/components/Nav";
 import { ScrollProgress } from "@/components/ScrollProgress";
 import { SideLabel } from "@/components/SideLabel";
@@ -15,7 +14,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <CursorTrail />
       <ScrollProgress />
       <SideLabel />
       <Nav />

@@ -35,8 +35,8 @@ export default function MarcaPage() {
         Monograma <span className="display-i gradient-text">Celeste</span>
       </h1>
       <p className="mt-4 max-w-xl text-base sm:text-lg" style={{ color: "var(--color-fg-muted)" }}>
-        O "T" caligráfico orbitado por quatro elipses, a estrela e a fita melódica — a imensidão e o
-        "um lugar só", no mesmo emblema.
+        O "T" caligráfico varrido por uma órbita-cometa, com estrelas, notas musicais e a clave de
+        sol na ponta — a imensidão e o "um lugar só", no mesmo emblema.
       </p>
 
       {/* A marca viva — destaque animado (arte real) */}
@@ -49,9 +49,9 @@ export default function MarcaPage() {
       >
         <TouvieEmblem size={300} alt="" />
         <p className="max-w-sm text-center text-sm" style={{ color: "var(--color-fg-muted)" }}>
-          A marca <span className="display-i gradient-text">viva</span> — a estrela cintila, dois
-          satélites orbitam, o ouro reluz e as notas sobem. Tudo em CSS, respeitando quem prefere
-          menos movimento.
+          A marca <span className="display-i gradient-text">viva</span> — a auréola gira em órbita
+          com a fagulha na ponta, as estrelas respiram e brilham, a clave pende e as notinhas
+          dançam. Tudo em CSS, respeitando quem prefere menos movimento.
         </p>
       </section>
 
@@ -82,8 +82,8 @@ export default function MarcaPage() {
           ))}
         </div>
         <p className="mt-3 text-xs" style={{ color: "var(--color-fg-subtle)" }}>
-          Pro favicon (aba/PWA) usamos <code>touvie-icon.svg</code> — o emblema num disco navy,
-          opaco, que segura o contraste a 16px.
+          Pro favicon (aba) usamos <code>touvie-icon.svg</code> — o emblema transparente em recorte
+          quadrado; os PNGs do PWA ganham o fundo navy da arte.
         </p>
       </section>
 
@@ -108,8 +108,10 @@ export default function MarcaPage() {
         <Head>Arquivos</Head>
         <p className="text-sm leading-relaxed" style={{ color: "var(--color-fg-muted)" }}>
           Masters vetoriais em <code>public/brand/</code>: <code>touvie-logo.svg</code> (com fundo),{" "}
-          <code>touvie-logo-alt.svg</code> (transparente), <code>touvie-mark.svg</code> (só emblema)
-          e <code>touvie-icon.svg</code> (ícone em disco navy). Ficha técnica no README da pasta.
+          <code>touvie-logo-alt.svg</code> (transparente), <code>touvie-mark.svg</code> (só
+          emblema), <code>touvie-mark-bg.svg</code> (emblema com fundo) e{" "}
+          <code>touvie-icon.svg</code> (recorte quadrado pro favicon). Ficha técnica no README da
+          pasta.
         </p>
       </section>
     </main>

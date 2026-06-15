@@ -1,0 +1,14 @@
+# Normaliza fim de linha: texto sempre LF no repo (mata ruído Windows/WSL)
+* text=auto eol=lf
+
+# Binários — nunca normalizar
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary

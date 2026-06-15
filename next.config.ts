@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{ source: "/favicon.ico", destination: "/brand/touvie-icon.svg" }];
   },
+  // A landing morou em /conceito até 2026-06-11 — preserva links antigos.
+  async redirects() {
+    return [
+      { source: "/conceito", destination: "/landpage", permanent: false },
+      { source: "/conceito/:path*", destination: "/landpage/:path*", permanent: false },
+    ];
+  },
 };
 
 export default withNextIntl(nextConfig);
