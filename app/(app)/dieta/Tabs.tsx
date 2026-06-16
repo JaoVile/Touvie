@@ -1,14 +1,15 @@
 "use client";
 
-import { type LucideIcon, Ruler, Salad, UtensilsCrossed } from "lucide-react";
+import { BellRing, type LucideIcon, Ruler, Salad, UtensilsCrossed } from "lucide-react";
 import Link from "next/link";
 
-export type DietTab = "hoje" | "alimentos" | "medidas";
+export type DietTab = "hoje" | "alimentos" | "medidas" | "lembretes";
 
 const TABS: Array<{ id: DietTab; label: string; icon: LucideIcon }> = [
   { id: "hoje", label: "Hoje", icon: UtensilsCrossed },
   { id: "alimentos", label: "Alimentos", icon: Salad },
   { id: "medidas", label: "Medidas", icon: Ruler },
+  { id: "lembretes", label: "Lembretes", icon: BellRing },
 ];
 
 /**

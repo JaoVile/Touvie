@@ -28,6 +28,7 @@ import { LocaleSwitcher } from "./LocaleSwitcher";
 import { LogGeral } from "./LogGeral";
 import { PinChangeForm } from "./PinChangeForm";
 import { ProfileSection } from "./ProfileSection";
+import { StarsToggle } from "./StarsToggle";
 import { TelegramSection } from "./TelegramSection";
 import { ThemePicker } from "./ThemePicker";
 import { TrailColorPicker } from "./TrailColorPicker";
@@ -89,6 +90,7 @@ export default async function ConfigPage() {
           eyebrow="Preferências · App"
           title="Configurações"
           subtitle="Personalize o app do seu jeito."
+          watermark
         />
       </Reveal>
 
@@ -115,6 +117,12 @@ export default async function ConfigPage() {
               <code>app/themes/</code>.
             </p>
             <ThemePicker currentTheme={theme} />
+            <div className="mt-6">
+              <h3 className="mb-3 text-sm font-semibold" style={{ color: "var(--color-fg-muted)" }}>
+                Céu de estrelas
+              </h3>
+              <StarsToggle />
+            </div>
           </FoldCard>
         </Reveal>
 

@@ -1,7 +1,7 @@
 import { Magnetic } from "@/components/Magnetic";
 import { Reveal } from "@/components/Reveal";
 import Link from "next/link";
-import { Seal } from "./Seal";
+import { TouvieEmblem } from "@/components/brand/TouvieEmblem";
 
 /**
  * Seção 6 — CTA final. Fecha o círculo: o selo de novo, um convite em serifa
@@ -12,7 +12,7 @@ export function CTA() {
     <section className="mx-auto w-full max-w-4xl px-6 py-28 text-center sm:py-36">
       <Reveal>
         <div className="mx-auto inline-flex">
-          <Seal size={96} />
+          <TouvieEmblem size={300} alt="Touvie" />
         </div>
       </Reveal>
       <Reveal delay={140}>

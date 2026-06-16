@@ -832,7 +832,11 @@ a,
   .padlock.is-open .padlock__shackle,
   .padlock.is-open .padlock__svg,
   .padlock.is-open .padlock__glow,
-  [style*="circle-text-spin"] {
+  [style*="circle-text-spin"],
+  .aura,
+  .hero-rays,
+  .star,
+  .halo-ring {
     animation: none !important;
   }
   .fold-card__body,
@@ -841,6 +845,160 @@ a,
   .fold-card--spine::before,
   .link-underline::after {
     transition: none !important;
+  }
+}
+
+/* ── Landing — aura viva (glow respiratório do hero) ────────────────
+   Camada radial que pulsa (scale + opacity) defasada das irmãs: ouro
+   quente no centro, celeste frio deslocado, halo grande difuso. Puro
+   brilho de fundo. `--aura-dur`/`--aura-delay` afinam cada camada; o
+   translate base mantém o centro mesmo com reduced-motion (animação off). */
+.aura {
+  position: absolute;
+  border-radius: 9999px;
+  opacity: 0.6;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: aura-pulse var(--aura-dur, 7s) var(--ease-cubic) var(--aura-delay, 0s) infinite;
+}
+@keyframes aura-pulse {
+  0%,
+  100% {
+    opacity: 0.42;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: translate(-50%, -50%) scale(1.14);
+  }
+}
+
+/* ── Landing — raios de luz girando atrás da marca do hero ─────────
+   Leque cônico (ouro + safira) mascarado num ANEL, que orbita devagar a
+   marca: dá um "brilho vivo" sutil, como luz passando pela auréola. O
+   centro vazio (máscara radial) não disputa com o texto. `translate` é
+   prop independente — centraliza sem que o `rotate` da animação quebre.
+   Exclusivo da landpage. */
+.hero-rays {
+  position: absolute;
+  border-radius: 9999px;
+  translate: -50% -50%;
+  pointer-events: none;
+  will-change: transform;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    color-mix(in srgb, var(--color-accent) 16%, transparent) 18deg,
+    transparent 44deg,
+    transparent 150deg,
+    color-mix(in srgb, var(--color-accent-2) 13%, transparent) 172deg,
+    transparent 202deg,
+    transparent 318deg,
+    color-mix(in srgb, var(--color-accent) 12%, transparent) 338deg,
+    transparent 360deg
+  );
+  -webkit-mask-image: radial-gradient(
+    circle,
+    transparent 27%,
+    #000 45%,
+    #000 60%,
+    transparent 75%
+  );
+  mask-image: radial-gradient(circle, transparent 27%, #000 45%, #000 60%, transparent 75%);
+  animation: hero-rays-spin 48s linear infinite;
+}
+@keyframes hero-rays-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Variante do emblema sem o monograma "T" — a órbita, estrelas, clave e
+   notas viram moldura decorativa (hero da landing). */
+.te-no-monogram .te-g-t {
+  display: none;
+}
+
+/* Emblema na landpage: mesma marca viva do login, porém MENOS inclinada.
+   `rotate` é propriedade independente — compõe com o transform das animações
+   (respiração/balanços) sem quebrá-las. Ponto de partida pra afinar item por
+   item (cada .te-g-* / anel pode ganhar translate/rotate/scale próprios).
+   Exclusivo da landpage. */
+.te-landing {
+  /* menos inclinado que no login; rotate é prop independente — compõe com
+     a respiração/balanços sem quebrá-los. Exclusivo da landpage. */
+  rotate: 12deg;
+}
+
+/* Só a "haste" do anel fino descida (na landpage), pra não invadir os CTAs
+   e fomentar o círculo — o resto da composição fica onde estava. */
+.te-landing .te-layer--ring-c {
+  translate: 0 5%;
+  /* −30% da amplitude do balanço (só na landpage; login mantém o original) */
+  animation-name: te-sway-y-soft;
+}
+@keyframes te-sway-y-soft {
+  0%,
+  100% {
+    transform: rotateY(0deg);
+  }
+  30% {
+    transform: rotateY(-22.4deg);
+  }
+  70% {
+    transform: rotateY(19.6deg);
+  }
+}
+/* Arco grosso levantado de leve (na landpage) — ajuste fino da composição. */
+.te-landing .te-layer--ring-a {
+  translate: 0 -5%;
+}
+
+/* Anel celeste da landing — moldura CIRCULAR e frontal (não a órbita
+   inclinada do emblema) ao redor da marca no hero. Conic dourado→safira
+   mascarado num anel fino, girando devagar. Exclusivo da landpage. */
+.halo-ring {
+  border-radius: 50%;
+  background: conic-gradient(
+    from 210deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-accent) 78%, transparent) 15%,
+    transparent 38%,
+    transparent 60%,
+    color-mix(in srgb, var(--color-accent-2) 62%, transparent) 82%,
+    transparent 100%
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  animation: halo-spin 60s linear infinite;
+}
+@keyframes halo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Landing — céu de estrelas (atmosfera celeste) ──────────────────
+   Pontos tênues que cintilam defasados; `--star-peak` controla o pico de
+   brilho (as douradas sobem mais). A opacity base mantém o céu visível
+   mesmo com reduced-motion (animação off). */
+.star {
+  position: absolute;
+  border-radius: 9999px;
+  opacity: 0.5;
+  will-change: opacity, transform;
+  animation: star-twinkle var(--star-dur, 4s) ease-in-out var(--star-delay, 0s) infinite;
+}
+@keyframes star-twinkle {
+  0%,
+  100% {
+    opacity: 0.22;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: var(--star-peak, 0.8);
+    transform: scale(1.1);
   }
 }
 

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Salad } from "lucide-react";
 import { AlimentosTab } from "./AlimentosTab";
 import { HojeTab } from "./HojeTab";
+import { LembretesTab } from "./LembretesTab";
 import { MedidasTab } from "./MedidasTab";
 import { type DietTab, Tabs } from "./Tabs";
 
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 type SP = Promise<{ t?: string; d?: string }>;
 
-const VALID: DietTab[] = ["hoje", "alimentos", "medidas"];
+const VALID: DietTab[] = ["hoje", "alimentos", "medidas", "lembretes"];
 
 function isTab(x: string | undefined): x is DietTab {
   return !!x && (VALID as string[]).includes(x);
@@ -34,6 +35,7 @@ export default async function DietaPage({ searchParams }: { searchParams: SP }) 
     hoje: "Refeições e macros do dia.",
     alimentos: "Catálogo de alimentos (TACO + seus).",
     medidas: "Peso e medidas corporais ao longo do tempo.",
+    lembretes: "Avise você mesmo na hora certa.",
   };
 
   return (
@@ -56,8 +58,10 @@ export default async function DietaPage({ searchParams }: { searchParams: SP }) 
           <HojeTab userId={userId} date={dateParam} />
         ) : tab === "alimentos" ? (
           <AlimentosTab userId={userId} />
-        ) : (
+        ) : tab === "medidas" ? (
           <MedidasTab userId={userId} />
+        ) : (
+          <LembretesTab />
         )}
       </Reveal>
     </>

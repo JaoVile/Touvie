@@ -186,6 +186,22 @@ export type Database = {
         created_at: Timestamptz;
         updated_at: Timestamptz;
       }>;
+      user_reminders: Table<{
+        id: string;
+        user_id: string;
+        area: string;
+        message: string;
+        schedule_type: "daily" | "weekly" | "interval";
+        at_time: string | null;
+        days: number[];
+        every_hours: number | null;
+        window_from: string | null;
+        window_to: string | null;
+        active: boolean;
+        last_fired_at: Timestamptz | null;
+        created_at: Timestamptz;
+        updated_at: Timestamptz;
+      }>;
       app_logs: Table<{
         id: string;
         user_id: string | null;

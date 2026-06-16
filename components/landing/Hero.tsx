@@ -5,7 +5,7 @@ import { Marquee } from "@/components/Marquee";
 import { Reveal } from "@/components/Reveal";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { Seal } from "./Seal";
+import { TouvieEmblem } from "@/components/brand/TouvieEmblem";
 
 // Os módulos, na ordem em que viram a fita do rodapé da dobra.
 const MODULES = ["rotina", "metas", "finanças", "treino", "diário", "dieta", "notas", "busca"];
@@ -25,25 +25,91 @@ const MODULES = ["rotina", "metas", "finanças", "treino", "diário", "dieta", "
 export function Hero() {
   return (
     <section className="relative flex min-h-[100svh] flex-col">
-      {/* Brilho de ouro difuso atrás do selo — clipado ao próprio container
-          pra não vazar scroll nem cortar o conteúdo. */}
+      {/* Aura viva atrás do selo — 3 camadas que respiram defasadas: halo
+          grande e lento, ouro quente central, celeste frio deslocado.
+          Clipada ao container pra não vazar scroll nem cortar o conteúdo. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <div
-          className="absolute left-1/2 top-[38%] h-[42rem] w-[42rem] -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, color-mix(in srgb, var(--color-accent) 12%, transparent) 0%, transparent 62%)",
-          }}
+        {/* Raios de luz orbitando devagar atrás da marca — brilho vivo sutil. */}
+        <span
+          className="hero-rays"
+          style={{ left: "50%", top: "40%", width: "58rem", height: "58rem" }}
         />
+        <span
+          className="aura"
+          style={
+            {
+              left: "50%",
+              top: "40%",
+              width: "52rem",
+              height: "52rem",
+              "--aura-dur": "11s",
+              background:
+                "radial-gradient(circle, color-mix(in srgb, var(--color-accent) 18%, transparent) 0%, transparent 60%)",
+            } as CSSProperties
+          }
+        />
+        <span
+          className="aura"
+          style={
+            {
+              left: "50%",
+              top: "38%",
+              width: "34rem",
+              height: "34rem",
+              "--aura-dur": "7s",
+              background:
+                "radial-gradient(circle, color-mix(in srgb, var(--color-accent) 30%, transparent) 0%, transparent 62%)",
+            } as CSSProperties
+          }
+        />
+        <span
+          className="aura"
+          style={
+            {
+              left: "61%",
+              top: "33%",
+              width: "26rem",
+              height: "26rem",
+              "--aura-dur": "9s",
+              "--aura-delay": "-3s",
+              background:
+                "radial-gradient(circle, color-mix(in srgb, var(--color-accent-2) 28%, transparent) 0%, transparent 64%)",
+            } as CSSProperties
+          }
+        />
+        {/* Marca monumental viva, bem ao fundo — a auréola gira atrás do
+            manifesto. Opacidade baixa + leve subida pra não disputar com o
+            texto; tamanho responsivo (vmin) pra emoldurar sem estourar. */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <TouvieEmblem
+            size={1650}
+            alt=""
+            hideMonogram
+            className="te-landing"
+            style={{
+              width: "min(165vmin, 1650px)",
+              height: "min(165vmin, 1650px)",
+              opacity: 0.46,
+            }}
+          />
+        </div>
       </div>
 
       {/* Miolo — ocupa o espaço disponível e centra vertical/horizontal. */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-20 text-center">
-        <Reveal>
-          <Seal size={132} />
+        <Reveal from="scale">
+          <p
+            className="gradient-text-anim leading-none"
+            style={{
+              fontFamily: "var(--font-pinyon), cursive",
+              fontSize: "clamp(3.5rem, 10vw, 6rem)",
+            }}
+          >
+            Touvie
+          </p>
         </Reveal>
 
-        <Reveal delay={140} className="mt-8">
+        <Reveal delay={140} className="mt-4">
           <p
             className="eyebrow flex items-center justify-center gap-3"
             style={{ color: "var(--color-fg-subtle)" }}

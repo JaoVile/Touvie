@@ -1,3 +1,5 @@
+import { TouvieEmblem } from "@/components/brand/TouvieEmblem";
+import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -20,6 +22,8 @@ interface GradientHeaderProps {
   title: string;
   subtitle?: string;
   action?: ReactNode;
+  /** Estampa a marca viva (emblema animado) como selo à direita do título. */
+  watermark?: boolean;
 }
 
 /**
@@ -34,6 +38,7 @@ export function GradientHeader({
   title,
   subtitle,
   action,
+  watermark,
 }: GradientHeaderProps) {
   const chip = Icon ? (
     <Icon
@@ -47,10 +52,22 @@ export function GradientHeader({
 
   return (
     <header
-      className="mb-8 flex items-center justify-between gap-4"
+      className={cn(
+        "relative mb-8 flex items-center justify-between gap-4",
+        watermark && "overflow-hidden",
+      )}
       style={{ animation: "fade-in 0.5s ease-out backwards" }}
     >
-      <div className="flex min-w-0 items-center gap-4">
+      {watermark ? (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute right-1 top-1/2 z-0 hidden -translate-y-1/2 sm:block"
+          style={{ opacity: 0.82 }}
+        >
+          <TouvieEmblem size={120} alt="" />
+        </span>
+      ) : null}
+      <div className="relative z-10 flex min-w-0 items-center gap-4">
         {chip ? (
           <span
             className={`grid ${CONFIG.chipSize} shrink-0 place-items-center rounded-2xl`}
@@ -78,7 +95,7 @@ export function GradientHeader({
           ) : null}
         </div>
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? <div className="relative z-10 shrink-0">{action}</div> : null}
     </header>
   );
 }

@@ -12,7 +12,7 @@ import {
   Target,
   Wallet,
 } from "lucide-react";
-import { Seal } from "./Seal";
+import { TouvieEmblem } from "@/components/brand/TouvieEmblem";
 
 /**
  * Interlúdio que paga o Manifesto ("você não precisa de dez apps"): à esquerda
@@ -109,7 +109,7 @@ export function AntesDepois() {
             agora
           </p>
           <div className="flex flex-col items-center gap-3">
-            <Seal size={104} />
+            <TouvieEmblem size={320} alt="" />
             <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
               um sistema só
             </p>

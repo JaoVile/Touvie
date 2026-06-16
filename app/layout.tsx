@@ -2,6 +2,7 @@ import { CursorTrail } from "@/components/CursorTrail";
 import { CustomColorsBoot } from "@/components/CustomColorsBoot";
 import { NativePickerOpener } from "@/components/NativePickerOpener";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { StarField } from "@/components/StarField";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_THEME } from "@/lib/themes";
@@ -148,6 +149,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         {/* O cursor-fita é assinatura do site INTEIRO (login incluso) — mora
             aqui no root, não nos layouts de grupo. Desktop-only (gates no
             próprio componente). */}
+        <StarField />
         <CursorTrail />
         <ServiceWorkerRegister />
         <NativePickerOpener />

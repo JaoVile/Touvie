@@ -39,15 +39,21 @@ export function TouvieEmblem({
   className,
   style,
   alt = "Touvie",
+  hideMonogram = false,
 }: {
   /** Lado do palco quadrado em px (a arte ocupa ~81% da largura dele). */
   size?: number;
   className?: string;
   style?: CSSProperties;
   alt?: string;
+  /** Esconde o monograma "T" — sobram órbita/estrelas/clave/notas (moldura). */
+  hideMonogram?: boolean;
 }) {
   return (
-    <div className={cn("te-root", className)} style={{ width: size, height: size, ...style }}>
+    <div
+      className={cn("te-root", hideMonogram && "te-no-monogram", className)}
+      style={{ width: size, height: size, ...style }}
+    >
       <MarkArt title={alt || undefined} />
       {STARS.map((s, i) => (
         <span key={`star-${i}`} aria-hidden="true" className="te-star" style={s} />
