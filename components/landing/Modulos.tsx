@@ -7,7 +7,7 @@ import {
   type LucideIcon,
   NotebookPen,
   Salad,
-  Search,
+  Sparkles,
   StickyNote,
   Target,
   Wallet,
@@ -22,7 +22,7 @@ const MODULES: { icon: LucideIcon; title: string; desc: string }[] = [
   { icon: NotebookPen, title: "Diário", desc: "Escrita protegida por PIN — só sua, de verdade." },
   { icon: Salad, title: "Dieta", desc: "Refeições, macros e medidas acompanhadas no tempo." },
   { icon: StickyNote, title: "Notas", desc: "Ideias e listas fixáveis, sempre à mão." },
-  { icon: Search, title: "Busca", desc: "Acha qualquer coisa do seu mundo, num só campo." },
+  { icon: Sparkles, title: "Vie", desc: "Seu agente de IA — pergunte qualquer coisa sobre o seu mundo." },
 ];
 
 /**

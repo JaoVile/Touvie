@@ -10,7 +10,7 @@ import { usePathname } from "next/navigation";
 const CONFIG = {
   fontSize: "0.7rem",
   letterSpacing: "0.3em",
-  opacity: 0.55,
+  opacity: 0.7,
   edge: "0.75rem", // distance from viewport edge
 } as const;
 
@@ -41,22 +41,41 @@ export function SideLabel({ label }: { label?: string } = {}) {
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed inset-y-0 z-30 hidden items-center 2xl:flex"
-      style={{ left: CONFIG.edge }}
+      className="pointer-events-none fixed inset-y-0 z-30 hidden flex-col items-center justify-center gap-6 2xl:flex"
+      style={{ left: CONFIG.edge, opacity: CONFIG.opacity }}
     >
+      {/* Fio editorial — dourado desbotando pro topo. */}
       <span
-        className="select-none font-mono font-semibold uppercase"
+        className="w-px flex-1"
+        style={{
+          maxHeight: "20vh",
+          background:
+            "linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-accent) 50%, transparent))",
+        }}
+      />
+      <span
+        className="select-none whitespace-nowrap font-mono font-semibold uppercase"
         style={{
           writingMode: "vertical-rl",
           transform: "rotate(180deg)",
-          color: "var(--color-fg-subtle)",
           fontSize: CONFIG.fontSize,
           letterSpacing: CONFIG.letterSpacing,
-          opacity: CONFIG.opacity,
         }}
       >
-        ✦&nbsp;&nbsp;{section}&nbsp;&nbsp;·&nbsp;&nbsp;Editorial&nbsp;·&nbsp;2026
+        <span style={{ color: "var(--color-accent)" }}>✦&nbsp;&nbsp;{section}</span>
+        <span style={{ color: "var(--color-fg-subtle)" }}>
+          &nbsp;&nbsp;·&nbsp;&nbsp;Editorial&nbsp;·&nbsp;2026
+        </span>
       </span>
+      {/* Fio editorial — dourado desbotando pro rodapé. */}
+      <span
+        className="w-px flex-1"
+        style={{
+          maxHeight: "20vh",
+          background:
+            "linear-gradient(to top, transparent, color-mix(in srgb, var(--color-accent) 50%, transparent))",
+        }}
+      />
     </div>
   );
 }

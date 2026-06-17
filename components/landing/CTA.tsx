@@ -9,7 +9,7 @@ import { TouvieEmblem } from "@/components/brand/TouvieEmblem";
  */
 export function CTA() {
   return (
-    <section className="mx-auto w-full max-w-4xl px-6 py-28 text-center sm:py-36">
+    <section id="cta" className="mx-auto w-full max-w-4xl px-6 py-28 text-center sm:py-36">
       <Reveal>
         <div className="mx-auto inline-flex">
           <TouvieEmblem size={300} alt="Touvie" />

@@ -15,7 +15,7 @@ const STATS: { to: number; suffix?: string; label: string }[] = [
  */
 export function Numeros() {
   return (
-    <section className="py-24 sm:py-28">
+    <section id="numeros" className="py-24 sm:py-28">
       <Reveal>
         <Marquee
           duration={48}

@@ -1,3 +1,4 @@
+import { IntroVeil } from "@/components/IntroVeil";
 import { TouvieEmblem } from "@/components/brand/TouvieEmblem";
 import { TouvieWordmark } from "@/components/brand/TouvieWordmark";
 import { GlassCard } from "@/components/glass/GlassCard";
@@ -9,6 +10,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
   const { next, error } = await searchParams;
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
+      <IntroVeil />
       {/* Palco ambiente: halos dourados fracos atrás do card (ver globals). */}
       <div aria-hidden="true" className="login-halo" />
       <GlassCard className="relative w-full max-w-md p-8 pt-5">

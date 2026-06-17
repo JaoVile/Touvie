@@ -1,3 +1,4 @@
+import { IntroVeil } from "@/components/IntroVeil";
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { ScrollProgress } from "@/components/ScrollProgress";
 import { SideLabel } from "@/components/SideLabel";
@@ -11,6 +12,7 @@ import type { ReactNode } from "react";
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
     <>
+      <IntroVeil />
       <ScrollProgress />
       <SideLabel label="TOUVIE" />
       <LandingHeader />

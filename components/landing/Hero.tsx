@@ -8,7 +8,7 @@ import type { CSSProperties } from "react";
 import { TouvieEmblem } from "@/components/brand/TouvieEmblem";
 
 // Os módulos, na ordem em que viram a fita do rodapé da dobra.
-const MODULES = ["rotina", "metas", "finanças", "treino", "diário", "dieta", "notas", "busca"];
+const MODULES = ["rotina", "metas", "finanças", "treino", "diário", "dieta", "notas", "Vie"];
 
 /**
  * Hero "selo central, cerimonial" — primeira dobra da landing. Simétrico e
@@ -24,71 +24,22 @@ const MODULES = ["rotina", "metas", "finanças", "treino", "diário", "dieta", "
  */
 export function Hero() {
   return (
-    <section className="relative flex min-h-[100svh] flex-col">
-      {/* Aura viva atrás do selo — 3 camadas que respiram defasadas: halo
-          grande e lento, ouro quente central, celeste frio deslocado.
-          Clipada ao container pra não vazar scroll nem cortar o conteúdo. */}
+    <section id="inicio" className="relative flex min-h-[100svh] flex-col">
+      {/* Fundo do hero, clipado ao container pra não vazar scroll nem cortar
+          o conteúdo: a marca monumental viva ao fundo. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        {/* Raios de luz orbitando devagar atrás da marca — brilho vivo sutil. */}
-        <span
-          className="hero-rays"
-          style={{ left: "50%", top: "40%", width: "58rem", height: "58rem" }}
-        />
-        <span
-          className="aura"
-          style={
-            {
-              left: "50%",
-              top: "40%",
-              width: "52rem",
-              height: "52rem",
-              "--aura-dur": "11s",
-              background:
-                "radial-gradient(circle, color-mix(in srgb, var(--color-accent) 18%, transparent) 0%, transparent 60%)",
-            } as CSSProperties
-          }
-        />
-        <span
-          className="aura"
-          style={
-            {
-              left: "50%",
-              top: "38%",
-              width: "34rem",
-              height: "34rem",
-              "--aura-dur": "7s",
-              background:
-                "radial-gradient(circle, color-mix(in srgb, var(--color-accent) 30%, transparent) 0%, transparent 62%)",
-            } as CSSProperties
-          }
-        />
-        <span
-          className="aura"
-          style={
-            {
-              left: "61%",
-              top: "33%",
-              width: "26rem",
-              height: "26rem",
-              "--aura-dur": "9s",
-              "--aura-delay": "-3s",
-              background:
-                "radial-gradient(circle, color-mix(in srgb, var(--color-accent-2) 28%, transparent) 0%, transparent 64%)",
-            } as CSSProperties
-          }
-        />
         {/* Marca monumental viva, bem ao fundo — a auréola gira atrás do
             manifesto. Opacidade baixa + leve subida pra não disputar com o
             texto; tamanho responsivo (vmin) pra emoldurar sem estourar. */}
         <div className="absolute inset-0 flex items-center justify-center">
           <TouvieEmblem
-            size={1650}
+            size={1277}
             alt=""
             hideMonogram
             className="te-landing"
             style={{
-              width: "min(165vmin, 1650px)",
-              height: "min(165vmin, 1650px)",
+              width: "min(127.5vmin, 1277px)",
+              height: "min(127.5vmin, 1277px)",
               opacity: 0.46,
             }}
           />
@@ -179,14 +130,14 @@ export function Hero() {
       {/* Fita dos módulos — em fluxo no rodapé, com bordas que desbotam. */}
       <Reveal delay={620} className="pb-10">
         <Marquee
-          duration={36}
+          duration={72}
           repeat={3}
           className="eyebrow"
           style={
             {
-              color: "var(--color-fg-subtle)",
-              opacity: 0.55,
-              "--marquee-fade": "clamp(4rem, 18vw, 22rem)",
+              color: "var(--color-fg-muted)",
+              opacity: 0.8,
+              "--marquee-fade": "clamp(2.5rem, 7vw, 10rem)",
             } as CSSProperties
           }
         >

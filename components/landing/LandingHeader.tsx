@@ -7,8 +7,9 @@ import { type CSSProperties, useEffect, useState } from "react";
 /**
  * Cabeçalho FIXO da landing — sempre presente no topo (como na versão
  * original). Transparente sobre o hero, vira glass com hairline ao rolar.
- * Logo (emblema vivo + wordmark) à esquerda; botão Entrar (pill dourado
- * magnético, a mesma linguagem do CTA) à direita.
+ * Wordmark à esquerda; botão Entrar (pill de CONTORNO dourado magnético —
+ * secundário de propósito, pra o pill sólido do hero seguir como o único
+ * CTA primário) à direita.
  */
 export function LandingHeader() {
   const [scrolled, setScrolled] = useState(false);
@@ -48,8 +49,7 @@ export function LandingHeader() {
         <Magnetic strength={0.4} radius={80}>
           <Link
             href="/login"
-            className="gradient-brand inline-flex items-center rounded-full px-6 py-2.5 text-sm font-semibold transition-shadow duration-300 hover:shadow-[0_10px_30px_rgba(224,184,62,0.32)]"
-            style={{ color: "var(--color-bg)" }}
+            className="btn-pill-ghost inline-flex items-center rounded-full px-6 py-2.5 text-sm font-semibold"
           >
             Entrar
           </Link>
