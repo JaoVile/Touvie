@@ -1272,7 +1272,12 @@ input[type="week"]:hover::-webkit-calendar-picker-indicator {
    fora (forwards), nunca travam; pointer-events:none não rouba clique. Cada
    metade carrega o MESMO gradiente do fundo (posicionado por lado) → cortina
    fechada idêntica ao fundo, sem emenda. Mobile-safe (vw/clamp/nowrap).
-   Respeita reduced-motion (fade curto, sem deslize). */
+   Respeita reduced-motion (fade curto, sem deslize).
+   Gate 1×/sessão: [data-intro-seen] (setado pelo script do IntroVeil quando a
+   intro já tocou nesta sessão) esconde o véu na hora, sem flash. */
+[data-intro-seen] .intro-veil {
+  display: none;
+}
 .intro-veil {
   position: fixed;
   inset: 0;
