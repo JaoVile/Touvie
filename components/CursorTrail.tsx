@@ -14,6 +14,8 @@ import {
   isValidCursorColor,
   readCustomCursor,
 } from "@/lib/cursor-colors";
+import { QUALITY_EVENT, type QualityTier, readQuality } from "@/lib/quality";
+import { FREQUENCIES, SOUND_EVENT, type SoundState, readSoundState } from "@/lib/soundscape";
 import { useEffect, useState } from "react";
 
 /**
@@ -33,7 +35,7 @@ import { useEffect, useState } from "react";
  */
 const CONFIG = {
   // --- spine: the chain the staff rides on --------------------------------
-  length: 40, // chain segments — keep high for a smooth, unfaceted curve
+  length: 32, // chain segments — alto o bastante pra curva lisa, sem strokes demais
   damping: 0.34, // segment catch-up per frame — lower = ribbon takes
   //                longer to collapse once the pointer stops (~2× here)
   inertiaRetention: 0.95, // how much velocity carries frame to frame
@@ -45,7 +47,8 @@ const CONFIG = {
   maxLengthVw: 0.8, // hard cap on total length, as a fraction of viewport w
 
   // --- staff: 3 lines + 2 extremely subtle --------------------------------
-  staffLines: 5, // total parallel lines: 3 visible + 2 outer faint
+  staffLines: 3, // pauta de 3 linhas (antes 5: as 2 externas, alpha 0.1, quase
+  //                não apareciam e dobravam o nº de traços/frame — cortadas)
   staffSpread: 11, // total staff height at the head, in px
   spreadGain: 0.32, // extra spread folded in per unit of pointer speed
   headWidth: 1.1, // line thickness at the head
@@ -78,7 +81,9 @@ const CONFIG = {
   pitchSpread: 13, // px across the staff for low → high note placement
 } as const;
 
-// C-major scale, octave 5 — the seven syllables, in order.
+// C-major scale, octave 5 — the seven syllables, in order. Serve de FALLBACK
+// (nenhuma frequência de fundo ligada) e fixa a contagem de 7 graus que os
+// glyphs usam pra escolher a linha da pauta.
 const SCALE = [
   { name: "dó", freq: 523.25 },
   { name: "ré", freq: 587.33 },
@@ -88,6 +93,19 @@ const SCALE = [
   { name: "lá", freq: 880.0 },
   { name: "si", freq: 987.77 },
 ] as const;
+
+// Semitons dos 7 graus da escala maior — pra reconstruir a escala a partir de
+// QUALQUER raiz (afinando o clique à frequência de fundo ativa).
+const MAJOR_STEPS = [0, 2, 4, 5, 7, 9, 11] as const;
+const DEFAULT_ROOT = SCALE[0].freq; // C5, quando não há frequência tocando.
+
+// Raiz da melodia do cursor a partir do estado do som: pega a tônica da
+// frequência ativa (rootHz, grave) e sobe 2 oitavas pra ficar brilhante e
+// consonante com o pad. Sem frequência → C5 (comportamento original).
+function melodyRootFrom(s: SoundState): number {
+  const f = FREQUENCIES.find((x) => x.key === s.freqMode);
+  return f ? f.rootHz * 4 : DEFAULT_ROOT;
+}
 
 // Notas especiais na fita: a DUPLA é o "♫" (duas notinhas numa só, barra em
 // cima — maior que a normal pra ler de longe); a CLAVE DE SOL é a da própria
@@ -113,6 +131,14 @@ type Glyph = {
   kind: GlyphKind; // normal (♪) | colcheia dupla da marca | clave de sol
   auto?: boolean; // emitida automaticamente (mais transparente) vs. por clique
 };
+
+// Liga/desliga do rastro — escolhido em /config, persistido em localStorage.
+// É um canvas de tela cheia redesenhado por frame; em máquina modesta pesa, então
+// dá pra desligar de vez (evento pra refletir ao vivo, sem reload). Default ON.
+const CURSOR_KEY = "touvie:cursor";
+const CURSOR_EVENT = "touvie:cursor";
+const readCursorOn = (): boolean =>
+  typeof window === "undefined" ? true : window.localStorage.getItem(CURSOR_KEY) !== "off";
 
 // Trail size — picked in /config, persisted in localStorage. 1× / 2× / 3×.
 const SCALE_KEY = "touvie:trailScale";
@@ -148,6 +174,35 @@ export function CursorTrail() {
   const [custom, setCustom] = useState<CustomCursor>(DEFAULT_CUSTOM_CURSOR);
   // null while SSR; a boolean once we've evaluated the media queries client-side.
   const [denied, setDenied] = useState<boolean | null>(null);
+  // Liga/desliga manual (em /config). Default ON; reconciliado no mount.
+  const [cursorOn, setCursorOn] = useState(true);
+  // Nível de qualidade visual — a fita só roda em "completo" (efeito caro).
+  const [quality, setQuality] = useState<QualityTier>("completo");
+
+  useEffect(() => {
+    setCursorOn(readCursorOn());
+    setQuality(readQuality());
+    const onToggle = (e: Event) => {
+      const v = (e as CustomEvent).detail;
+      setCursorOn(typeof v === "boolean" ? v : readCursorOn());
+    };
+    const onQuality = (e: Event) => {
+      const v = (e as CustomEvent).detail;
+      setQuality(v === "completo" || v === "desempenho" ? v : readQuality());
+    };
+    const onStorage = () => {
+      setCursorOn(readCursorOn());
+      setQuality(readQuality());
+    };
+    window.addEventListener(CURSOR_EVENT, onToggle);
+    window.addEventListener(QUALITY_EVENT, onQuality);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(CURSOR_EVENT, onToggle);
+      window.removeEventListener(QUALITY_EVENT, onQuality);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
 
   // Pick up the saved size, and react live when /config changes it.
   useEffect(() => {
@@ -203,7 +258,8 @@ export function CursorTrail() {
   }, []);
 
   useEffect(() => {
-    if (denied !== false) return;
+    // Desempenho corta a fita; em completo respeita o toggle individual.
+    if (denied !== false || !cursorOn || quality !== "completo") return;
 
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d", { alpha: true, desynchronized: true });
@@ -212,8 +268,10 @@ export function CursorTrail() {
       position: "fixed",
       top: "0",
       left: "0",
-      width: "100vw",
-      height: "100vh",
+      // 100% (não 100vw): 100vw inclui a largura da barra de rolagem vertical e
+      // estourava ~15px pro lado, criando uma barra de rolagem HORIZONTAL.
+      width: "100%",
+      height: "100%",
       pointerEvents: "none",
       zIndex: "9999",
       background: "transparent",
@@ -226,11 +284,14 @@ export function CursorTrail() {
     const staffSpread = CONFIG.staffSpread * trailScale;
     const headWidth = CONFIG.headWidth * trailScale;
     const tailWidth = CONFIG.tailWidth * trailScale;
-    const glowBlur = CONFIG.glowBlur * trailScale;
     // Resolve the colour preset once per effect run — when the user picks a
     // new colour we re-run via the dep array (no manual swap needed inside).
     const palette =
       trailColor === CUSTOM_CURSOR_ID ? buildCursorPreset(custom) : getCursorColor(trailColor);
+    // SEM filtro CSS aqui: aplicar drop-shadow num canvas de tela cheia que
+    // redesenha todo frame força o compositor a re-filtrar a camada inteira por
+    // frame — trava o app. O ribbon fica nítido; só as poucas notas (glyphs)
+    // ganham um leve brilho via ctx.shadow (baixo custo, são ≤24 desenhos).
     const glyphSize = CONFIG.glyphSize * trailScale;
     const glyphExitDist = CONFIG.glyphExitDist * trailScale;
     const pitchSpread = CONFIG.pitchSpread * trailScale;
@@ -252,7 +313,9 @@ export function CursorTrail() {
     let lastAuto = 0; // timestamp of the last auto-emitted note
 
     const resize = () => {
-      w = window.innerWidth;
+      // clientWidth exclui a barra de rolagem (casa com o CSS width:100% e com
+      // as coordenadas do pointer, que também ignoram a barra).
+      w = document.documentElement.clientWidth;
       h = window.innerHeight;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.floor(w * dpr);
@@ -300,6 +363,16 @@ export function CursorTrail() {
     // --- audio: each click sounds the next note of the scale ---------------
     let audioCtx: AudioContext | null = null;
     let noteIndex = 0;
+
+    // A escala do cursor se AFINA à frequência de fundo ativa: a raiz segue o
+    // som que está tocando, então cada clique soa consonante com o pad. Atualiza
+    // ao vivo quando o /config muda o som (mesmo evento do SoundscapeLayer).
+    let melodyRoot = melodyRootFrom(readSoundState());
+    const onSound = (e: Event) => {
+      melodyRoot = melodyRootFrom((e as CustomEvent<SoundState>).detail);
+    };
+    window.addEventListener(SOUND_EVENT, onSound);
+    const noteFreq = (idx: number) => melodyRoot * 2 ** (MAJOR_STEPS[idx] / 12);
 
     // A clave da marca, pronta pro canvas (Path2D só existe no client —
     // por isso aqui dentro do effect, não no module scope).
@@ -363,7 +436,7 @@ export function CursorTrail() {
     };
 
     const onClick = () => {
-      playNote(SCALE[noteIndex].freq);
+      playNote(noteFreq(noteIndex));
       // The note joins the ribbon — no spawn position, it rides the spine.
       glyphs.push({ born: performance.now(), idx: noteIndex, kind: nextKind() });
       if (glyphs.length > 24) glyphs.shift();
@@ -385,8 +458,9 @@ export function CursorTrail() {
       const now = performance.now();
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.shadowColor = palette.noteShadow;
       ctx.fillStyle = palette.noteFill;
+      ctx.shadowColor = palette.noteShadow;
+      const noteGlow = (palette.glowBlur ?? 4) * trailScale;
       for (let i = glyphs.length - 1; i >= 0; i--) {
         const g = glyphs[i];
         const isLast = g.idx === SCALE.length - 1;
@@ -458,8 +532,8 @@ export function CursorTrail() {
 
         ctx.save();
         ctx.translate(x, y);
-        ctx.shadowBlur = palette.glowBlur ?? 5;
         ctx.globalAlpha = alpha;
+        ctx.shadowBlur = noteGlow;
         if (g.kind === "clef") {
           // A clave da MARCA (Path2D nas coordenadas da arte): normaliza
           // pelo box medido — centra no ponto e escala pra altura-alvo.
@@ -527,7 +601,7 @@ export function CursorTrail() {
           glyphs.push({ born: nowA, idx: noteIndex, kind: nextKind(), auto: true });
           if (glyphs.length > 24) glyphs.shift();
           if (CONFIG.autoSound && audioCtx && audioCtx.state === "running") {
-            playNote(SCALE[noteIndex].freq, CONFIG.melodyVolume * CONFIG.autoVolumeMul);
+            playNote(noteFreq(noteIndex), CONFIG.melodyVolume * CONFIG.autoVolumeMul);
           }
           noteIndex = (noteIndex + 1) % SCALE.length;
         }
@@ -616,9 +690,8 @@ export function CursorTrail() {
           }
         }
 
-        // Soft bloom — breathes with pointer speed.
-        ctx.shadowColor = `rgba(${palette.glowRgb},${0.3 + speed * 0.3})`;
-        ctx.shadowBlur = glowBlur * (1 + speed * 0.8);
+        // O brilho agora é o drop-shadow CSS da camada (ver canvas.style.filter)
+        // — nada de ctx.shadowBlur por traço, que era o gargalo.
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
 
@@ -637,7 +710,9 @@ export function CursorTrail() {
           const atTail = i === length - 2;
           for (let k = 0; k < N; k++) {
             const L = lines[k];
-            const base = k === 0 || k === N - 1 ? CONFIG.alphaFaint : CONFIG.alphaBase;
+            // Linhas externas só "somem" (alphaFaint) quando há 5+; numa pauta
+            // de 3 todas são a linha cheia.
+            const base = N >= 5 && (k === 0 || k === N - 1) ? CONFIG.alphaFaint : CONFIG.alphaBase;
             const alpha = base + (CONFIG.alphaEnd - base) * t;
             ctx.strokeStyle = `rgba(${palette.ribbonRgb},${alpha})`;
             const sx = atHead ? L[0].x : (L[i - 1].x + L[i].x) / 2;
@@ -684,13 +759,14 @@ export function CursorTrail() {
       stop();
       window.removeEventListener("pointermove", onPointer);
       window.removeEventListener("pointerdown", onClick);
+      window.removeEventListener(SOUND_EVENT, onSound);
       document.removeEventListener("pointerleave", onLeave);
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", onVisibility);
       void audioCtx?.close();
       canvas.remove();
     };
-  }, [denied, trailScale, trailColor, custom]);
+  }, [denied, cursorOn, quality, trailScale, trailColor, custom]);
 
   return null;
 }

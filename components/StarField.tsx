@@ -1,5 +1,6 @@
 "use client";
 
+import { QUALITY_EVENT, type QualityTier, readQuality } from "@/lib/quality";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 
 /**
@@ -41,22 +42,33 @@ const STARS: Star[] = Array.from({ length: 60 }, (_, i) => ({
 export function StarField() {
   const ref = useRef<HTMLDivElement>(null);
   const [on, setOn] = useState(true); // default ligado; reconciliado no mount
+  // Nível de qualidade — as estrelas só aparecem em "completo".
+  const [quality, setQuality] = useState<QualityTier>("completo");
 
   // Lê a preferência salva e reflete o toggle ao vivo (sem reload).
   useEffect(() => {
     const read = () => localStorage.getItem(STARS_STORAGE_KEY) !== "off";
     setOn(read());
+    setQuality(readQuality());
     const onToggle = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       setOn(typeof detail === "boolean" ? detail : read());
     };
+    const onQuality = (e: Event) => {
+      const v = (e as CustomEvent).detail;
+      setQuality(v === "completo" || v === "desempenho" ? v : readQuality());
+    };
     window.addEventListener(STARS_EVENT, onToggle);
-    return () => window.removeEventListener(STARS_EVENT, onToggle);
+    window.addEventListener(QUALITY_EVENT, onQuality);
+    return () => {
+      window.removeEventListener(STARS_EVENT, onToggle);
+      window.removeEventListener(QUALITY_EVENT, onQuality);
+    };
   }, []);
 
   // Parallax de profundidade, clampado pra nunca revelar a borda do céu.
   useEffect(() => {
-    if (!on) return;
+    if (!on || quality !== "completo") return;
     const el = ref.current;
     if (!el) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -73,9 +85,9 @@ export function StarField() {
       window.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(raf);
     };
-  }, [on]);
+  }, [on, quality]);
 
-  if (!on) return null;
+  if (!on || quality !== "completo") return null;
 
   return (
     <div

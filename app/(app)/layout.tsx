@@ -1,6 +1,7 @@
 import { Nav } from "@/components/Nav";
 import { ScrollProgress } from "@/components/ScrollProgress";
 import { SideLabel } from "@/components/SideLabel";
+import { SoundscapeLayer } from "@/components/SoundscapeLayer";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -14,6 +15,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <SoundscapeLayer />
       <ScrollProgress />
       <SideLabel />
       <Nav />
