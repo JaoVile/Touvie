@@ -53,7 +53,7 @@
   --gradient-bg: radial-gradient(ellipse at top, #2e1065 0%, #0a0618 55%);
 
   --radius-card: 1.25rem;
-  --glass-blur: 20px;
+  --glass-blur: 12px; /* era 20px — backdrop-filter caro escala com o raio */
   --glass-bg: rgb(255 255 255 / 0.05);
   --glass-border: rgb(255 255 255 / 0.1);
   --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.37);
@@ -77,6 +77,14 @@
 html,
 body {
   height: 100%;
+}
+
+/* Mata a barra de rolagem HORIZONTAL (a "resolução bugada"): algum elemento
+   decorativo vaza alguns px pra direita; como o conteúdo é centralizado
+   (mx-auto), isso empurrava os cards pra fora da tela. No <html> (a raiz, que é
+   o scroller) o hidden NÃO quebra o nav `sticky`. */
+html {
+  overflow-x: hidden;
 }
 
 body {
@@ -110,6 +118,31 @@ a,
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-card);
   box-shadow: var(--glass-shadow);
+}
+
+/* ── Modo DESEMPENHO (data-quality) ──────────────────────────────
+   Fonte: lib/quality.ts. Corta os efeitos mais caros mantendo o layout e a
+   legibilidade. O cursor-fita e o StarField são cortados nos próprios
+   componentes; aqui ficam o backdrop-filter (o maior custo) e as animações
+   decorativas que rodam sem parar. */
+[data-quality="desempenho"] .glass,
+[data-quality="desempenho"] .fold-card__body {
+  /* Sem blur em tempo real: fundo sólido translúcido (legível sem o glass). */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: color-mix(in srgb, var(--color-bg-elevated) 86%, transparent);
+}
+[data-quality="desempenho"] .te-root,
+[data-quality="desempenho"] .te-root *,
+[data-quality="desempenho"] .gradient-text-anim,
+[data-quality="desempenho"] .float-note,
+[data-quality="desempenho"] .touvie-logo-anim,
+[data-quality="desempenho"] .aura,
+[data-quality="desempenho"] .halo-ring,
+[data-quality="desempenho"] .tw-glow,
+[data-quality="desempenho"] .tw-sheen {
+  /* O design já tem estado-base bom pra animation:none (usado no reduced-motion). */
+  animation: none !important;
 }
 
 @utility gradient-brand {
@@ -200,6 +233,12 @@ a,
   border-radius: var(--radius-card);
   box-shadow: 0 9px 24px rgb(0 0 0 / 0.32);
   transition: box-shadow var(--dur-base) var(--ease-cubic);
+  /* Off-screen cards (a maioria numa página longa como /config) pulam render,
+     paint E o backdrop-filter caro — o navegador só pinta os visíveis. É o que
+     mais ajuda a fluidez em telas com muitos cards. intrinsic-size evita pulo
+     da barra de rolagem; 'auto' memoriza a altura real já renderizada. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
   /* Entrance is driven by <Reveal> (scroll-aware), not a CSS load
      animation — one motion system across the app. */
 }

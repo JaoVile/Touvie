@@ -49,7 +49,7 @@ function NamesForm({ fullName, displayName }: { fullName: string; displayName: s
   return (
     <form
       action={submit}
-      className="max-w-sm space-y-2"
+      className="max-w-md space-y-2"
       onChange={() => {
         if (success) setSuccess(false);
         if (error) setError(undefined);
@@ -103,7 +103,7 @@ function EmailForm({ email }: { email: string }) {
   return (
     <form
       action={submit}
-      className="max-w-sm space-y-2"
+      className="max-w-md space-y-2"
       onChange={() => {
         if (success) setSuccess(false);
         if (error) setError(undefined);
@@ -157,7 +157,7 @@ function PasswordForm() {
     <form
       ref={formRef}
       action={submit}
-      className="max-w-sm space-y-2"
+      className="max-w-md space-y-2"
       onChange={() => {
         if (success) setSuccess(false);
         if (error) setError(undefined);

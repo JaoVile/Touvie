@@ -177,6 +177,19 @@ export type Database = {
         created_at: Timestamptz;
         updated_at: Timestamptz;
       }>;
+      reading_books: Table<{
+        id: string;
+        user_id: string;
+        title: string;
+        author: string | null;
+        file_path: string;
+        file_name: string;
+        file_size_bytes: number;
+        total_pages: number | null;
+        current_page: number;
+        created_at: Timestamptz;
+        updated_at: Timestamptz;
+      }>;
       notification_templates: Table<{
         id: string;
         key: string;

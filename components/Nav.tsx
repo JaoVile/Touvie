@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import {
   Bell,
+  BookOpen,
   CalendarDays,
   Dumbbell,
   Ellipsis,
@@ -49,6 +50,7 @@ export function Nav() {
     { href: "/metas", label: t("goals"), Icon: Target },
     { href: "/diario", label: t("diary"), Icon: Lock },
     { href: "/notas", label: t("notes"), Icon: StickyNote },
+    { href: "/leitura", label: t("reading"), Icon: BookOpen },
     { href: "/busca", label: t("search"), Icon: Search },
     { href: "/notificacoes", label: t("notifications"), Icon: Bell },
   ];

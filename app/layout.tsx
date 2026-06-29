@@ -1,6 +1,7 @@
 import { CursorTrail } from "@/components/CursorTrail";
 import { CustomColorsBoot } from "@/components/CustomColorsBoot";
 import { NativePickerOpener } from "@/components/NativePickerOpener";
+import { QualityBoot } from "@/components/QualityBoot";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { StarField } from "@/components/StarField";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -142,6 +143,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       suppressHydrationWarning
     >
       <body>
+        <QualityBoot />
         <CustomColorsBoot />
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider theme={theme}>{children}</ThemeProvider>

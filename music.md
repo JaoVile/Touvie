@@ -1,66 +1,60 @@
 # Music — Som de fundo (ambiência + frequências)
 
-> **Status:** planejado / referência. Não implementar ainda — o usuário vai
-> **procurar e testar os sons** ("ruídos") e achar o ideal; provavelmente vai
-> pedir uma **lib de sons** ou **previews gerados** (Web Audio) pra testar.
-> **Onde toca:** app logado **+ landpage**.
+> **Status:** IMPLEMENTADO (jun/2026). Controlado em **/config → card "Som de fundo"**.
+> **Onde toca:** só no **app logado** — `SoundscapeLayer` mora no layout `(app)`,
+> não no root. (O plano antigo previa landpage, mas tocar antes do login incomodou
+> o usuário; ficou app-only.) Gateado pelo nível de qualidade visual: pad/texturas
+> tocam normalmente; o cursor-fita é que depende do modo "Completo".
 
 ## Objetivo
 
-Som ambiente **suave e bonito de escutar** (não só a frequência crua) pra
-acompanhar o uso do Touvie. A frequência é a camada de baixo; a música/textura
-agradável por cima é o que segura o ouvido.
+Som ambiente **suave e bonito de escutar** (não só a frequência crua). A frequência
+é a camada de baixo; a **textura agradável por cima** (chuva, instrumentos…) é o que
+segura o ouvido. Ganho garantido = **ambiência + ritual**; o efeito de onda cerebral
+é sutil/subjetivo.
 
-## Frequências (ondas cerebrais) — veredito pro Touvie
+## Arquitetura (3 camadas, em `lib/soundscape.ts` + `lib/soundscape-engine.ts`)
 
-| Onda | Faixa | Estado / uso | No Touvie |
-| --- | --- | --- | --- |
-| **Alpha** | 8–12 Hz | Relaxamento consciente, foco relaxado, anti-estresse | ⭐ **PADRÃO** (modo Calma) |
-| **Beta** | 12–30 Hz (usar ~14–18) | Alerta, raciocínio, resolução de problemas | ✅ modo **Foco** (com moderação) |
-| **Theta** | 4–8 Hz | Meditação, introspecção, criatividade | ✅ modo **Reflexão** (sonolento p/ tarefa) |
-| **Delta** | 0,5–4 Hz | Sono profundo, regeneração | ⚠️ com **aviso**: "melhor só antes de dormir" |
-| **Gamma** | 30–100 Hz | Alta performance, "eureca" | ❌ **fora** (intenso, difícil soar bem) |
+1. **Frequência (sintetizada).** 4 modos. Por padrão é um **pad QUENTE** (acorde
+   sub·tônica·terça·quinta·oitava, lowpass, respiração + tremolo suave) — sem pulso.
+   O **tom isócrono** (entrainment) virou **opt-in: "Modo profundo"** (`deepMode`,
+   desligado por padrão), porque o pulso cru soava clínico/desconfortável.
 
-## Modos (empacotar Hz em nomes amigáveis — usuário não vê "hertz")
+   | Modo | Onda | beatHz | rootHz |
+   | --- | --- | --- | --- |
+   | **Calma** | Alpha | 10 | 196 |
+   | **Foco** | Beta | 16 | 220 |
+   | **Reflexão** | Theta | 6 | 174 |
+   | **Soneca** | Delta | 2,5 | 146 (com aviso "antes de dormir") |
 
-- 🌊 **Calma** — Alpha — **padrão, ligado por default**
-- 🎯 **Foco** — Beta baixo — combina com a Quest de Foco (ver [Quests.md](Quests.md))
-- 🌙 **Reflexão** — Theta — diário / respiro
-- 😴 **Soneca** — Delta — **com aviso**: "melhor só pra momentos antes do sono"
+2. **Texturas (áudio REAL).** Loops baixados do Freesound (CC0/CC-BY) em
+   `public/sounds/`. Ambiente: chuva, mar, floresta, vento + ruído-rosa, ruído-marrom.
+   Instrumentos: violinos, violão, piano. Cada uma (menos os 2 ruídos) tem **3
+   variações** que rodam sozinhas (crossfade ~42s). Curadas por `scripts/fetch-sounds.mjs`
+   (`npm run fetch:sounds <key>` re-baixa). Créditos automáticos via `manifest.json`
+   → `SoundCredits`.
 
-## Config (`/config`)
+3. **Composições prontas.** **Atmosferas** (`SCENES`, 12 presets de 1 clique que
+   montam a mistura inteira) e **Guiadas** (`JOURNEYS`, 4 jornadas que migram a
+   frequência no tempo — princípio ISO, "encontra e conduz").
 
-- **Explicação breve** do que é a música/frequência (1–2 linhas, sem jargão).
-- **Controles:** volume (aumentar/abaixar) e **mutar**.
-- **Trocar o fundo** (escolher o modo acima).
-- Toggle on/off; **Alpha ligado por padrão**.
+## Config — layout "Híbrido" (o som ambiente é o core, fica de cara)
 
-## Restrições técnicas (IMPORTANTES)
+1. **Atmosferas** — linha compacta de chips (rolagem horizontal).
+2. **Monte o seu** — chips de Ambiente + Instrumentos visíveis + um Volume.
+3. **Avançado** (recolhido) — Frequência (+ volume) · Guiadas · Ruídos · Modo profundo.
 
-- **Autoplay é bloqueado pelos navegadores** → o som **não arranca sozinho**.
-  "Ligado por padrão" = começa no **1º gesto** (clique/toque) na página. Na
-  landpage é ainda mais restrito (sempre só após interação).
-- **Binaural beats só funcionam com FONE** (o batimento nasce da diferença entre
-  os dois ouvidos). Pra alto-falante (celular), usar **tons isócronos** (pulsos
-  no mesmo canal) — funcionam sem fone.
-- O efeito das ondas é **sutil/subjetivo** (ciência mista). O ganho garantido é
-  **ambiência + ritual** → investir na faixa ser **boa de ouvir**.
+## Decisões fechadas (eram "A definir")
 
-## Fonte do som (a decidir — usuário vai testar)
+- **Fonte:** misto — síntese pra frequência + arquivos reais pras texturas.
+- **Persistência:** localStorage (`touvie:sound`), sticky, ao vivo via `SOUND_EVENT`
+  (não em `profiles` — pode evoluir pra lá depois).
+- **Player:** overlay global `SoundscapeLayer` no layout `(app)`.
+- **Fone vs alto-falante:** **tom isócrono** (funciona sem fone), e só no Modo profundo.
+- **Autoplay:** começa no 1º gesto do usuário (navegadores bloqueiam som automático).
 
-1. **Síntese via Web Audio** — gero pad/drone suave + a frequência, **sem
-   arquivo**; ótimo pra **previews** rápidos de cada modo pra você testar.
-2. **Arquivos `.mp3`** — música por cima + frequência embutida por baixo; melhor
-   qualidade, depende de ter/criar as faixas (ou uma lib).
-3. **Misto** — síntese como base agora, troca por `.mp3` depois.
+## Em aberto / a avaliar de ouvido
 
-> Próxima ação provável do usuário: pedir **previews** (eu gero via Web Audio um
-> de cada modo) OU indicar uma **lib/biblioteca de sons** pra eu plugar.
-
-## A definir na implementação
-
-- [ ] Lib de sons vs síntese vs mp3 (usuário testa e decide).
-- [ ] Persistência da preferência: localStorage (como `StarsToggle`) vs `profiles`.
-- [ ] Onde plugar o player: provável overlay global (app layout) + landpage layout.
-- [ ] Faixa/preview por modo + crossfade ao trocar.
-- [ ] Fone vs alto-falante: detectar/avisar, ou usar isócrono por padrão.
+- [ ] Confirmar se cada textura é **boa de ouvir** (ex.: `mar-2` veio mais "tempestade").
+- [ ] Afinar o pad quente (corpo/tremolo) e os tempos de rotação/crossfade.
+- [ ] Página `app/sons/` é preview TEMPORÁRio — apagar quando o login estiver validado.

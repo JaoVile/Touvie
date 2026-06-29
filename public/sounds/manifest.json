@@ -1,0 +1,234 @@
+{
+  "generatedFrom": "freesound.org",
+  "note": "Áudios baixados via API do Freesound (previews HQ). Licenças CC0/CC-BY.",
+  "sounds": [
+    {
+      "key": "chuva",
+      "variant": 1,
+      "file": "/sounds/chuva-1.mp3",
+      "title": "Rain in Munich Westpark",
+      "author": "myLoop",
+      "license": "CC0",
+      "source": "https://freesound.org/people/myLoop/sounds/849800/",
+      "freesoundId": 849800
+    },
+    {
+      "key": "chuva",
+      "variant": 2,
+      "file": "/sounds/chuva-2.mp3",
+      "title": "Summer Rain Shower on Tree Canopy",
+      "author": "iainmccurdy",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/iainmccurdy/sounds/695558/",
+      "freesoundId": 695558
+    },
+    {
+      "key": "chuva",
+      "variant": 3,
+      "file": "/sounds/chuva-3.mp3",
+      "title": "gentle rainfall.wav",
+      "author": "rasunter255",
+      "license": "CC0",
+      "source": "https://freesound.org/people/rasunter255/sounds/416227/",
+      "freesoundId": 416227
+    },
+    {
+      "key": "mar",
+      "variant": 1,
+      "file": "/sounds/mar-1.mp3",
+      "title": "Surf, waves and sea foam from Naplo beach, Lima // Olas y espuma del mar en la playa de Naplo, Lima.",
+      "author": "cesar-gutierrez-99",
+      "license": "CC0",
+      "source": "https://freesound.org/people/cesar-gutierrez-99/sounds/843570/",
+      "freesoundId": 843570
+    },
+    {
+      "key": "mar",
+      "variant": 2,
+      "file": "/sounds/mar-2.mp3",
+      "title": "3 jan 2014, waves breaking over sea wall at crosby, during high spring tide in winter storm, with Applied EQ.wav",
+      "author": "crosbychris",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/crosbychris/sounds/213077/",
+      "freesoundId": 213077
+    },
+    {
+      "key": "mar",
+      "variant": 3,
+      "file": "/sounds/mar-3.mp3",
+      "title": "Calm ocean waves",
+      "author": "SamsterBirdies",
+      "license": "CC0",
+      "source": "https://freesound.org/people/SamsterBirdies/sounds/578524/",
+      "freesoundId": 578524
+    },
+    {
+      "key": "ruido-rosa",
+      "file": "/sounds/ruido-rosa.mp3",
+      "title": "NOISE-PINK-10VU.wav",
+      "author": "mutantra",
+      "license": "CC0",
+      "source": "https://freesound.org/people/mutantra/sounds/571176/",
+      "freesoundId": 571176
+    },
+    {
+      "key": "ruido-marrom",
+      "file": "/sounds/ruido-marrom.mp3",
+      "title": "Brown Noise",
+      "author": "tracyradio",
+      "license": "CC0",
+      "source": "https://freesound.org/people/tracyradio/sounds/737409/",
+      "freesoundId": 737409
+    },
+    {
+      "key": "floresta",
+      "variant": 1,
+      "file": "/sounds/floresta-1.mp3",
+      "title": "AMBForst_Late spring.A Quiet Forest Edge.Hot.Sunny.Birds.Raven.Wood Pigeon.Mosquitoes 1_EM",
+      "author": "newlocknew",
+      "license": "CC0",
+      "source": "https://freesound.org/people/newlocknew/sounds/855650/",
+      "freesoundId": 855650
+    },
+    {
+      "key": "floresta",
+      "variant": 2,
+      "file": "/sounds/floresta-2.mp3",
+      "title": "Birds In The Forest",
+      "author": "BurghRecords",
+      "license": "CC0",
+      "source": "https://freesound.org/people/BurghRecords/sounds/456123/",
+      "freesoundId": 456123
+    },
+    {
+      "key": "floresta",
+      "variant": 3,
+      "file": "/sounds/floresta-3.mp3",
+      "title": "Long Birds Forest Ambience.wav",
+      "author": "Motion_S",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/Motion_S/sounds/221755/",
+      "freesoundId": 221755
+    },
+    {
+      "key": "vento",
+      "variant": 1,
+      "file": "/sounds/vento-1.mp3",
+      "title": "Looping Gentle Wind Ambience on an Open Desert Plain.wav",
+      "author": "dhallcomposer",
+      "license": "CC0",
+      "source": "https://freesound.org/people/dhallcomposer/sounds/697217/",
+      "freesoundId": 697217
+    },
+    {
+      "key": "vento",
+      "variant": 2,
+      "file": "/sounds/vento-2.mp3",
+      "title": "ContinuousHighWindLoop.wav",
+      "author": "zimbot",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/zimbot/sounds/350678/",
+      "freesoundId": 350678
+    },
+    {
+      "key": "vento",
+      "variant": 3,
+      "file": "/sounds/vento-3.mp3",
+      "title": "AMBForst_Forest Birds Wind 01_KVV AUDIO_FREE",
+      "author": "KVV_Audio",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/KVV_Audio/sounds/800712/",
+      "freesoundId": 800712
+    },
+    {
+      "key": "violinos",
+      "variant": 1,
+      "file": "/sounds/violinos-1.mp3",
+      "title": "Violin strings hiphop loop",
+      "author": "Ehved",
+      "license": "CC0",
+      "source": "https://freesound.org/people/Ehved/sounds/566285/",
+      "freesoundId": 566285
+    },
+    {
+      "key": "violinos",
+      "variant": 2,
+      "file": "/sounds/violinos-2.mp3",
+      "title": "Fast Build Up Orchestra",
+      "author": "joshuaempyre",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/joshuaempyre/sounds/346375/",
+      "freesoundId": 346375
+    },
+    {
+      "key": "violinos",
+      "variant": 3,
+      "file": "/sounds/violinos-3.mp3",
+      "title": "Strings in C and F .wav",
+      "author": "BuytheField",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/BuytheField/sounds/474521/",
+      "freesoundId": 474521
+    },
+    {
+      "key": "violao",
+      "variant": 1,
+      "file": "/sounds/violao-1.mp3",
+      "title": "Nylon Guitar [140bpm] [F Sharp Minor]",
+      "author": "deadrobotmusic",
+      "license": "CC0",
+      "source": "https://freesound.org/people/deadrobotmusic/sounds/574339/",
+      "freesoundId": 574339
+    },
+    {
+      "key": "violao",
+      "variant": 2,
+      "file": "/sounds/violao-2.mp3",
+      "title": "Nylon Guitar Strumming",
+      "author": "Alex_hears_things",
+      "license": "CC0",
+      "source": "https://freesound.org/people/Alex_hears_things/sounds/812617/",
+      "freesoundId": 812617
+    },
+    {
+      "key": "violao",
+      "variant": 3,
+      "file": "/sounds/violao-3.mp3",
+      "title": "AcousticGuitar.wav",
+      "author": "FrankyBoomer",
+      "license": "CC0",
+      "source": "https://freesound.org/people/FrankyBoomer/sounds/251223/",
+      "freesoundId": 251223
+    },
+    {
+      "key": "piano",
+      "variant": 1,
+      "file": "/sounds/piano-1.mp3",
+      "title": "Wonderful - Calm Beautiful Piano Loop",
+      "author": "ispeakwaves",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/ispeakwaves/sounds/439877/",
+      "freesoundId": 439877
+    },
+    {
+      "key": "piano",
+      "variant": 2,
+      "file": "/sounds/piano-2.mp3",
+      "title": "Soft Piano Loop #1",
+      "author": "ispeakwaves",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/ispeakwaves/sounds/384934/",
+      "freesoundId": 384934
+    },
+    {
+      "key": "piano",
+      "variant": 3,
+      "file": "/sounds/piano-3.mp3",
+      "title": "Soft Piano Loop #2",
+      "author": "ispeakwaves",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/ispeakwaves/sounds/384935/",
+      "freesoundId": 384935
+    }
+  ]
+}
