@@ -34,11 +34,20 @@ export type Database = {
         telegram_chat_id: string | null;
         pin_hash: string | null;
         write_pin_hash: string | null;
+        recovery_hash: string | null;
         pin_salt: string | null;
         pin_attempts: number;
         pin_locked_until: Timestamptz | null;
         theme: string;
         locale: string;
+        created_at: Timestamptz;
+        updated_at: Timestamptz;
+      }>;
+      diary_keys: Table<{
+        user_id: string;
+        pin_wrap: { salt: string; iv: string; ct: string } | null;
+        recovery_wrap: { salt: string; iv: string; ct: string } | null;
+        code_wrap: { salt: string; iv: string; ct: string } | null;
         created_at: Timestamptz;
         updated_at: Timestamptz;
       }>;

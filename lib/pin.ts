@@ -13,6 +13,15 @@ export async function verifyPin(pin: string, hash: string): Promise<boolean> {
   return bcrypt.compare(pin, hash);
 }
 
+/**
+ * Normaliza a palavra-chave de recuperação antes de hashear/comparar, pra que
+ * "Minha Frase " e "minha frase" sejam a mesma coisa (trim + espaços colapsados
+ * + minúsculas). Usada no cadastro e no fluxo de redefinir PIN.
+ */
+export function normalizeRecovery(phrase: string): string {
+  return phrase.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 export async function signDiaryToken(userId: string): Promise<string> {
   const expiresAt = Math.floor(Date.now() / 1000) + DIARY_TTL_SECONDS;
   const payload = `${userId}.${expiresAt}`;

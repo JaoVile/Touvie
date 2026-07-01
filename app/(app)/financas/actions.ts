@@ -221,6 +221,28 @@ export async function adjustTotalBalance(
   return { ok: true };
 }
 
+/**
+ * Zera as MOVIMENTAÇÕES financeiras do usuário — apaga lançamentos, contas a
+ * pagar e caixinhas. Mantém o SETUP (categorias e contas/carteira). Com isso o
+ * saldo (derivado dos lançamentos) e o "a pagar" voltam a zero, e o gráfico
+ * esvazia. Útil pra limpar dados de teste e começar do zero.
+ */
+export async function resetFinances(): Promise<{ ok?: boolean; error?: string }> {
+  const { supabase, userId } = await requireUser();
+
+  // Lançamentos primeiro (alguns referenciam bill_id), depois contas e caixinhas.
+  const tx = await supabase.from("transactions").delete().eq("user_id", userId);
+  if (tx.error) return { error: tx.error.message };
+  const bills = await supabase.from("bills").delete().eq("user_id", userId);
+  if (bills.error) return { error: bills.error.message };
+  const env = await supabase.from("budget_envelopes").delete().eq("user_id", userId);
+  if (env.error) return { error: env.error.message };
+
+  revalidatePath("/financas");
+  revalidatePath("/");
+  return { ok: true };
+}
+
 // --- BILLS ---------------------------------------------------------
 
 const billSchema = z.object({

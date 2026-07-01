@@ -2,6 +2,7 @@
 
 import { GlassCard } from "@/components/glass/GlassCard";
 import { addWeeks, weekRangeLabelBR, weekStartISO } from "@/lib/datetime";
+import { clearSessionDEK, encryptEntry } from "@/lib/diary-crypto";
 import { Lock } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,6 +16,8 @@ interface Props {
   initialMoodScore: number | null;
   initialMoodEmoji: string | null;
   editable: boolean;
+  /** Presente = diário privado: cifra o texto no navegador antes de salvar. */
+  dek?: Uint8Array | null;
 }
 
 type Status =
@@ -41,6 +44,7 @@ export function DiaryEditor({
   initialMoodScore,
   initialMoodEmoji,
   editable,
+  dek,
 }: Props) {
   const [content, setContent] = useState(initialContent);
   const [status, setStatus] = useState<Status>(
@@ -56,18 +60,21 @@ export function DiaryEditor({
     setMoodScore(initialMoodScore);
   }, [weekStart, initialContent, initialSavedAt, initialMoodScore]);
 
-  function flush(text: string) {
+  async function flush(text: string) {
     if (timer.current) {
       clearTimeout(timer.current);
       timer.current = null;
     }
     setStatus({ kind: "saving" });
-    saveEntry({ week_start: weekStart, content: text })
-      .then((res) => {
-        if (res?.error) setStatus({ kind: "error", message: res.error });
-        else setStatus({ kind: "saved", at: res.saved_at ?? new Date().toISOString() });
-      })
-      .catch(() => setStatus({ kind: "error", message: "Erro ao salvar" }));
+    try {
+      // Diário privado: cifra no navegador antes de subir (o servidor só vê ciphertext).
+      const content = dek ? await encryptEntry(text, dek) : text;
+      const res = await saveEntry({ week_start: weekStart, content });
+      if (res?.error) setStatus({ kind: "error", message: res.error });
+      else setStatus({ kind: "saved", at: res.saved_at ?? new Date().toISOString() });
+    } catch {
+      setStatus({ kind: "error", message: "Erro ao salvar" });
+    }
   }
 
   function onChange(value: string) {
@@ -88,16 +95,24 @@ export function DiaryEditor({
     function onBeforeUnload() {
       if (timer.current && editable) {
         clearTimeout(timer.current);
-        saveEntry({ week_start: weekStart, content });
+        // Best-effort. No modo privado a cifra é assíncrona e pode não terminar
+        // ao fechar; o autosave (1,2s) cobre o caso normal.
+        if (dek) encryptEntry(content, dek).then((c) => saveEntry({ week_start: weekStart, content: c }));
+        else saveEntry({ week_start: weekStart, content });
       }
     }
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [content, weekStart, editable]);
+  }, [content, weekStart, editable, dek]);
 
   async function lockNow() {
-    if (timer.current && editable) flush(content);
-    await fetch("/api/diary/lock", { method: "POST" });
+    if (timer.current && editable) await flush(content);
+    if (dek) {
+      // Diário privado: trancar = esquecer a DEK desta sessão (re-pede PIN).
+      clearSessionDEK();
+    } else {
+      await fetch("/api/diary/lock", { method: "POST" });
+    }
     router.refresh();
   }
 
@@ -149,15 +164,17 @@ export function DiaryEditor({
             </span>
           ) : null}
         </div>
-        <button
-          type="button"
-          onClick={lockNow}
-          className="btn-chip text-eyebrow font-semibold uppercase tracking-[0.1em]"
-          title="Trancar o diário agora"
-        >
-          <Lock size={12} strokeWidth={2.25} />
-          Trancar
-        </button>
+        {dek ? (
+          <button
+            type="button"
+            onClick={lockNow}
+            className="btn-chip text-eyebrow font-semibold uppercase tracking-[0.1em]"
+            title="Trancar o diário agora"
+          >
+            <Lock size={12} strokeWidth={2.25} />
+            Trancar
+          </button>
+        ) : null}
       </div>
 
       {/* Mood picker */}
