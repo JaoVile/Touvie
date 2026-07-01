@@ -2,6 +2,7 @@ import { IntroVeil } from "@/components/IntroVeil";
 import { TouvieEmblem } from "@/components/brand/TouvieEmblem";
 import { TouvieWordmark } from "@/components/brand/TouvieWordmark";
 import { GlassCard } from "@/components/glass/GlassCard";
+import Link from "next/link";
 import { LoginForm } from "./LoginForm";
 
 type SearchParams = Promise<{ next?: string; error?: string }>;
@@ -31,6 +32,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
           </p>
         </div>
         <LoginForm next={next} initialError={error} />
+        <p className="mt-5 text-center text-sm" style={{ color: "var(--color-fg-muted)" }}>
+          Ainda não tem conta?{" "}
+          <Link href="/signup" className="underline" style={{ color: "var(--color-fg)" }}>
+            Criar conta
+          </Link>
+        </p>
       </GlassCard>
     </main>
   );

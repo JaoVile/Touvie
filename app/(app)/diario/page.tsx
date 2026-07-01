@@ -4,13 +4,12 @@ import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { weekStartISO } from "@/lib/datetime";
 import { TRUSTED_COOKIE, verifyTrustedDevice } from "@/lib/device";
-import { DIARY_COOKIE, verifyDiaryToken } from "@/lib/pin";
 import { createClient } from "@/lib/supabase/server";
-import { Lock, NotebookPen } from "lucide-react";
+import { NotebookPen, ShieldCheck } from "lucide-react";
 import { cookies } from "next/headers";
 import { DiaryEditor } from "./DiaryEditor";
-import { PinGate } from "./PinGate";
-import { PinSetupForm } from "./PinSetupForm";
+import { PrivateDiaryActivate } from "./PrivateDiaryActivate";
+import { PrivateDiaryView } from "./PrivateDiaryView";
 import { WeekList } from "./WeekList";
 
 export const dynamic = "force-dynamic";
@@ -30,68 +29,55 @@ export default async function DiarioPage({ searchParams }: { searchParams: SP })
   const cookieStore = await cookies();
   const trusted = await verifyTrustedDevice(cookieStore.get(TRUSTED_COOKIE)?.value, userId);
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("pin_hash")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (!profile?.pin_hash) {
-    return (
-      <>
-        <PageGlyphs variant="editorial" />
-        <Reveal>
-          <GradientHeader
-            icon={Lock}
-            eyebrow="Privado · PIN"
-            title="Diário"
-            subtitle="Configure um PIN antes de começar a escrever."
-          />
-        </Reveal>
-        <Reveal delay={120}>
-          <FoldCard>
-            {trusted ? (
-              <PinSetupForm />
-            ) : (
-              <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                Configure o PIN no <strong>notebook</strong> primeiro. O celular fica somente
-                leitura.
-              </p>
-            )}
-          </FoldCard>
-        </Reveal>
-      </>
-    );
-  }
-
-  const unlocked = await verifyDiaryToken(cookieStore.get(DIARY_COOKIE)?.value, userId);
-
-  if (!unlocked) {
-    return (
-      <>
-        <PageGlyphs variant="editorial" />
-        <Reveal>
-          <GradientHeader
-            icon={Lock}
-            eyebrow="Privado · Bloqueado"
-            title="Diário"
-            subtitle="Digite o PIN para acessar."
-          />
-        </Reveal>
-        <Reveal delay={120}>
-          <PinGate />
-        </Reveal>
-      </>
-    );
-  }
-
-  const { data: entries } = await supabase
-    .from("journal_entries")
-    .select("week_start, content, updated_at, mood_score, mood_emoji")
-    .eq("user_id", userId)
-    .order("week_start", { ascending: false });
+  const [{ data: keys }, { data: entries }] = await Promise.all([
+    supabase
+      .from("diary_keys")
+      .select("pin_wrap, recovery_wrap, code_wrap")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("journal_entries")
+      .select("week_start, content, updated_at, mood_score, mood_emoji")
+      .eq("user_id", userId)
+      .order("week_start", { ascending: false }),
+  ]);
 
   const all = entries ?? [];
+  const privateOn = !!(keys?.pin_wrap && keys?.recovery_wrap && keys?.code_wrap);
+
+  // Modo privado (zero-knowledge): tudo cifrado; destrancar/decifrar no cliente.
+  if (privateOn) {
+    return (
+      <>
+        <PageGlyphs variant="editorial" />
+        <Reveal>
+          <GradientHeader
+            icon={NotebookPen}
+            eyebrow="Privado · Cifrado"
+            title="Diário"
+            subtitle="Só você tem a chave."
+          />
+        </Reveal>
+        <Reveal delay={80}>
+          <PrivateDiaryView
+            weekStart={weekStart}
+            editable={trusted}
+            wraps={{
+              // biome-ignore lint/style/noNonNullAssertion: privateOn garante os três não-nulos
+              pin_wrap: keys!.pin_wrap!,
+              // biome-ignore lint/style/noNonNullAssertion: idem
+              recovery_wrap: keys!.recovery_wrap!,
+              // biome-ignore lint/style/noNonNullAssertion: idem
+              code_wrap: keys!.code_wrap!,
+            }}
+            entries={all}
+          />
+        </Reveal>
+      </>
+    );
+  }
+
+  // Diário aberto (texto puro) — PIN é OPCIONAL. Oferece ativar o modo privado.
   const current = all.find((e) => e.week_start === weekStart) ?? null;
   const past = all.filter((e) => e.week_start !== weekStart);
 
@@ -101,7 +87,7 @@ export default async function DiarioPage({ searchParams }: { searchParams: SP })
       <Reveal>
         <GradientHeader
           icon={NotebookPen}
-          eyebrow="Privado · Semana"
+          eyebrow="Semana"
           title="Diário"
           subtitle="Escreva como se já tivesse acontecido."
         />
@@ -121,6 +107,18 @@ export default async function DiarioPage({ searchParams }: { searchParams: SP })
           <WeekList currentWeekStart={weekStart} entries={past} />
         </Reveal>
       </div>
+      <Reveal className="mt-4 block" delay={160}>
+        <FoldCard>
+          <div className="mb-2 flex items-center gap-2">
+            <ShieldCheck size={16} style={{ color: "var(--color-accent)" }} />
+            <h2 className="text-sm font-semibold">Diário privado</h2>
+          </div>
+          <PrivateDiaryActivate
+            editable={trusted}
+            entries={all.map((e) => ({ week_start: e.week_start, content: e.content }))}
+          />
+        </FoldCard>
+      </Reveal>
     </>
   );
 }

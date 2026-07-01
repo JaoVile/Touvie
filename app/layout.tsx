@@ -7,6 +7,8 @@ import { StarField } from "@/components/StarField";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_THEME } from "@/lib/themes";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
@@ -155,6 +157,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <CursorTrail />
         <ServiceWorkerRegister />
         <NativePickerOpener />
+        {/* Métricas agregadas (sem PII): visitantes/pageviews + Core Web Vitals.
+            Só coletam em produção na Vercel; em dev não fazem nada. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

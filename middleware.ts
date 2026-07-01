@@ -3,7 +3,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 import { type NextRequest, NextResponse } from "next/server";
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "DELETE", "PATCH"]);
-const PUBLIC_ROUTES = ["/login", "/auth/callback", "/landpage"];
+const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback", "/landpage"];
 const SYSTEM_PREFIXES = ["/api/cron/", "/api/telegram/"];
 // Auth-only flows that may be invoked from untrusted devices (e.g. PIN gate on celular)
 const TRUST_BYPASS_PREFIXES = ["/api/diary/"];

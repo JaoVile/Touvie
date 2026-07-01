@@ -4,6 +4,7 @@ import { Tags, Wallet } from "lucide-react";
 import { AdjustBalanceButton } from "./AdjustBalanceButton";
 import { CategoryForm } from "./CategoryForm";
 import { CategoryRow } from "./CategoryRow";
+import { ResetFinancesButton } from "./ResetFinancesButton";
 import { SeedCategoriesButton } from "./SeedCategoriesButton";
 
 interface Category {
@@ -55,6 +56,12 @@ export function SetupTab({ saldoTotal, categories }: Props) {
           <strong>Ajustar saldo</strong> pra digitar o valor real — a gente gera o ajuste pela
           diferença.
         </p>
+        <div className="mt-3 border-t pt-3" style={{ borderColor: "var(--color-border)" }}>
+          <ResetFinancesButton />
+          <p className="mt-1.5 text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
+            Limpa lançamentos, contas a pagar e caixinhas (zera saldo e gráfico). Mantém categorias.
+          </p>
+        </div>
       </GlassCard>
 
       <GlassCard>
