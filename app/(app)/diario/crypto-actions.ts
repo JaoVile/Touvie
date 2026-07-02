@@ -102,16 +102,42 @@ export async function updateDiaryPinWrap(
 }
 
 /**
- * Desliga o diário privado: grava as anotações de volta em TEXTO PURO (o cliente
- * decifrou tudo com a DEK da sessão) e apaga a linha de chaves. O diário volta a
- * ser aberto/legível.
+ * Cápsulas do tempo cifradas (enc:v1:) deste usuário. Usada pelo cliente ao
+ * DESLIGAR o diário privado: apagar a DEK sem decifrá-las antes = cartas
+ * irrecuperáveis pra sempre. O cliente decifra em memória (sem exibir — a
+ * trava de tempo continua) e devolve o texto puro pro deactivate gravar.
+ */
+export async function listEncryptedCapsules(): Promise<{
+  error?: string;
+  capsules?: { id: string; content: string }[];
+}> {
+  const { supabase, userId } = await requireUser();
+  const { data, error } = await supabase
+    .from("time_capsules")
+    .select("id, content")
+    .eq("user_id", userId)
+    .like("content", "enc:v1:%");
+  if (error) return { error: error.message };
+  return { capsules: data ?? [] };
+}
+
+/**
+ * Desliga o diário privado: grava as anotações — e as cápsulas do tempo que
+ * estavam cifradas — de volta em TEXTO PURO (o cliente decifrou tudo com a DEK
+ * da sessão) e apaga a linha de chaves. O diário volta a ser aberto/legível.
  */
 export async function deactivatePrivateDiary(
   entries: { week_start: string; content: string }[],
+  capsules: { id: string; content: string }[] = [],
 ): Promise<{ error?: string; ok?: boolean }> {
   const { supabase, userId } = await requireUser();
   if (!(await isTrustedDevice(userId))) {
     return { error: "Desligue num dispositivo confiável." };
+  }
+  // Trava anti-perda: se alguma cápsula ainda chegou cifrada, apagar as chaves
+  // agora a tornaria ilegível pra sempre. Aborta antes de destruir qualquer coisa.
+  if (capsules.some((c) => c.content.startsWith("enc:v1:"))) {
+    return { error: "Uma cápsula ainda está cifrada — destranque e tente de novo." };
   }
 
   // 1) Reescreve em texto puro (se algo falhar aqui, os textos já viram legíveis
@@ -126,10 +152,21 @@ export async function deactivatePrivateDiary(
     if (error) return { error: error.message };
   }
 
+  // 1b) Idem pras cápsulas que estavam cifradas com a mesma DEK.
+  for (const c of capsules) {
+    const { error } = await supabase
+      .from("time_capsules")
+      .update({ content: c.content, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("id", c.id);
+    if (error) return { error: error.message };
+  }
+
   // 2) Remove as chaves → diário privado OFF.
   const { error: delErr } = await supabase.from("diary_keys").delete().eq("user_id", userId);
   if (delErr) return { error: delErr.message };
 
   revalidatePath("/diario");
+  revalidatePath("/capsulas");
   return { ok: true };
 }

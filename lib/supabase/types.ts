@@ -51,6 +51,17 @@ export type Database = {
         created_at: Timestamptz;
         updated_at: Timestamptz;
       }>;
+      time_capsules: Table<{
+        id: string;
+        user_id: string;
+        title: string;
+        content: string;
+        sealed_at: Timestamptz;
+        opens_at: Timestamptz;
+        opened_at: Timestamptz | null;
+        notified_at: Timestamptz | null;
+        updated_at: Timestamptz;
+      }>;
       journal_entries: Table<{
         id: string;
         user_id: string;
