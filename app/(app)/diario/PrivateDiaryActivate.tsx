@@ -59,7 +59,12 @@ export function PrivateDiaryActivate({ editable, entries }: Props) {
           content: await encryptEntry(en.content, dek),
         })),
       );
-      const res = await activatePrivateDiary({ pin_wrap, recovery_wrap, code_wrap, entries: encrypted });
+      const res = await activatePrivateDiary({
+        pin_wrap,
+        recovery_wrap,
+        code_wrap,
+        entries: encrypted,
+      });
       if (res.error) {
         setError(res.error);
         setBusy(false);
@@ -107,7 +112,10 @@ export function PrivateDiaryActivate({ editable, entries }: Props) {
             Copiar
           </button>
         </div>
-        <label className="flex items-start gap-2 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+        <label
+          className="flex items-start gap-2 text-sm"
+          style={{ color: "var(--color-fg-muted)" }}
+        >
           <input
             type="checkbox"
             checked={saved}

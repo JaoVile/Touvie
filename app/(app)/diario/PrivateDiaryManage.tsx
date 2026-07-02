@@ -1,12 +1,19 @@
 "use client";
 
-import { clearSessionDEK, decryptEntry, wrapDEK } from "@/lib/diary-crypto";
-import { KeyRound, ShieldOff } from "lucide-react";
+import {
+  clearSessionDEK,
+  decryptEntry,
+  generateRecoveryCode,
+  normalizeCode,
+  wrapDEK,
+} from "@/lib/diary-crypto";
+import { KeyRound, RotateCcw, ShieldOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   deactivatePrivateDiary,
   listEncryptedCapsules,
+  updateDiaryCodeWrap,
   updateDiaryPinWrap,
 } from "./crypto-actions";
 
@@ -30,6 +37,8 @@ export function PrivateDiaryManage({ dek, entries }: Props) {
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string }>();
   const [busy, setBusy] = useState(false);
   const [confirmingOff, setConfirmingOff] = useState(false);
+  const [confirmingCode, setConfirmingCode] = useState(false);
+  const [newCode, setNewCode] = useState<string>();
 
   async function changePin(e: React.FormEvent) {
     e.preventDefault();
@@ -46,6 +55,26 @@ export function PrivateDiaryManage({ dek, entries }: Props) {
         setPin("");
         setConfirm("");
       }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function regenerateCode() {
+    setMsg(undefined);
+    setBusy(true);
+    try {
+      const code = generateRecoveryCode();
+      const code_wrap = await wrapDEK(dek, normalizeCode(code));
+      const res = await updateDiaryCodeWrap(code_wrap);
+      if (res.error) {
+        setMsg({ kind: "err", text: res.error });
+      } else {
+        setNewCode(code);
+        setConfirmingCode(false);
+      }
+    } catch {
+      setMsg({ kind: "err", text: "Falha ao gerar o código." });
     } finally {
       setBusy(false);
     }
@@ -135,6 +164,65 @@ export function PrivateDiaryManage({ dek, entries }: Props) {
           {msg.text}
         </p>
       ) : null}
+
+      <div className="border-t pt-4" style={{ borderColor: "var(--color-border)" }}>
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <RotateCcw size={15} style={{ color: "var(--color-accent)" }} />
+          Código de recuperação
+        </div>
+        <p className="mt-1 text-xs" style={{ color: "var(--color-fg-muted)" }}>
+          Perdeu o papel onde anotou? Gere um código novo — o antigo deixa de funcionar na hora e o
+          novo aparece uma única vez.
+        </p>
+        {newCode ? (
+          <div
+            className="mt-2 space-y-2 rounded-lg border p-3"
+            style={{ borderColor: "var(--color-border)" }}
+          >
+            <p className="font-mono text-base tracking-wider">{newCode}</p>
+            <p className="text-xs" style={{ color: "var(--color-fg-muted)" }}>
+              Anote agora — ele não aparece de novo. É uma das três chaves do seu diário.
+            </p>
+            <button
+              type="button"
+              onClick={() => setNewCode(undefined)}
+              className="rounded-lg border px-4 py-1.5 text-sm hover:opacity-80"
+              style={{ borderColor: "var(--color-border)" }}
+            >
+              Anotei, fechar
+            </button>
+          </div>
+        ) : confirmingCode ? (
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={regenerateCode}
+              className="rounded-lg px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
+              style={{ background: "var(--gradient-brand)" }}
+            >
+              {busy ? "Gerando…" : "Gerar (invalida o antigo)"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingCode(false)}
+              className="rounded-lg border px-4 py-1.5 text-sm hover:opacity-80"
+              style={{ borderColor: "var(--color-border)" }}
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmingCode(true)}
+            className="mt-2 rounded-lg border px-4 py-1.5 text-sm hover:opacity-80"
+            style={{ borderColor: "var(--color-border)" }}
+          >
+            Gerar novo código
+          </button>
+        )}
+      </div>
 
       <div className="border-t pt-4" style={{ borderColor: "var(--color-border)" }}>
         <div className="flex items-center gap-2 text-sm font-semibold">

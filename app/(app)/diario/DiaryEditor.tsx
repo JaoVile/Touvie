@@ -97,7 +97,8 @@ export function DiaryEditor({
         clearTimeout(timer.current);
         // Best-effort. No modo privado a cifra é assíncrona e pode não terminar
         // ao fechar; o autosave (1,2s) cobre o caso normal.
-        if (dek) encryptEntry(content, dek).then((c) => saveEntry({ week_start: weekStart, content: c }));
+        if (dek)
+          encryptEntry(content, dek).then((c) => saveEntry({ week_start: weekStart, content: c }));
         else saveEntry({ week_start: weekStart, content });
       }
     }
