@@ -21,7 +21,7 @@ export default async function LeituraReaderPage({ params }: { params: Params }) 
 
   const { data: book } = await supabase
     .from("reading_books")
-    .select("id, title, author, file_path")
+    .select("id, title, author, file_path, current_page")
     .eq("id", id)
     .eq("user_id", userId)
     .maybeSingle();
@@ -50,7 +50,12 @@ export default async function LeituraReaderPage({ params }: { params: Params }) 
 
       <Reveal delay={80}>
         {signed?.signedUrl ? (
-          <PdfReader url={signed.signedUrl} title={book.title} />
+          <PdfReader
+            url={signed.signedUrl}
+            title={book.title}
+            bookId={book.id}
+            initialPage={book.current_page || 1}
+          />
         ) : (
           <FoldCard>
             <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>

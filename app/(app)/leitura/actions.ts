@@ -59,6 +59,30 @@ export async function addBook(input: {
   return { id: data.id };
 }
 
+/**
+ * Marca onde a leitura parou. O viewer nativo (iframe) não expõe a página
+ * atual pra JS, então o usuário marca manualmente — e a próxima abertura
+ * já nasce nela via fragmento #page=N.
+ */
+export async function saveCurrentPage(
+  id: string,
+  page: number,
+): Promise<{ ok?: boolean; error?: string }> {
+  if (!Number.isInteger(page) || page < 1 || page > 99_999) {
+    return { error: "Página inválida." };
+  }
+  const { supabase, userId } = await requireUser();
+  // updated_at junto: o livro em leitura sobe pro topo da biblioteca.
+  const { error } = await supabase
+    .from("reading_books")
+    .update({ current_page: page, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", userId);
+  if (error) return { error: error.message };
+  revalidatePath("/leitura");
+  return { ok: true };
+}
+
 export async function renameBook(
   id: string,
   input: { title: string; author: string },

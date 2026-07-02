@@ -27,7 +27,7 @@ export default async function LeituraPage() {
 
   const { data: books } = await supabase
     .from("reading_books")
-    .select("id, title, author, file_size_bytes, updated_at")
+    .select("id, title, author, file_size_bytes, updated_at, current_page")
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });
 
@@ -84,6 +84,7 @@ function BookCard(props: {
     author: string | null;
     file_size_bytes: number;
     updated_at: string;
+    current_page: number;
   };
   delay: number;
 }) {
@@ -108,6 +109,7 @@ function BookCard(props: {
             ) : null}
             <p className="mt-2 text-xs" style={{ color: "var(--color-fg-subtle)" }}>
               {fmtSize(b.file_size_bytes)} · {date}
+              {b.current_page > 1 ? ` · pág. ${b.current_page}` : ""}
             </p>
           </Link>
           <DeleteBook id={b.id} title={b.title} />
