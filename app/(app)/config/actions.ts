@@ -24,36 +24,6 @@ export async function updateTheme(theme: string) {
 
 const PIN_RE = /^\d{4,8}$/;
 
-export async function changePin(fd: FormData): Promise<{ error?: string; ok?: boolean }> {
-  const current = fd.get("current")?.toString() ?? "";
-  const next = fd.get("next")?.toString() ?? "";
-  const confirm = fd.get("confirm")?.toString() ?? "";
-
-  if (!PIN_RE.test(next)) return { error: "Novo PIN deve ter 4 a 8 dígitos" };
-  if (next !== confirm) return { error: "Novos PINs não conferem" };
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "unauthenticated" };
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("pin_hash")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (!profile?.pin_hash) return { error: "PIN ainda não configurado — vá em /diario" };
-
-  const ok = await verifyPin(current, profile.pin_hash);
-  if (!ok) return { error: "PIN atual incorreto" };
-
-  const hash = await hashPin(next);
-  const { error } = await supabase.from("profiles").update({ pin_hash: hash }).eq("id", user.id);
-  if (error) return { error: error.message };
-  return { ok: true };
-}
-
 // --- CÓDIGO DE ESCRITA DO DIÁRIO -----------------------------------
 // Destrava a ESCRITA no dispositivo atual, separado do PIN de leitura.
 // Definir/acertar o código seta o cookie de device confiável (rotina_edit).

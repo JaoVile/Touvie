@@ -27,7 +27,6 @@ import { CursorToggle } from "./CursorToggle";
 import { DeleteAccountButton } from "./DeleteAccountButton";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { LogGeral } from "./LogGeral";
-import { PinChangeForm } from "./PinChangeForm";
 import { ProfileSection } from "./ProfileSection";
 import { QualityPicker } from "./QualityPicker";
 import { SoundCredits } from "./SoundCredits";
@@ -51,7 +50,7 @@ export default async function ConfigPage() {
   const [profile, names, writePin, locale] = await Promise.all([
     supabase
       .from("profiles")
-      .select("theme, telegram_chat_id, pin_hash, locale")
+      .select("theme, telegram_chat_id, locale")
       .eq("id", user!.id)
       .maybeSingle()
       .then((r) => r.data),
@@ -75,7 +74,6 @@ export default async function ConfigPage() {
   ]);
 
   const theme = profile?.theme ?? DEFAULT_THEME;
-  const hasPin = !!profile?.pin_hash;
   const hasWriteCode = !!writePin?.write_pin_hash;
   const cookieStore = await cookies();
   const trustedDevice = await verifyTrustedDevice(cookieStore.get(TRUSTED_COOKIE)?.value, user!.id);
@@ -198,18 +196,15 @@ export default async function ConfigPage() {
 
           <Reveal delay={3 * STAGGER_MS}>
             <FoldCard index={idx()}>
-              <CardHead icon={Lock} title="PIN do Diário" />
-              {hasPin ? (
-                <PinChangeForm />
-              ) : (
-                <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                  Você ainda não configurou um PIN. Vá em{" "}
-                  <Link href="/diario" className="underline">
-                    /diario
-                  </Link>{" "}
-                  pra criar.
-                </p>
-              )}
+              <CardHead icon={Lock} title="Diário privado" />
+              <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                A privacidade do diário mora dentro do próprio{" "}
+                <Link href="/diario" className="underline">
+                  diário
+                </Link>
+                : lá você ativa o modo privado, troca o PIN ou desliga. Quando ativo, as anotações
+                são cifradas no seu aparelho antes de sair dele — nem o servidor consegue lê-las.
+              </p>
             </FoldCard>
           </Reveal>
 
