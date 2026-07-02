@@ -1,10 +1,14 @@
 "use client";
 
-import { clearSessionDEK, wrapDEK } from "@/lib/diary-crypto";
+import { clearSessionDEK, decryptEntry, wrapDEK } from "@/lib/diary-crypto";
 import { KeyRound, ShieldOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { deactivatePrivateDiary, updateDiaryPinWrap } from "./crypto-actions";
+import {
+  deactivatePrivateDiary,
+  listEncryptedCapsules,
+  updateDiaryPinWrap,
+} from "./crypto-actions";
 
 interface Props {
   dek: Uint8Array;
@@ -51,7 +55,28 @@ export function PrivateDiaryManage({ dek, entries }: Props) {
     setMsg(undefined);
     setBusy(true);
     try {
-      const res = await deactivatePrivateDiary(entries);
+      // Cápsulas do tempo cifradas usam a MESMA DEK — decifra em memória (sem
+      // exibir) antes de apagar as chaves, senão viram cartas perdidas pra sempre.
+      const listed = await listEncryptedCapsules();
+      if (listed.error) {
+        setMsg({ kind: "err", text: listed.error });
+        setBusy(false);
+        return;
+      }
+      const capsules: { id: string; content: string }[] = [];
+      for (const c of listed.capsules ?? []) {
+        try {
+          capsules.push({ id: c.id, content: await decryptEntry(c.content, dek) });
+        } catch {
+          setMsg({
+            kind: "err",
+            text: "Não consegui decifrar uma cápsula do tempo — desligamento abortado pra não perder a carta.",
+          });
+          setBusy(false);
+          return;
+        }
+      }
+      const res = await deactivatePrivateDiary(entries, capsules);
       if (res.error) {
         setMsg({ kind: "err", text: res.error });
         setBusy(false);
@@ -117,7 +142,8 @@ export function PrivateDiaryManage({ dek, entries }: Props) {
           Desligar diário privado
         </div>
         <p className="mt-1 text-xs" style={{ color: "var(--color-fg-muted)" }}>
-          Volta suas anotações pra texto normal (legível) e remove a cifra. Você pode religar depois.
+          Volta suas anotações — e as cápsulas do tempo cifradas — pra texto normal (legível) e
+          remove a cifra. Você pode religar depois.
         </p>
         {confirmingOff ? (
           <div className="mt-2 flex gap-2">

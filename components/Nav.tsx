@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Dumbbell,
   Ellipsis,
+  Hourglass,
   House,
   Lock,
   type LucideIcon,
@@ -36,8 +37,7 @@ export function Nav() {
   const t = useTranslations("nav");
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   const PRIMARY: NavItem[] = [
     { href: "/", label: t("today"), Icon: House },
@@ -49,6 +49,7 @@ export function Nav() {
     { href: "/rotina", label: t("routine"), Icon: CalendarDays },
     { href: "/metas", label: t("goals"), Icon: Target },
     { href: "/diario", label: t("diary"), Icon: Lock },
+    { href: "/capsulas", label: t("capsules"), Icon: Hourglass },
     { href: "/notas", label: t("notes"), Icon: StickyNote },
     { href: "/leitura", label: t("reading"), Icon: BookOpen },
     { href: "/busca", label: t("search"), Icon: Search },
