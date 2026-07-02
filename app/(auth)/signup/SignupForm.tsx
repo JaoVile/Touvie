@@ -84,8 +84,9 @@ export function SignupForm() {
           style={inputStyle}
         />
         <p className="mt-1 text-xs" style={{ color: "var(--color-fg-subtle)" }}>
-          Guarde bem. É o único jeito de recuperar o PIN do diário se você esquecer — ninguém, nem
-          nós, consegue recuperar por você.
+          Anote num lugar seguro — é uma chave de verdade, não uma formalidade. Se você usar o
+          diário privado e esquecer o PIN, é ela que destranca suas anotações. Ninguém — nem nós —
+          consegue recuperar por você.
         </p>
       </div>
       <label className="flex items-start gap-2 text-sm" style={{ color: "var(--color-fg-muted)" }}>
