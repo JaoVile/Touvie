@@ -102,6 +102,27 @@ export async function updateDiaryPinWrap(
 }
 
 /**
+ * Troca a "tranca" do código de recuperação — o cliente gerou um código novo
+ * e re-trancou a DEK com ele. O código antigo deixa de destrancar na hora.
+ */
+export async function updateDiaryCodeWrap(
+  code_wrap: Wrap,
+): Promise<{ error?: string; ok?: boolean }> {
+  const { supabase, userId } = await requireUser();
+  if (!(await isTrustedDevice(userId))) {
+    return { error: "Ação só em dispositivo confiável." };
+  }
+  if (!isWrap(code_wrap)) return { error: "Chave inválida." };
+  const { error } = await supabase
+    .from("diary_keys")
+    .update({ code_wrap, updated_at: new Date().toISOString() })
+    .eq("user_id", userId);
+  if (error) return { error: error.message };
+  revalidatePath("/diario");
+  return { ok: true };
+}
+
+/**
  * Cápsulas do tempo cifradas (enc:v1:) deste usuário. Usada pelo cliente ao
  * DESLIGAR o diário privado: apagar a DEK sem decifrá-las antes = cartas
  * irrecuperáveis pra sempre. O cliente decifra em memória (sem exibir — a
