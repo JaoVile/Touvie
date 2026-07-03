@@ -45,6 +45,13 @@ export type Database = {
         created_at: Timestamptz;
         updated_at: Timestamptz;
       }>;
+      touvi_messages: Table<{
+        id: string;
+        user_id: string;
+        role: "user" | "assistant";
+        content: string;
+        created_at: Timestamptz;
+      }>;
       diary_keys: Table<{
         user_id: string;
         pin_wrap: { salt: string; iv: string; ct: string } | null;
