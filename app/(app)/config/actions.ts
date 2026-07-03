@@ -119,10 +119,14 @@ async function appUrl(): Promise<string> {
   return `${protocol}://${host}`;
 }
 
+// Janela em que o token de vínculo do Telegram é válido (min).
+const TELEGRAM_LINK_TTL_MIN = 15;
+
 export async function connectTelegram(): Promise<{
   ok?: boolean;
   error?: string;
   botUsername?: string;
+  linkToken?: string;
 }> {
   if (!process.env.TELEGRAM_BOT_TOKEN) {
     return { error: "TELEGRAM_BOT_TOKEN não configurado no .env" };
@@ -130,6 +134,12 @@ export async function connectTelegram(): Promise<{
   if (!process.env.TELEGRAM_WEBHOOK_SECRET) {
     return { error: "TELEGRAM_WEBHOOK_SECRET não configurado no .env" };
   }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "unauthenticated" };
 
   const url = `${await appUrl()}/api/telegram/webhook`;
   if (!url.startsWith("https://")) {
@@ -142,7 +152,18 @@ export async function connectTelegram(): Promise<{
   try {
     await setWebhook(url);
     const me = await getMe();
-    return { ok: true, botUsername: me.username };
+
+    // Token de uso único que amarra ESTE usuário ao /start do bot. Sem ele,
+    // qualquer chat que mande /start se vincularia à conta (sequestro).
+    const linkToken = crypto.randomUUID().replace(/-/g, "");
+    const expiresAt = new Date(Date.now() + TELEGRAM_LINK_TTL_MIN * 60_000).toISOString();
+    const { error } = await supabase
+      .from("profiles")
+      .update({ telegram_link_token: linkToken, telegram_link_expires_at: expiresAt })
+      .eq("id", user.id);
+    if (error) return { error: `Não consegui gerar o código de vínculo: ${error.message}` };
+
+    return { ok: true, botUsername: me.username, linkToken };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Erro ao conectar" };
   }

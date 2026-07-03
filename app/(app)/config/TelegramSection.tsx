@@ -11,6 +11,7 @@ export function TelegramSection({ chatId }: Props) {
   const [error, setError] = useState<string>();
   const [info, setInfo] = useState<string>();
   const [botUsername, setBotUsername] = useState<string | undefined>(undefined);
+  const [linkToken, setLinkToken] = useState<string | undefined>(undefined);
   const [pending, start] = useTransition();
   const connected = !!chatId;
 
@@ -26,10 +27,9 @@ export function TelegramSection({ chatId }: Props) {
       if (res.error) setError(res.error);
       else {
         setBotUsername(res.botUsername);
+        setLinkToken(res.linkToken);
         setInfo(
-          res.botUsername
-            ? `Webhook conectado. Agora abra @${res.botUsername} no Telegram e mande /start.`
-            : "Webhook conectado. Mande /start pro bot.",
+          "Webhook conectado. Toque no botão abaixo pra abrir o bot já com seu código de vínculo (válido por 15 min).",
         );
       }
     });
@@ -144,15 +144,15 @@ export function TelegramSection({ chatId }: Props) {
           {error}
         </p>
       ) : null}
-      {botUsername && !connected ? (
+      {botUsername && linkToken ? (
         <a
-          href={`https://t.me/${botUsername}`}
+          href={`https://t.me/${botUsername}?start=${linkToken}`}
           target="_blank"
           rel="noreferrer"
           className="inline-block rounded px-2 py-1 text-xs underline"
           style={{ color: "var(--color-accent)" }}
         >
-          Abrir @{botUsername} no Telegram →
+          Abrir @{botUsername} e vincular →
         </a>
       ) : null}
     </div>

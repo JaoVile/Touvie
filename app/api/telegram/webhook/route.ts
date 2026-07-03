@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   type TelegramUpdate,
   WEBHOOK_SECRET_HEADER,
+  escapeHtml,
   sendMessage,
   verifyWebhookSecret,
 } from "@/lib/telegram";
@@ -31,28 +32,42 @@ export async function POST(req: Request) {
 
   let userId: string | null = null;
 
-  if (text === "/start" || text.startsWith("/start ")) {
-    userId = await handleStart(chatId);
-  } else if (text === "/stop") {
-    userId = await handleStop(chatId);
-  } else if (text === "/ping") {
-    await sendMessage(chatId, "🏓 Pong!");
-  } else if (text.startsWith("/gasto")) {
-    userId = await handleGasto(chatId, text);
-  } else if (text.startsWith("/receita")) {
-    userId = await handleReceita(chatId, text);
-  } else if (text === "/saldo") {
-    userId = await handleSaldo(chatId);
+  // Um comando que já escreveu no banco NÃO pode fazer a rota retornar erro: o
+  // Telegram reentrega updates não-2xx, o que reprocessaria o comando e duplicaria
+  // a transação. Por isso engolimos qualquer falha aqui (ex.: sendMessage) e
+  // sempre devolvemos 200 — o erro vai só pro log.
+  try {
+    if (text === "/start" || text.startsWith("/start ")) {
+      userId = await handleStart(chatId, text);
+    } else if (text === "/stop") {
+      userId = await handleStop(chatId);
+    } else if (text === "/ping") {
+      await sendMessage(chatId, "🏓 Pong!");
+    } else if (text.startsWith("/gasto")) {
+      userId = await handleGasto(chatId, text);
+    } else if (text.startsWith("/receita")) {
+      userId = await handleReceita(chatId, text);
+    } else if (text === "/saldo") {
+      userId = await handleSaldo(chatId);
+    }
+    logEvent({
+      userId,
+      eventType: "webhook",
+      source: "telegram/webhook",
+      status: "success",
+      messagePreview: text.slice(0, 40),
+      metadata: { chat_id: chatId, command: text },
+    });
+  } catch (err) {
+    logEvent({
+      userId,
+      eventType: "webhook",
+      source: "telegram/webhook",
+      status: "error",
+      messagePreview: err instanceof Error ? err.message : String(err),
+      metadata: { chat_id: chatId, command: text.slice(0, 40) },
+    });
   }
-
-  logEvent({
-    userId,
-    eventType: "webhook",
-    source: "telegram/webhook",
-    status: "success",
-    messagePreview: text.slice(0, 40),
-    metadata: { chat_id: chatId, command: text },
-  });
 
   return NextResponse.json({ ok: true });
 }
@@ -118,29 +133,70 @@ async function resolveCategoryId(userId: string, description: string): Promise<s
 
 // ─── Command handlers ───────────────────────────────────────────────────────
 
-async function handleStart(chatId: number): Promise<string | null> {
-  const admin = createAdminClient();
-  const { data: profiles } = await admin
-    .from("profiles")
-    .select("id, telegram_chat_id")
-    .order("created_at", { ascending: true })
-    .limit(1);
+const CONNECTED_MSG =
+  "✅ <b>Conectado!</b>\n\nVocê vai receber lembretes às <b>08:00</b> e <b>20:00</b>.\n\nComandos:\n• /ping — testar\n• /gasto 45,90 iFood — registrar gasto\n• /receita 500 Freela — registrar receita\n• /saldo — ver resumo do mês\n• /stop — desconectar";
 
-  const profile = profiles?.[0];
-  if (!profile) {
-    await sendMessage(chatId, "❌ Nenhum perfil encontrado. Cria a conta no app primeiro.");
+async function handleStart(chatId: number, text: string): Promise<string | null> {
+  const admin = createAdminClient();
+  const token = text.split(/\s+/)[1]?.trim() ?? "";
+
+  // /start sem token: NÃO vincula (era por aqui que qualquer estranho assumia a
+  // conta). Se este chat já está vinculado, só confirma; senão manda pro app.
+  if (!token) {
+    const { data: existing } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("telegram_chat_id", String(chatId))
+      .maybeSingle();
+    if (existing) {
+      await sendMessage(
+        chatId,
+        "✅ Você já está conectado. Use /saldo, /gasto, /receita ou /stop.",
+      );
+      return existing.id;
+    }
+    await sendMessage(
+      chatId,
+      "🔒 Pra conectar com segurança, abra o Touvie → <b>Config → Telegram</b> e toque em <b>Conectar bot</b>. O botão abre este chat já com seu código de vínculo.",
+    );
     return null;
   }
 
+  // Token de uso único, emitido na tela autenticada e ainda válido.
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("id, telegram_link_expires_at")
+    .eq("telegram_link_token", token)
+    .maybeSingle();
+
+  const valid =
+    profile?.telegram_link_expires_at &&
+    new Date(profile.telegram_link_expires_at).getTime() > Date.now();
+
+  if (!profile || !valid) {
+    await sendMessage(
+      chatId,
+      "❌ Código de vínculo inválido ou expirado. Gere um novo no Touvie → Config → Telegram.",
+    );
+    return null;
+  }
+
+  // Garante que este chat não fique vinculado a dois perfis, então amarra ao
+  // dono do token e QUEIMA o token (uso único).
   await admin
     .from("profiles")
-    .update({ telegram_chat_id: String(chatId) })
+    .update({ telegram_chat_id: null })
+    .eq("telegram_chat_id", String(chatId));
+  await admin
+    .from("profiles")
+    .update({
+      telegram_chat_id: String(chatId),
+      telegram_link_token: null,
+      telegram_link_expires_at: null,
+    })
     .eq("id", profile.id);
 
-  await sendMessage(
-    chatId,
-    "✅ <b>Conectado!</b>\n\nVocê vai receber lembretes às <b>08:00</b> e <b>20:00</b>.\n\nComandos:\n• /ping — testar\n• /gasto 45,90 iFood — registrar gasto\n• /receita 500 Freela — registrar receita\n• /saldo — ver resumo do mês\n• /stop — desconectar",
-  );
+  await sendMessage(chatId, CONNECTED_MSG);
   return profile.id;
 }
 
@@ -186,14 +242,15 @@ async function handleGasto(chatId: number, text: string): Promise<string | null>
   });
 
   if (error) {
-    await sendMessage(chatId, `❌ Erro ao salvar: ${error.message}`);
+    console.error("telegram/handleGasto insert failed", error.message);
+    await sendMessage(chatId, "❌ Não consegui salvar o gasto agora. Tenta de novo em instantes.");
     return profile.userId;
   }
 
-  const cat = categoryId ? ` · ${guessCategory(parsed.description)}` : "";
+  const cat = categoryId ? ` · ${escapeHtml(guessCategory(parsed.description) ?? "")}` : "";
   await sendMessage(
     chatId,
-    `✅ Gasto registrado!\n💸 <b>${formatBRL(parsed.amountCents)}</b> — ${parsed.description}${cat}`,
+    `✅ Gasto registrado!\n💸 <b>${formatBRL(parsed.amountCents)}</b> — ${escapeHtml(parsed.description)}${cat}`,
   );
   return profile.userId;
 }
@@ -222,13 +279,17 @@ async function handleReceita(chatId: number, text: string): Promise<string | nul
   });
 
   if (error) {
-    await sendMessage(chatId, `❌ Erro ao salvar: ${error.message}`);
+    console.error("telegram/handleReceita insert failed", error.message);
+    await sendMessage(
+      chatId,
+      "❌ Não consegui salvar a receita agora. Tenta de novo em instantes.",
+    );
     return profile.userId;
   }
 
   await sendMessage(
     chatId,
-    `✅ Receita registrada!\n💰 <b>${formatBRL(parsed.amountCents)}</b> — ${parsed.description}`,
+    `✅ Receita registrada!\n💰 <b>${formatBRL(parsed.amountCents)}</b> — ${escapeHtml(parsed.description)}`,
   );
   return profile.userId;
 }
@@ -280,7 +341,7 @@ async function handleSaldo(chatId: number): Promise<string | null> {
   const topCats = Object.entries(byCategory)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
-    .map(([name, cents]) => `  • ${name}: ${formatBRL(cents)}`)
+    .map(([name, cents]) => `  • ${escapeHtml(name)}: ${formatBRL(cents)}`)
     .join("\n");
 
   const monthName = now.toLocaleString("pt-BR", { month: "long", timeZone: "America/Sao_Paulo" });

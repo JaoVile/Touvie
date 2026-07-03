@@ -32,6 +32,8 @@ export type Database = {
         display_name: string | null;
         full_name: string | null;
         telegram_chat_id: string | null;
+        telegram_link_token: string | null;
+        telegram_link_expires_at: Timestamptz | null;
         pin_hash: string | null;
         write_pin_hash: string | null;
         recovery_hash: string | null;
