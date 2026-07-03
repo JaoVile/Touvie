@@ -22,6 +22,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
         type="search"
         name="q"
         defaultValue={params.get("q") ?? ""}
+        // biome-ignore lint/a11y/noAutofocus: foco automático controlado pelo chamador (página de busca) é o comportamento desejado
         autoFocus={autoFocus}
         placeholder="Buscar transações, diário…"
         className="flex-1 rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors placeholder:opacity-60 focus:border-transparent focus:ring-2"

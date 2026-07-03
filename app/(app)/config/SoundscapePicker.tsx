@@ -192,7 +192,7 @@ export function SoundscapePicker() {
     setNow(Date.now());
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
-  }, [state.journey, state.journeyStartedAt]);
+  }, [state.journey]);
 
   const activeFreq = FREQUENCIES.find((f) => f.key === state.freqMode);
   const ambient = TEXTURES.filter((t) => t.group === "ambiente");

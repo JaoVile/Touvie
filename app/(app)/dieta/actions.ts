@@ -70,10 +70,10 @@ export async function saveFood(fd: FormData): Promise<{ ok?: boolean; error?: st
   });
   if (!parsed.success) return { error: parsed.error.errors[0]?.message };
   const { supabase, userId } = await requireUser();
-  const payload = { user_id: userId, ...parsed.data };
-  delete (payload as { id?: string }).id;
-  const { error } = parsed.data.id
-    ? await supabase.from("foods").update(payload).eq("id", parsed.data.id)
+  const { id, ...fields } = parsed.data;
+  const payload = { user_id: userId, ...fields };
+  const { error } = id
+    ? await supabase.from("foods").update(payload).eq("id", id)
     : await supabase.from("foods").insert(payload);
   if (error) return { error: error.message };
   revalidatePath("/dieta");
@@ -199,10 +199,10 @@ export async function saveMeasurement(fd: FormData): Promise<{ ok?: boolean; err
   });
   if (!parsed.success) return { error: parsed.error.errors[0]?.message };
   const { supabase, userId } = await requireUser();
-  const payload = { user_id: userId, ...parsed.data };
-  delete (payload as { id?: string }).id;
-  const { error } = parsed.data.id
-    ? await supabase.from("body_measurements").update(payload).eq("id", parsed.data.id)
+  const { id, ...fields } = parsed.data;
+  const payload = { user_id: userId, ...fields };
+  const { error } = id
+    ? await supabase.from("body_measurements").update(payload).eq("id", id)
     : await supabase.from("body_measurements").insert(payload);
   if (error) return { error: error.message };
   revalidatePath("/dieta");

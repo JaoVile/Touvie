@@ -70,6 +70,7 @@ export function DiaryUnlockZK({ wraps, onUnlock }: Props) {
             type={mode === "pin" ? "password" : "text"}
             inputMode={mode === "pin" ? "numeric" : "text"}
             autoComplete="off"
+            // biome-ignore lint/a11y/noAutofocus: foco imediato no campo de desbloqueio é o comportamento desejado
             autoFocus
             required
             disabled={busy}

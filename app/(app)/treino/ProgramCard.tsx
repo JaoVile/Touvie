@@ -217,6 +217,7 @@ function DayForm({ programId }: { programId: string }) {
       <input type="hidden" name="program_id" value={programId} />
       <select name="weekday" defaultValue="1" className={inputCls} style={inputStyle}>
         {WEEKDAY_SHORT.map((label, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: dias da semana em ordem fixa, o índice É o valor (weekday 0–6)
           <option key={i} value={i}>
             {label}
           </option>

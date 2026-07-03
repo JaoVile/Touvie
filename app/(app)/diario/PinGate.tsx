@@ -80,6 +80,7 @@ export function PinGate() {
             type="password"
             inputMode="numeric"
             autoComplete="off"
+            // biome-ignore lint/a11y/noAutofocus: foco imediato no campo de PIN ao abrir o gate é o comportamento desejado
             autoFocus
             pattern="\d{4,8}"
             minLength={4}

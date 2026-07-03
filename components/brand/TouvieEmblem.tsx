@@ -56,9 +56,11 @@ export function TouvieEmblem({
     >
       <MarkArt title={alt || undefined} />
       {STARS.map((s, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: lista decorativa estática, nunca reordena
         <span key={`star-${i}`} aria-hidden="true" className="te-star" style={s} />
       ))}
       {CHIMES.map((c, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: lista decorativa estática, nunca reordena
         <span key={`chime-${i}`} aria-hidden="true" className="te-chime" style={c} />
       ))}
     </div>

@@ -35,6 +35,7 @@ export function NoteEditor({ note }: { note: Note }) {
   const router = useRouter();
 
   // Reset if navigating between notes (same component)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset intencional só ao trocar de nota (note.id); os demais campos são apenas semente inicial e não devem re-disparar
   useEffect(() => {
     setTitle(note.title);
     setContent(note.content);
@@ -166,12 +167,14 @@ export function NoteEditor({ note }: { note: Note }) {
       {/* Tags */}
       <div>
         <label
+          htmlFor="note-tags"
           className="mb-1 block text-xs font-medium"
           style={{ color: "var(--color-fg-muted)" }}
         >
           Tags (separadas por vírgula)
         </label>
         <input
+          id="note-tags"
           type="text"
           value={tagsRaw}
           onChange={(e) => {

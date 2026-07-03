@@ -146,7 +146,7 @@ const dayExerciseSchema = z.object({
 });
 
 export async function saveDayExercise(fd: FormData): Promise<{ ok?: boolean; error?: string }> {
-  const parseInt = (k: string) => {
+  const toInt = (k: string) => {
     const v = fd.get(k)?.toString() ?? "";
     return /^\d+$/.test(v) ? Number.parseInt(v, 10) : null;
   };
@@ -154,9 +154,9 @@ export async function saveDayExercise(fd: FormData): Promise<{ ok?: boolean; err
     id: fd.get("id")?.toString() || undefined,
     program_day_id: fd.get("program_day_id")?.toString(),
     exercise_id: fd.get("exercise_id")?.toString(),
-    target_sets: parseInt("target_sets"),
-    target_reps_low: parseInt("target_reps_low"),
-    target_reps_high: parseInt("target_reps_high"),
+    target_sets: toInt("target_sets"),
+    target_reps_low: toInt("target_reps_low"),
+    target_reps_high: toInt("target_reps_high"),
     notes: fd.get("notes")?.toString() || null,
   });
   if (!parsed.success) return { error: parsed.error.errors[0]?.message };

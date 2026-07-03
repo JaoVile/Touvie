@@ -72,6 +72,7 @@ export function EmojiPicker({ name, defaultValue = "", compact = false }: Props)
     if (r) setPos({ top: r.bottom + 4, left: r.left });
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: efeito de abertura — roda só quando o popover abre
   useEffect(() => {
     if (!open) return;
     place();

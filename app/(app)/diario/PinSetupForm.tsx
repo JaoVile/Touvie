@@ -33,6 +33,7 @@ export function PinSetupForm() {
         minLength={4}
         maxLength={8}
         required
+        // biome-ignore lint/a11y/noAutofocus: foco imediato no campo de PIN ao abrir o formulário é o comportamento desejado
         autoFocus
         placeholder="PIN (4–8 dígitos)"
         className={inputCls}

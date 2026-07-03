@@ -76,6 +76,7 @@ export function DatePicker({
     if (r) setPos({ top: r.bottom + 6, left: r.left });
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: efeito de abertura — roda só quando o popover abre, não a cada mudança de valor
   useEffect(() => {
     if (!open) return;
     place();
@@ -99,7 +100,6 @@ export function DatePicker({
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, true);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const cells = useMemo(() => {
@@ -184,6 +184,7 @@ export function DatePicker({
               <div className="mb-1 grid grid-cols-7 gap-1">
                 {WEEKDAYS.map((w, i) => (
                   <div
+                    // biome-ignore lint/suspicious/noArrayIndexKey: cabeçalho fixo de 7 dias (com rótulos repetidos), nunca reordena
                     key={i}
                     className="grid h-7 place-items-center text-[11px] font-semibold uppercase"
                     style={{ color: "var(--color-fg-subtle)" }}
@@ -196,9 +197,11 @@ export function DatePicker({
               <div className="grid grid-cols-7 gap-1">
                 {cells.map((d, i) =>
                   d == null ? (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: grade de calendário de posição fixa (inclui células vazias), nunca reordena
                     <div key={i} className="h-8" />
                   ) : (
                     <button
+                      // biome-ignore lint/suspicious/noArrayIndexKey: grade de calendário de posição fixa, nunca reordena
                       key={i}
                       type="button"
                       onClick={() => pick(d)}

@@ -315,12 +315,14 @@ function BillForm({
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
           <label
+            htmlFor="bill-title"
             className="mb-1 block text-xs font-medium"
             style={{ color: "var(--color-fg-muted)" }}
           >
             Título *
           </label>
           <input
+            id="bill-title"
             name="title"
             defaultValue={bill?.title ?? ""}
             required
@@ -330,12 +332,14 @@ function BillForm({
         </div>
         <div>
           <label
+            htmlFor="bill-amount"
             className="mb-1 block text-xs font-medium"
             style={{ color: "var(--color-fg-muted)" }}
           >
             Valor (R$) *
           </label>
           <input
+            id="bill-amount"
             name="amount"
             type="number"
             step="0.01"
@@ -347,22 +351,24 @@ function BillForm({
           />
         </div>
         <div>
-          <label
+          <span
             className="mb-1 block text-xs font-medium"
             style={{ color: "var(--color-fg-muted)" }}
           >
             Vencimento *
-          </label>
+          </span>
           <DatePicker name="due_date" defaultValue={bill?.due_date ?? today} />
         </div>
         <div>
           <label
+            htmlFor="bill-category"
             className="mb-1 block text-xs font-medium"
             style={{ color: "var(--color-fg-muted)" }}
           >
             Categoria
           </label>
           <select
+            id="bill-category"
             name="category_id"
             defaultValue={bill?.category_id ?? ""}
             className="w-full rounded-lg border px-3 py-1.5 text-sm outline-none focus:ring-2"
@@ -378,12 +384,14 @@ function BillForm({
         </div>
         <div>
           <label
+            htmlFor="bill-recurrence"
             className="mb-1 block text-xs font-medium"
             style={{ color: "var(--color-fg-muted)" }}
           >
             Recorrência
           </label>
           <select
+            id="bill-recurrence"
             name="recurrence_rule"
             defaultValue={bill?.recurrence_rule ?? ""}
             className="w-full rounded-lg border px-3 py-1.5 text-sm outline-none focus:ring-2"
@@ -395,12 +403,14 @@ function BillForm({
         </div>
         <div className="col-span-2">
           <label
+            htmlFor="bill-notes"
             className="mb-1 block text-xs font-medium"
             style={{ color: "var(--color-fg-muted)" }}
           >
             Observações
           </label>
           <input
+            id="bill-notes"
             name="notes"
             defaultValue={bill?.notes ?? ""}
             maxLength={300}

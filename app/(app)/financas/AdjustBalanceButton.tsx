@@ -68,12 +68,14 @@ export function AdjustBalanceButton({ currentCents }: Props) {
         </div>
         <div>
           <label
+            htmlFor="adjust-balance"
             className="mb-1 block text-xs font-medium"
             style={{ color: "var(--color-fg-muted)" }}
           >
             Saldo real (R$)
           </label>
           <input
+            id="adjust-balance"
             type="number"
             step="0.01"
             value={value}

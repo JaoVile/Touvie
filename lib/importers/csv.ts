@@ -256,7 +256,11 @@ export function parseNubank(text: string): ParsedTx[] {
 // ─── Mercado Pago ──────────────────────────────────────────────────
 // Format: Data;Descrição;Valor;Tipo;...  (positive = income, negative = expense)
 
-const stripDiacritics = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const stripDiacritics = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Mn}/gu, "");
 
 export function parseMercadoPago(text: string): ParsedTx[] {
   const lines = text.replace(/\r/g, "").split("\n").filter(Boolean);

@@ -11,7 +11,7 @@ import { useEffect } from "react";
  * Supabase network blip in an unguarded server component used to take the
  * entire screen down — now it lands here with a retry.
  */
-export default function Error({
+export default function ErrorBoundary({
   error,
   reset,
 }: {

@@ -1,15 +1,7 @@
 "use client";
 
 import { type ReminderSchedule, describeSchedule } from "@/lib/reminders";
-import {
-  BellPlus,
-  CalendarDays,
-  Clock,
-  type LucideIcon,
-  Repeat,
-  Send,
-  Trash2,
-} from "lucide-react";
+import { BellPlus, CalendarDays, Clock, type LucideIcon, Repeat, Send, Trash2 } from "lucide-react";
 import { type CSSProperties, useEffect, useState, useTransition } from "react";
 import {
   type ReminderRow,
@@ -125,7 +117,11 @@ export function ReminderComposer({
     if (!canCreate) return;
     setCreateError(null);
     startMutate(async () => {
-      const res = await createReminder({ area, message: message.trim(), schedule: currentSchedule() });
+      const res = await createReminder({
+        area,
+        message: message.trim(),
+        schedule: currentSchedule(),
+      });
       if (res.ok) {
         setMessage("");
         await reload();
@@ -197,10 +193,15 @@ export function ReminderComposer({
         ) : null}
 
         <div className="mb-4">
-          <label className="mb-1.5 block text-xs" style={{ color: "var(--color-fg-subtle)" }}>
+          <label
+            htmlFor="reminder-message"
+            className="mb-1.5 block text-xs"
+            style={{ color: "var(--color-fg-subtle)" }}
+          >
             Mensagem
           </label>
           <input
+            id="reminder-message"
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
@@ -211,9 +212,9 @@ export function ReminderComposer({
           />
         </div>
 
-        <label className="mb-1.5 block text-xs" style={{ color: "var(--color-fg-subtle)" }}>
+        <span className="mb-1.5 block text-xs" style={{ color: "var(--color-fg-subtle)" }}>
           Quando disparar
-        </label>
+        </span>
         <div className="mb-3 flex flex-wrap gap-1.5">
           {TRIGGERS.map((t) => {
             const active = t.id === trigger;

@@ -97,7 +97,7 @@ function parseTxArgs(text: string): { amountCents: number; description: string }
   if (parts.length < 1) return null;
   const raw = parts[0].replace(",", ".");
   const amount = Number.parseFloat(raw);
-  if (!isFinite(amount) || amount <= 0) return null;
+  if (!Number.isFinite(amount) || amount <= 0) return null;
   const amountCents = Math.round(amount * 100);
   const description = parts.slice(1).join(" ") || "Gasto avulso";
   return { amountCents, description };
@@ -139,7 +139,7 @@ async function handleStart(chatId: number): Promise<string | null> {
 
   await sendMessage(
     chatId,
-    `✅ <b>Conectado!</b>\n\nVocê vai receber lembretes às <b>08:00</b> e <b>20:00</b>.\n\nComandos:\n• /ping — testar\n• /gasto 45,90 iFood — registrar gasto\n• /receita 500 Freela — registrar receita\n• /saldo — ver resumo do mês\n• /stop — desconectar`,
+    "✅ <b>Conectado!</b>\n\nVocê vai receber lembretes às <b>08:00</b> e <b>20:00</b>.\n\nComandos:\n• /ping — testar\n• /gasto 45,90 iFood — registrar gasto\n• /receita 500 Freela — registrar receita\n• /saldo — ver resumo do mês\n• /stop — desconectar",
   );
   return profile.id;
 }
@@ -287,11 +287,7 @@ async function handleSaldo(chatId: number): Promise<string | null> {
 
   await sendMessage(
     chatId,
-    `📊 <b>Resumo de ${monthName}</b>\n\n` +
-      `💰 Receitas: <b>${formatBRL(income)}</b>\n` +
-      `💸 Gastos: <b>${formatBRL(expense)}</b>\n` +
-      `📈 Saldo: <b>${sign}${formatBRL(balance)}</b>\n` +
-      (topCats ? `\n<b>Top gastos por categoria:</b>\n${topCats}` : ""),
+    `📊 <b>Resumo de ${monthName}</b>\n\n💰 Receitas: <b>${formatBRL(income)}</b>\n💸 Gastos: <b>${formatBRL(expense)}</b>\n📈 Saldo: <b>${sign}${formatBRL(balance)}</b>\n${topCats ? `\n<b>Top gastos por categoria:</b>\n${topCats}` : ""}`,
   );
 
   return profile.userId;

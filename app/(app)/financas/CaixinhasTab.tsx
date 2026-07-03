@@ -242,12 +242,14 @@ function EnvelopeForm({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label
+            htmlFor="envelope-name"
             className="mb-1 block text-xs font-medium"
             style={{ color: "var(--color-fg-muted)" }}
           >
             Nome *
           </label>
           <input
+            id="envelope-name"
             name="name"
             defaultValue={envelope?.name ?? ""}
             required
@@ -257,12 +259,14 @@ function EnvelopeForm({
         </div>
         <div>
           <label
+            htmlFor="envelope-emoji"
             className="mb-1 block text-xs font-medium"
             style={{ color: "var(--color-fg-muted)" }}
           >
             Emoji
           </label>
           <input
+            id="envelope-emoji"
             name="emoji"
             defaultValue={envelope?.emoji ?? ""}
             maxLength={8}
@@ -272,12 +276,14 @@ function EnvelopeForm({
         </div>
         <div>
           <label
+            htmlFor="envelope-limit"
             className="mb-1 block text-xs font-medium"
             style={{ color: "var(--color-fg-muted)" }}
           >
             Limite mensal (R$) *
           </label>
           <input
+            id="envelope-limit"
             name="limit"
             type="number"
             step="0.01"
@@ -290,12 +296,14 @@ function EnvelopeForm({
         </div>
         <div>
           <label
+            htmlFor="envelope-category"
             className="mb-1 block text-xs font-medium"
             style={{ color: "var(--color-fg-muted)" }}
           >
             Categoria
           </label>
           <select
+            id="envelope-category"
             name="category_id"
             defaultValue={envelope?.category_id ?? ""}
             className="w-full rounded-lg border px-3 py-1.5 text-sm outline-none focus:ring-2"

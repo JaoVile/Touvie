@@ -21,14 +21,14 @@ export function MeasurementForm() {
 
   return (
     <form ref={formRef} action={submit} className="space-y-2 text-xs">
-      <label className="block">
+      <div className="block">
         <span className="text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
           Data
         </span>
         <div className="mt-0.5">
           <DatePicker name="measured_on" defaultValue={todayBRTISO()} compact />
         </div>
-      </label>
+      </div>
       <Field name="weight_kg" type="number" step="0.1" placeholder="Ex: 78.4" label="Peso (kg)" />
       <div className="grid grid-cols-2 gap-2">
         <Field name="waist_cm" type="number" step="0.5" placeholder="cm" label="Cintura" />

@@ -53,6 +53,7 @@ export function TimePicker({
     if (r) setPos({ top: r.bottom + 6, left: r.left });
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: efeito de abertura — roda só quando o popover abre, não a cada mudança de valor
   useEffect(() => {
     if (!open) return;
     place();

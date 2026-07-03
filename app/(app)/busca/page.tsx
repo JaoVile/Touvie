@@ -182,7 +182,7 @@ async function Results({ query }: { query: string }) {
             />
             <ul className="divide-y" style={{ borderColor: "var(--color-border)" }}>
               {notesList.map((n) => {
-                const preview = extractPreview(n.title + " " + n.content, query);
+                const preview = extractPreview(`${n.title} ${n.content}`, query);
                 return (
                   <li key={n.id}>
                     <Link

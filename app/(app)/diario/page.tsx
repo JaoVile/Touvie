@@ -63,11 +63,8 @@ export default async function DiarioPage({ searchParams }: { searchParams: SP })
             weekStart={weekStart}
             editable={trusted}
             wraps={{
-              // biome-ignore lint/style/noNonNullAssertion: privateOn garante os três não-nulos
               pin_wrap: keys!.pin_wrap!,
-              // biome-ignore lint/style/noNonNullAssertion: idem
               recovery_wrap: keys!.recovery_wrap!,
-              // biome-ignore lint/style/noNonNullAssertion: idem
               code_wrap: keys!.code_wrap!,
             }}
             entries={all}

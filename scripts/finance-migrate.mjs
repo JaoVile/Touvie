@@ -90,8 +90,8 @@ const bills = [
 const { data: existingBills } = await db.from("bills").select("title,due_date").eq("user_id", uid);
 const billKey = new Set((existingBills ?? []).map((b) => `${b.title}|${b.due_date}`));
 
-let created = 0,
-  total = 0;
+let created = 0;
+let total = 0;
 for (const b of bills) {
   const due = `${MES}-${String(b.day).padStart(2, "0")}`;
   total += reais(b.amount);

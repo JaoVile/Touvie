@@ -11,8 +11,8 @@
 // palavra-chave no NOME/TAGS e penaliza termos indesejados — pra não pegar
 // "popular porém errado".
 
-import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const ROOT = process.cwd();
@@ -34,15 +34,103 @@ async function getKey() {
 // must: termos que DEVEM aparecer (nome vale +2, tag +1).
 // avoid: termos que derrubam o candidato (-5).
 const TARGETS = [
-  { key: "chuva", variants: 3, queries: ["gentle rain loop", "rain ambience", "soft rain loop", "light rain steady", "rain on window calm"], must: ["rain"], avoid: ["thunder", "storm", "city"] },
-  { key: "mar", variants: 3, queries: ["ocean waves loop", "sea waves beach", "calm waves shore"], must: ["wave", "ocean", "sea", "surf"], avoid: ["underwater", "submarine", "boat", "engine"] },
-  { key: "ruido-rosa", queries: ["pink noise", "pink noise loop"], must: ["pink", "noise"], avoid: ["city", "crowd", "music", "guitar"] },
-  { key: "ruido-marrom", queries: ["brown noise", "brownian noise loop", "brown noise sleep"], must: ["brown", "noise"], avoid: ["bucket", "fx", "city", "music"] },
-  { key: "floresta", variants: 3, queries: ["forest birds ambience", "woodland birds morning", "forest ambience calm", "spring birds nature", "jungle birds gentle"], must: ["forest", "bird", "wood"], avoid: ["traffic", "city", "horror"] },
-  { key: "vento", variants: 3, queries: ["wind ambience loop", "soft wind plain", "gentle wind loop", "breeze ambience calm", "wind through trees soft"], must: ["wind"], avoid: ["storm", "howling", "horror"] },
-  { key: "violinos", variants: 3, queries: ["strings ambient pad", "string ensemble loop", "cinematic strings soft", "warm strings loop", "legato strings calm"], must: ["string", "violin", "cello", "orchestra"], avoid: ["guitar", "ominous", "horror", "dark", "scary"] },
-  { key: "violao", variants: 3, queries: ["acoustic guitar loop calm", "fingerstyle guitar gentle", "nylon guitar loop", "classical guitar loop", "soft acoustic guitar arpeggio"], must: ["guitar", "acoustic", "nylon"], avoid: ["ominous", "horror", "dark", "scary", "distortion", "metal", "electric"] },
-  { key: "piano", variants: 3, queries: ["calm piano loop", "felt piano ambient", "soft piano melody loop", "ambient piano gentle", "slow piano loop"], must: ["piano"], avoid: ["guitar", "horror", "dark", "scary"] },
+  {
+    key: "chuva",
+    variants: 3,
+    queries: [
+      "gentle rain loop",
+      "rain ambience",
+      "soft rain loop",
+      "light rain steady",
+      "rain on window calm",
+    ],
+    must: ["rain"],
+    avoid: ["thunder", "storm", "city"],
+  },
+  {
+    key: "mar",
+    variants: 3,
+    queries: ["ocean waves loop", "sea waves beach", "calm waves shore"],
+    must: ["wave", "ocean", "sea", "surf"],
+    avoid: ["underwater", "submarine", "boat", "engine"],
+  },
+  {
+    key: "ruido-rosa",
+    queries: ["pink noise", "pink noise loop"],
+    must: ["pink", "noise"],
+    avoid: ["city", "crowd", "music", "guitar"],
+  },
+  {
+    key: "ruido-marrom",
+    queries: ["brown noise", "brownian noise loop", "brown noise sleep"],
+    must: ["brown", "noise"],
+    avoid: ["bucket", "fx", "city", "music"],
+  },
+  {
+    key: "floresta",
+    variants: 3,
+    queries: [
+      "forest birds ambience",
+      "woodland birds morning",
+      "forest ambience calm",
+      "spring birds nature",
+      "jungle birds gentle",
+    ],
+    must: ["forest", "bird", "wood"],
+    avoid: ["traffic", "city", "horror"],
+  },
+  {
+    key: "vento",
+    variants: 3,
+    queries: [
+      "wind ambience loop",
+      "soft wind plain",
+      "gentle wind loop",
+      "breeze ambience calm",
+      "wind through trees soft",
+    ],
+    must: ["wind"],
+    avoid: ["storm", "howling", "horror"],
+  },
+  {
+    key: "violinos",
+    variants: 3,
+    queries: [
+      "strings ambient pad",
+      "string ensemble loop",
+      "cinematic strings soft",
+      "warm strings loop",
+      "legato strings calm",
+    ],
+    must: ["string", "violin", "cello", "orchestra"],
+    avoid: ["guitar", "ominous", "horror", "dark", "scary"],
+  },
+  {
+    key: "violao",
+    variants: 3,
+    queries: [
+      "acoustic guitar loop calm",
+      "fingerstyle guitar gentle",
+      "nylon guitar loop",
+      "classical guitar loop",
+      "soft acoustic guitar arpeggio",
+    ],
+    must: ["guitar", "acoustic", "nylon"],
+    avoid: ["ominous", "horror", "dark", "scary", "distortion", "metal", "electric"],
+  },
+  {
+    key: "piano",
+    variants: 3,
+    queries: [
+      "calm piano loop",
+      "felt piano ambient",
+      "soft piano melody loop",
+      "ambient piano gentle",
+      "slow piano loop",
+    ],
+    must: ["piano"],
+    avoid: ["guitar", "horror", "dark", "scary"],
+  },
 ];
 
 const LICENSE_LABEL = {
@@ -71,18 +159,18 @@ async function fetchT(url, opts = {}, ms = 20_000) {
 async function search(query, token) {
   // Sem sort forçado → relevância padrão do Freesound. Inclui tags pra pontuar.
   const filter = 'duration:[15 TO 240] license:("Creative Commons 0" OR "Attribution")';
-  const url =
-    `${API}/search/text/?query=${encodeURIComponent(query)}` +
-    `&filter=${encodeURIComponent(filter)}` +
-    `&fields=${encodeURIComponent("id,name,username,license,previews,duration,url,tags")}` +
-    `&page_size=15`;
+  const url = `${API}/search/text/?query=${encodeURIComponent(query)}&filter=${encodeURIComponent(
+    filter,
+  )}&fields=${encodeURIComponent(
+    "id,name,username,license,previews,duration,url,tags",
+  )}&page_size=15`;
   const res = await fetchT(url, { headers: { Authorization: `Token ${token}` } });
   if (!res.ok) throw new Error(`Freesound ${res.status}: ${await res.text()}`);
   return (await res.json()).results ?? [];
 }
 
 function score(result, target) {
-  if (!result?.previews?.["preview-hq-mp3"]) return -Infinity;
+  if (!result?.previews?.["preview-hq-mp3"]) return Number.NEGATIVE_INFINITY;
   const name = (result.name ?? "").toLowerCase();
   const tags = (result.tags ?? []).map((t) => t.toLowerCase());
   let s = 0;
@@ -117,7 +205,9 @@ async function loadManifest() {
 async function main() {
   const token = await getKey();
   if (!token) {
-    console.error("✗ Falta FREESOUND_API_KEY (.env.local). Crie em https://freesound.org/apiv2/apply/");
+    console.error(
+      "✗ Falta FREESOUND_API_KEY (.env.local). Crie em https://freesound.org/apiv2/apply/",
+    );
     process.exit(1);
   }
   if (!existsSync(OUT_DIR)) await mkdir(OUT_DIR, { recursive: true });

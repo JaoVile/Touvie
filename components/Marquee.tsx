@@ -40,7 +40,10 @@ export function Marquee({
 }: MarqueeProps) {
   const content =
     repeat > 1
-      ? Array.from({ length: repeat }, (_, i) => <Fragment key={i}>{children}</Fragment>)
+      ? Array.from({ length: repeat }, (_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: cópias idênticas do mesmo conteúdo, índice é a única chave possível
+          <Fragment key={i}>{children}</Fragment>
+        ))
       : children;
   return (
     <div

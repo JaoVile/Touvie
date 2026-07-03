@@ -216,12 +216,14 @@ export function SessionLogger({
 
       <GlassCard>
         <label
+          htmlFor="session-notes"
           className="mb-1.5 block text-xs font-semibold uppercase tracking-wide"
           style={{ color: "var(--color-fg-subtle)" }}
         >
           Notas da sessão
         </label>
         <textarea
+          id="session-notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           onBlur={notesBlur}
