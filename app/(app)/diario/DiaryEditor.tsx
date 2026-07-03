@@ -54,11 +54,13 @@ export function DiaryEditor({
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
 
+  // Reset ao navegar entre semanas (mesmo componente, sem key).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset intencional só ao trocar de semana (weekStart); os campos initial* são apenas semente e não devem re-disparar — sem isto, duas semanas vazias (props idênticas) não resetam e o rascunho vaza pra semana errada
   useEffect(() => {
     setContent(initialContent);
     setStatus(initialSavedAt ? { kind: "saved", at: initialSavedAt } : { kind: "idle" });
     setMoodScore(initialMoodScore);
-  }, [initialContent, initialSavedAt, initialMoodScore]);
+  }, [weekStart]);
 
   async function flush(text: string) {
     if (timer.current) {
