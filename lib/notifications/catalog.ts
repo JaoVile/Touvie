@@ -33,8 +33,7 @@ export const VAR_CATALOG: Record<CronTemplateKey, VarDescriptor[]> = {
     {
       name: "daily_routine",
       description: "Bloco com a lista da rotina diária (até 12 itens).",
-      example:
-        "📅 Rotina do dia\n• 07:00 🏋️ Treino A\n• 12:30 🍽️ Almoço\n• 22:00 📖 Leitura",
+      example: "📅 Rotina do dia\n• 07:00 🏋️ Treino A\n• 12:30 🍽️ Almoço\n• 22:00 📖 Leitura",
     },
     {
       name: "weekly_blocks",
@@ -71,10 +70,8 @@ export const VAR_CATALOG: Record<CronTemplateKey, VarDescriptor[]> = {
     },
     {
       name: "tomorrow_recurrences",
-      description:
-        "Lançamentos recorrentes (assinaturas, salário etc.) que caem amanhã.",
-      example:
-        "📌 Recorrências de amanhã\n• Netflix — − R$ 39,90\n• Salário — + R$ 4.500,00",
+      description: "Lançamentos recorrentes (assinaturas, salário etc.) que caem amanhã.",
+      example: "📌 Recorrências de amanhã\n• Netflix — − R$ 39,90\n• Salário — + R$ 4.500,00",
     },
     {
       name: "upcoming_bills_3d",
@@ -90,15 +87,12 @@ export const VAR_CATALOG: Record<CronTemplateKey, VarDescriptor[]> = {
     },
     {
       name: "weekly_recap",
-      description:
-        "Recap de hábitos da semana — % de consistência. Só aparece no domingo.",
-      example:
-        "🥈 Recap da semana\n• Hábitos: 18/35 — 51% de consistência",
+      description: "Recap de hábitos da semana — % de consistência. Só aparece no domingo.",
+      example: "🥈 Recap da semana\n• Hábitos: 18/35 — 51% de consistência",
     },
     {
       name: "sunday_scripting",
-      description:
-        "Lembrete pra abrir o diário e fazer scripting. Só aparece no domingo.",
+      description: "Lembrete pra abrir o diário e fazer scripting. Só aparece no domingo.",
       example:
         "🔒 Domingo é dia de scripting. Abra o diário e escreva como se já tivesse acontecido.",
     },

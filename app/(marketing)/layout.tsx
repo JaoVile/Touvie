@@ -1,7 +1,7 @@
 import { IntroVeil } from "@/components/IntroVeil";
-import { LandingHeader } from "@/components/landing/LandingHeader";
 import { ScrollProgress } from "@/components/ScrollProgress";
 import { SideLabel } from "@/components/SideLabel";
+import { LandingHeader } from "@/components/landing/LandingHeader";
 import type { ReactNode } from "react";
 
 /**

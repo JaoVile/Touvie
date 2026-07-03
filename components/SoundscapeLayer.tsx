@@ -1,7 +1,7 @@
 "use client";
 
-import { SoundEngine } from "@/lib/soundscape-engine";
 import { SOUND_EVENT, type SoundState, readSoundState } from "@/lib/soundscape";
+import { SoundEngine } from "@/lib/soundscape-engine";
 import { useEffect, useRef } from "react";
 
 /**

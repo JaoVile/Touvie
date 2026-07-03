@@ -115,7 +115,11 @@ export function isEncrypted(content: string): boolean {
 export async function encryptEntry(plaintext: string, dek: Uint8Array): Promise<string> {
   const key = await crypto.subtle.importKey("raw", ab(dek), "AES-GCM", false, ["encrypt"]);
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: ab(iv) }, key, ab(enc.encode(plaintext)));
+  const ct = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: ab(iv) },
+    key,
+    ab(enc.encode(plaintext)),
+  );
   return `${ENTRY_PREFIX}${toB64(iv)}:${toB64(new Uint8Array(ct))}`;
 }
 

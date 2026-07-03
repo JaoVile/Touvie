@@ -70,7 +70,10 @@ export function UmDia() {
 
               <div className="mt-5">{m.screen}</div>
 
-              <p className="mt-5 text-sm leading-relaxed" style={{ color: "var(--color-fg-muted)" }}>
+              <p
+                className="mt-5 text-sm leading-relaxed"
+                style={{ color: "var(--color-fg-muted)" }}
+              >
                 {m.body}
               </p>
 
@@ -88,7 +91,10 @@ export function UmDia() {
                     className="mt-0.5 shrink-0"
                     style={{ color: "var(--color-accent)" }}
                   />
-                  <p className="text-[13px] leading-snug" style={{ color: "var(--color-fg-muted)" }}>
+                  <p
+                    className="text-[13px] leading-snug"
+                    style={{ color: "var(--color-fg-muted)" }}
+                  >
                     {m.ping.text}
                   </p>
                 </div>

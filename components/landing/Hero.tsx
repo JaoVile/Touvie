@@ -3,9 +3,9 @@
 import { Magnetic } from "@/components/Magnetic";
 import { Marquee } from "@/components/Marquee";
 import { Reveal } from "@/components/Reveal";
+import { TouvieEmblem } from "@/components/brand/TouvieEmblem";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { TouvieEmblem } from "@/components/brand/TouvieEmblem";
 
 // Os módulos, na ordem em que viram a fita do rodapé da dobra.
 const MODULES = ["rotina", "metas", "finanças", "treino", "diário", "dieta", "notas", "Vie"];
@@ -27,7 +27,10 @@ export function Hero() {
     <section id="inicio" className="relative flex min-h-[100svh] flex-col">
       {/* Fundo do hero, clipado ao container pra não vazar scroll nem cortar
           o conteúdo: a marca monumental viva ao fundo. */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      >
         {/* Marca monumental viva, bem ao fundo — a auréola gira atrás do
             manifesto. Opacidade baixa + leve subida pra não disputar com o
             texto; tamanho responsivo (vmin) pra emoldurar sem estourar. */}

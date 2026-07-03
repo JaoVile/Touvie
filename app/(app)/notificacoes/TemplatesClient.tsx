@@ -248,8 +248,8 @@ export function TemplatesClient({ templates }: { templates: NotificationTemplate
                             }}
                           >
                             <p className="text-[10px] uppercase tracking-[0.1em] opacity-50 px-1 pt-1">
-                              Clique no nome pra inserir no cursor — exemplo abaixo mostra
-                              como aparece na mensagem
+                              Clique no nome pra inserir no cursor — exemplo abaixo mostra como
+                              aparece na mensagem
                             </p>
                             {VAR_CATALOG[t.key].map((v) => (
                               <div
@@ -271,9 +271,7 @@ export function TemplatesClient({ templates }: { templates: NotificationTemplate
                                     >
                                       {`{{${v.name}}}`}
                                     </button>
-                                    <p className="mt-0.5 text-[11px] opacity-70">
-                                      {v.description}
-                                    </p>
+                                    <p className="mt-0.5 text-[11px] opacity-70">{v.description}</p>
                                   </div>
                                   <button
                                     type="button"

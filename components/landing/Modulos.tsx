@@ -15,14 +15,22 @@ import {
 import { SectionHeading } from "./SectionHeading";
 
 const MODULES: { icon: LucideIcon; title: string; desc: string }[] = [
-  { icon: CalendarCheck2, title: "Rotina", desc: "Hábitos diários e blocos da semana, marcados num toque." },
+  {
+    icon: CalendarCheck2,
+    title: "Rotina",
+    desc: "Hábitos diários e blocos da semana, marcados num toque.",
+  },
   { icon: Target, title: "Metas", desc: "Objetivos e tarefas com prazo — o que importa, à vista." },
   { icon: Wallet, title: "Finanças", desc: "Lançamentos, contas a pagar, caixinhas e gráficos." },
   { icon: Dumbbell, title: "Treino", desc: "Programas, séries, PRs e progressão de carga." },
   { icon: NotebookPen, title: "Diário", desc: "Escrita protegida por PIN — só sua, de verdade." },
   { icon: Salad, title: "Dieta", desc: "Refeições, macros e medidas acompanhadas no tempo." },
   { icon: StickyNote, title: "Notas", desc: "Ideias e listas fixáveis, sempre à mão." },
-  { icon: Sparkles, title: "Vie", desc: "Seu agente de IA — pergunte qualquer coisa sobre o seu mundo." },
+  {
+    icon: Sparkles,
+    title: "Vie",
+    desc: "Seu agente de IA — pergunte qualquer coisa sobre o seu mundo.",
+  },
 ];
 
 /**

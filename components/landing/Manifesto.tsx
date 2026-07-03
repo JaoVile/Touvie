@@ -26,7 +26,10 @@ export function Manifesto() {
       </span>
       <div className="relative z-10">
         <Reveal>
-          <p className="eyebrow flex items-center gap-3" style={{ color: "var(--color-fg-subtle)" }}>
+          <p
+            className="eyebrow flex items-center gap-3"
+            style={{ color: "var(--color-fg-subtle)" }}
+          >
             <span
               className="font-mono"
               style={{ color: "var(--color-accent)", letterSpacing: "0.12em" }}
@@ -48,9 +51,8 @@ export function Manifesto() {
           >
             Você não precisa de dez apps.{" "}
             <span style={{ color: "var(--color-fg-subtle)" }}>
-              Precisa de{" "}
-              <span className="display-i gradient-text">um sistema que te conhece</span> — e cresce
-              com você, todo dia.
+              Precisa de <span className="display-i gradient-text">um sistema que te conhece</span>{" "}
+              — e cresce com você, todo dia.
             </span>
           </p>
         </Reveal>

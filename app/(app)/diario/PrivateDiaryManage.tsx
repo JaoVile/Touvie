@@ -117,7 +117,8 @@ export function PrivateDiaryManage({ dek, entries }: Props) {
           Desligar diário privado
         </div>
         <p className="mt-1 text-xs" style={{ color: "var(--color-fg-muted)" }}>
-          Volta suas anotações pra texto normal (legível) e remove a cifra. Você pode religar depois.
+          Volta suas anotações pra texto normal (legível) e remove a cifra. Você pode religar
+          depois.
         </p>
         {confirmingOff ? (
           <div className="mt-2 flex gap-2">

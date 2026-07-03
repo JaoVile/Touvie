@@ -1,3 +1,4 @@
+import { SectionNav } from "@/components/SectionNav";
 import { AntesDepois } from "@/components/landing/AntesDepois";
 import { CTA } from "@/components/landing/CTA";
 import { Diferenciais } from "@/components/landing/Diferenciais";
@@ -9,7 +10,6 @@ import { Manifesto } from "@/components/landing/Manifesto";
 import { Modulos } from "@/components/landing/Modulos";
 import { Numeros } from "@/components/landing/Numeros";
 import { UmDia } from "@/components/landing/UmDia";
-import { SectionNav } from "@/components/SectionNav";
 import type { Metadata } from "next";
 
 const TITLE = "Touvie — seu life OS pessoal";

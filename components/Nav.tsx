@@ -36,8 +36,7 @@ export function Nav() {
   const t = useTranslations("nav");
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   const PRIMARY: NavItem[] = [
     { href: "/", label: t("today"), Icon: House },

@@ -252,8 +252,18 @@ export function MiniDiario() {
 
 /* ── Notas (cards fixáveis com tags) — espelha /notas ────────────────────── */
 const NOTES = [
-  { title: "Ideia de produto", body: "Plugar o Vie nos lembretes pra…", tags: ["vie", "ideias"], pin: true },
-  { title: "Lista de leitura", body: "Atomic Habits · Deep Work · Ess…", tags: ["livros"], pin: false },
+  {
+    title: "Ideia de produto",
+    body: "Plugar o Vie nos lembretes pra…",
+    tags: ["vie", "ideias"],
+    pin: true,
+  },
+  {
+    title: "Lista de leitura",
+    body: "Atomic Habits · Deep Work · Ess…",
+    tags: ["livros"],
+    pin: false,
+  },
 ];
 
 export function MiniNotas() {
@@ -474,7 +484,11 @@ export function MiniVie() {
           Quanto gastei esse mês?
         </div>
         <div className="flex items-start gap-2">
-          <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: "var(--color-accent)" }} />
+          <Sparkles
+            size={14}
+            className="mt-0.5 shrink-0"
+            style={{ color: "var(--color-accent)" }}
+          />
           <p className="text-[13px] leading-snug" style={{ color: "var(--color-fg-muted)" }}>
             Você gastou <span style={{ color: "var(--color-fg)" }}>R$ 1.240</span> em junho — 18% a
             menos que maio. O maior foi mercado.

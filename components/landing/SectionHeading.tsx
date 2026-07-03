@@ -28,7 +28,10 @@ export function SectionHeading({
           style={{ color: "var(--color-fg-subtle)" }}
         >
           {index ? (
-            <span className="font-mono" style={{ color: "var(--color-accent)", letterSpacing: "0.12em" }}>
+            <span
+              className="font-mono"
+              style={{ color: "var(--color-accent)", letterSpacing: "0.12em" }}
+            >
               {index}
             </span>
           ) : null}

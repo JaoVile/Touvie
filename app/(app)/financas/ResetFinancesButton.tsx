@@ -53,7 +53,8 @@ export function ResetFinancesButton() {
           <p className="text-sm font-semibold">Resetar finanças?</p>
           <p className="mt-1 text-xs" style={{ color: "var(--color-fg-muted)" }}>
             Apaga <strong>todos os lançamentos, contas a pagar e caixinhas</strong>. O saldo e o "a
-            pagar" voltam a zero e o gráfico esvazia. Suas categorias permanecem. Não dá pra desfazer.
+            pagar" voltam a zero e o gráfico esvazia. Suas categorias permanecem. Não dá pra
+            desfazer.
           </p>
         </div>
         {error ? (

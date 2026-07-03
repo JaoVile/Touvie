@@ -166,9 +166,7 @@ export async function deleteReminder(id: string): Promise<{ ok: boolean; error?:
  * compondo — o "teste" do lembrete. Usa a MESMA engrenagem (sendMessage) que
  * o cron usará no disparo agendado, então provar isto aqui = provar o canal.
  */
-export async function sendTestReminder(
-  message: string,
-): Promise<{ ok: boolean; error?: string }> {
+export async function sendTestReminder(message: string): Promise<{ ok: boolean; error?: string }> {
   const text = message.trim();
   if (!text) return { ok: false, error: "Escreva uma mensagem primeiro." };
 

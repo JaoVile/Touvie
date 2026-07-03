@@ -1,7 +1,7 @@
 "use client";
 
-import { TouvieEmblem } from "@/components/brand/TouvieEmblem";
 import { Reveal } from "@/components/Reveal";
+import { TouvieEmblem } from "@/components/brand/TouvieEmblem";
 import {
   ArrowRight,
   Bell,

@@ -1,7 +1,7 @@
 import { Magnetic } from "@/components/Magnetic";
 import { Reveal } from "@/components/Reveal";
-import Link from "next/link";
 import { TouvieEmblem } from "@/components/brand/TouvieEmblem";
+import Link from "next/link";
 
 /**
  * Seção 6 — CTA final. Fecha o círculo: o selo de novo, um convite em serifa

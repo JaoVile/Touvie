@@ -9,6 +9,7 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "check": "biome check --write .",
+    "check:i18n": "node scripts/check-i18n.mjs",
     "fetch:sounds": "node scripts/fetch-sounds.mjs"
   },
   "dependencies": {

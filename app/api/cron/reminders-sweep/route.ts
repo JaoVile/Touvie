@@ -77,6 +77,10 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  // todayBRT() usa toZonedTime, que expõe a parede de São Paulo nos getters
+  // LOCAIS (verificado empiricamente: getHours()/getDay() dão 20:30/sexta com
+  // TZ=UTC, America/Sao_Paulo e America/New_York; os getters UTC só acertam num
+  // runtime em UTC). Por isso getters locais — corretos em qualquer fuso.
   const z = todayBRT();
   const nowMin = z.getHours() * 60 + z.getMinutes();
   const weekday = z.getDay();
@@ -129,8 +133,9 @@ export async function GET(req: Request) {
         .update({ last_fired_at: new Date().toISOString() })
         .eq("id", r.id);
       sent++;
-    } catch {
+    } catch (err) {
       failed++;
+      console.error("reminders-sweep send failed", r.id, err);
     }
   }
 

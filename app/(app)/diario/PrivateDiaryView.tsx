@@ -2,12 +2,7 @@
 
 import { Reveal } from "@/components/Reveal";
 import { FoldCard } from "@/components/glass/FoldCard";
-import {
-  type WrappedKey,
-  clearSessionDEK,
-  decryptEntry,
-  loadSessionDEK,
-} from "@/lib/diary-crypto";
+import { type WrappedKey, clearSessionDEK, decryptEntry, loadSessionDEK } from "@/lib/diary-crypto";
 import { Settings2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DiaryEditor } from "./DiaryEditor";

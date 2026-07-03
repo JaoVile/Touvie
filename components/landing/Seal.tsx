@@ -35,8 +35,7 @@ export function Seal({
           fontFamily: "var(--font-pinyon), cursive",
           fontSize: `${size * 0.6}px`,
           transform: "rotate(-6deg) translate(-0.29em, 0.13em)",
-          filter:
-            "drop-shadow(0 1px 0 rgba(0,0,0,0.22)) drop-shadow(0 0 14px var(--color-accent))",
+          filter: "drop-shadow(0 1px 0 rgba(0,0,0,0.22)) drop-shadow(0 0 14px var(--color-accent))",
         }}
       >
         T
