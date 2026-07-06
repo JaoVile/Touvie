@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 export type Message = { id?: string; role: "user" | "assistant"; content: string };
 
-export function TouviChat({ initial }: { initial: Message[] }) {
+export function ToubeChat({ initial }: { initial: Message[] }) {
   const [messages, setMessages] = useState<Message[]>(initial);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -25,13 +25,13 @@ export function TouviChat({ initial }: { initial: Message[] }) {
     setMessages((m) => [...m, { role: "user", content: text }]);
     setSending(true);
     try {
-      const res = await fetch("/api/touvi", {
+      const res = await fetch("/api/toube", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erro ao falar com o Touvi.");
+      if (!res.ok) throw new Error(data.error ?? "Erro ao falar com o Toube.");
       setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro inesperado.");
@@ -87,7 +87,7 @@ export function TouviChat({ initial }: { initial: Message[] }) {
               border: "1px solid var(--color-border)",
             }}
           >
-            Touvi está digitando…
+            Toube está digitando…
           </div>
         ) : null}
 
@@ -109,7 +109,7 @@ export function TouviChat({ initial }: { initial: Message[] }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
           rows={1}
-          placeholder="Escreva pro Touvi…"
+          placeholder="Escreva pro Toube…"
           className="max-h-40 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none"
           style={{ color: "var(--color-fg)" }}
         />

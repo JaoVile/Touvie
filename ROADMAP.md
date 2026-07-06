@@ -2,7 +2,7 @@
 
 > Estado (06/jul/2026): os **3 bloqueadores do MVP estão prontos e no `main`**
 > (cadastro, diário zero-knowledge, contagem/analytics), mais o **assistente
-> Touvi** (chat com GLM-4.7-Flash — ver `Touvi.md`). O que resta antes do vídeo é
+> Toube** (chat com GLM-4.7-Flash — ver `Toube.md`). O que resta antes do vídeo é
 > pequeno; o resto é pós-launch.
 
 Prioridade: **P0** = trava o launch · **P1** = logo depois · **P2** = quando der.
@@ -63,8 +63,8 @@ Prioridade: **P0** = trava o launch · **P1** = logo depois · **P2** = quando d
   com duração). Tabela `focus_quests` (RLS own-row) + `focus_quest_enabled` em
   `profiles`, toggle no `/config`, conteúdo i18n pt+en. Migração `0025` roda à mão.
   Spec/plano em `docs/superpowers/`.
-- **Touvi** — assistente de IA (chat, GLM-4.7-Flash grátis via Z.ai). MVP: chat
-  puro em `/touvi`, histórico com RLS, sem contexto dos dados ainda. Ver `Touvi.md`
+- **Toube** — assistente de IA (chat, GLM-4.7-Flash grátis via Z.ai). MVP: chat
+  puro em `/toube`, histórico com RLS, sem contexto dos dados ainda. Ver `Toube.md`
   (falta operacional: `ZAI_API_KEY` na Vercel + migração 0024 no SQL Editor).
 - Cadastro `/signup` (email+senha+nome+palavra-chave, sem confirmação de email).
 - Diário **zero-knowledge**: cifra client-side (AES-GCM), DEK trancada por 3

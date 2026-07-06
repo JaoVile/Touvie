@@ -46,7 +46,7 @@ export function Nav() {
     { href: "/dieta", label: t("diet"), Icon: Salad },
   ];
   const SECONDARY: NavItem[] = [
-    { href: "/touvi", label: t("touvi"), Icon: Sparkles },
+    { href: "/toube", label: t("toube"), Icon: Sparkles },
     { href: "/rotina", label: t("routine"), Icon: CalendarDays },
     { href: "/metas", label: t("goals"), Icon: Target },
     { href: "/diario", label: t("diary"), Icon: Lock },

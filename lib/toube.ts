@@ -1,11 +1,11 @@
-// Cliente do assistente Touvi. Usa a API da Z.ai (compatível com OpenAI); o
+// Cliente do assistente Toube. Usa a API da Z.ai (compatível com OpenAI); o
 // modelo `glm-4.7-flash` é gratuito. Trocar por "glm-5.2" (pago) melhora a
 // qualidade sem mexer em mais nada. A key vive SÓ no servidor (ZAI_API_KEY).
 const ZAI_URL = "https://api.z.ai/api/paas/v4/chat/completions";
 const MODEL = "glm-4.7-flash";
 
-export const TOUVI_SYSTEM =
-  "Você é o Touvi, o assistente pessoal do app Touvie — um 'life OS' que reúne " +
+export const TOUBE_SYSTEM =
+  "Você é o Toube, o assistente pessoal do app Touvie — um 'life OS' que reúne " +
   "rotina, metas, finanças, treino, dieta, diário e leitura da pessoa. " +
   "Fale sempre português do Brasil, num tom caloroso, direto e encorajador, sem " +
   "enrolação nem excesso de emoji. Respostas curtas e úteis. Por enquanto você " +
@@ -15,7 +15,7 @@ export const TOUVI_SYSTEM =
 
 export type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
-export async function touviReply(history: ChatMessage[]): Promise<string> {
+export async function toubeReply(history: ChatMessage[]): Promise<string> {
   const key = process.env.ZAI_API_KEY;
   if (!key) throw new Error("ZAI_API_KEY não configurada");
 
@@ -31,7 +31,7 @@ export async function touviReply(history: ChatMessage[]): Promise<string> {
       // tokens raciocinando (resposta vinha vazia). Pra chat curto não
       // precisamos de chain-of-thought — desligado fica rápido e direto.
       thinking: { type: "disabled" },
-      messages: [{ role: "system", content: TOUVI_SYSTEM }, ...history],
+      messages: [{ role: "system", content: TOUBE_SYSTEM }, ...history],
       temperature: 0.8,
       max_tokens: 600,
     }),

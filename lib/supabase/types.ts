@@ -46,7 +46,7 @@ export type Database = {
         created_at: Timestamptz;
         updated_at: Timestamptz;
       }>;
-      touvi_messages: Table<{
+      toube_messages: Table<{
         id: string;
         user_id: string;
         role: "user" | "assistant";

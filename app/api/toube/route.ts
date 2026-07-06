@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { type ChatMessage, touviReply } from "@/lib/touvi";
+import { type ChatMessage, toubeReply } from "@/lib/toube";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -24,13 +24,13 @@ export async function POST(req: Request) {
 
   // Grava a mensagem do usuário.
   const { error: insErr } = await supabase
-    .from("touvi_messages")
+    .from("toube_messages")
     .insert({ user_id: user.id, role: "user", content: message });
   if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
 
   // Histórico recente (já inclui a mensagem acima) em ordem cronológica.
   const { data: rows } = await supabase
-    .from("touvi_messages")
+    .from("toube_messages")
     .select("role, content")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
@@ -39,17 +39,17 @@ export async function POST(req: Request) {
 
   let reply: string;
   try {
-    reply = await touviReply(history);
+    reply = await toubeReply(history);
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Erro ao falar com o Touvi." },
+      { error: e instanceof Error ? e.message : "Erro ao falar com o Toube." },
       { status: 502 },
     );
   }
 
   // Grava a resposta do assistente.
   await supabase
-    .from("touvi_messages")
+    .from("toube_messages")
     .insert({ user_id: user.id, role: "assistant", content: reply });
 
   return NextResponse.json({ reply });

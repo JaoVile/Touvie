@@ -3,11 +3,11 @@ import { Reveal } from "@/components/Reveal";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { createClient } from "@/lib/supabase/server";
 import { Sparkles } from "lucide-react";
-import { type Message, TouviChat } from "./TouviChat";
+import { type Message, ToubeChat } from "./ToubeChat";
 
 export const dynamic = "force-dynamic";
 
-export default async function TouviPage() {
+export default async function ToubePage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -15,7 +15,7 @@ export default async function TouviPage() {
   const userId = user!.id;
 
   const { data: rows } = await supabase
-    .from("touvi_messages")
+    .from("toube_messages")
     .select("id, role, content")
     .eq("user_id", userId)
     .order("created_at", { ascending: true });
@@ -30,12 +30,12 @@ export default async function TouviPage() {
         <GradientHeader
           icon={Sparkles}
           eyebrow="Assistente · IA"
-          title="Touvi"
+          title="Toube"
           subtitle="Converse, pense em voz alta, peça um empurrão."
         />
       </Reveal>
 
-      <TouviChat initial={initial} />
+      <ToubeChat initial={initial} />
     </>
   );
 }
