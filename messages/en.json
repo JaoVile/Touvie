@@ -228,6 +228,10 @@
     "configDesc": "When you open the app, a subtle note invites you to set a focus for the day — and celebrates when you finish it.",
     "enabledLabel": "On",
     "disabledLabel": "Off",
+    "durLessMin": "less than 1 min",
+    "durMin": "{min} min",
+    "durHour": "{h} h",
+    "durHourMin": "{h} h {min} min",
     "affirmations": [
       "You're already here — that's starting.",
       "One step at a time builds any road.",

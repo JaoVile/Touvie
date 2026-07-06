@@ -15,17 +15,6 @@ function pick<T>(arr: T[], seed: number): T {
   return arr[seed % arr.length];
 }
 
-/** Duração "amigável" entre dois ISO. Skew negativo → "agora". */
-function formatDuration(startISO: string, endISO: string): string {
-  const ms = new Date(endISO).getTime() - new Date(startISO).getTime();
-  const min = Math.round(ms / 60000);
-  if (min < 1) return "menos de 1 min";
-  if (min < 60) return `${min} min`;
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, "0")}`;
-}
-
 export function FocusQuest({ initial }: { initial: QuestRow | null }) {
   const t = useTranslations("focoDoDia");
   const [quest, setQuest] = useState<QuestRow | null>(initial);
@@ -40,6 +29,17 @@ export function FocusQuest({ initial }: { initial: QuestRow | null }) {
   const congrats = t.raw("congrats") as string[];
   const affirmation = pick(affirmations, seed);
   const question = pick(questions, seed);
+
+  /** Duração "amigável" entre dois ISO. Skew negativo → durLessMin. */
+  function durationLabel(startISO: string, endISO: string): string {
+    const ms = new Date(endISO).getTime() - new Date(startISO).getTime();
+    const min = Math.round(ms / 60000);
+    if (min < 1) return t("durLessMin");
+    if (min < 60) return t("durMin", { min });
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return m === 0 ? t("durHour", { h }) : t("durHourMin", { h, min: m });
+  }
 
   if (dismissed) return null;
 
@@ -143,7 +143,7 @@ export function FocusQuest({ initial }: { initial: QuestRow | null }) {
           <p className="text-sm font-medium">
             {pick(congrats, seed).replace(
               "{duration}",
-              formatDuration(quest.started_at, quest.completed_at),
+              durationLabel(quest.started_at, quest.completed_at),
             )}
           </p>
           <button

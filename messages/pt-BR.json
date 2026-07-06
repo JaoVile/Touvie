@@ -228,6 +228,10 @@
     "configDesc": "Ao abrir o app, uma nota sutil convida você a definir um foco pro dia — e comemora quando você conclui.",
     "enabledLabel": "Ligado",
     "disabledLabel": "Desligado",
+    "durLessMin": "menos de 1 min",
+    "durMin": "{min} min",
+    "durHour": "{h} h",
+    "durHourMin": "{h} h {min} min",
     "affirmations": [
       "Você já está aqui — isso é começar.",
       "Um passo de cada vez constrói qualquer caminho.",
