@@ -17,14 +17,16 @@ import {
   Send,
   Settings,
   ShieldCheck,
+  Target,
   User,
 } from "lucide-react";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { AccessCodeForm } from "./AccessCodeForm";
 import { CursorToggle } from "./CursorToggle";
 import { DeleteAccountButton } from "./DeleteAccountButton";
+import { FocusQuestToggle } from "./FocusQuestToggle";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { LogGeral } from "./LogGeral";
 import { ProfileSection } from "./ProfileSection";
@@ -47,7 +49,7 @@ export default async function ConfigPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [profile, names, writePin, locale] = await Promise.all([
+  const [profile, names, writePin, focusPref, locale, t] = await Promise.all([
     supabase
       .from("profiles")
       .select("theme, telegram_chat_id, locale")
@@ -70,11 +72,20 @@ export default async function ConfigPage() {
       .eq("id", user!.id)
       .maybeSingle()
       .then((r) => r.data),
+    // Foco do dia — isolado: 0025 pode não ter rodado.
+    supabase
+      .from("profiles")
+      .select("focus_quest_enabled")
+      .eq("id", user!.id)
+      .maybeSingle()
+      .then((r) => r.data),
     getLocale(),
+    getTranslations("focoDoDia"),
   ]);
 
   const theme = profile?.theme ?? DEFAULT_THEME;
   const hasWriteCode = !!writePin?.write_pin_hash;
+  const focusEnabled = focusPref?.focus_quest_enabled ?? false;
   const cookieStore = await cookies();
   const trustedDevice = await verifyTrustedDevice(cookieStore.get(TRUSTED_COOKIE)?.value, user!.id);
 
@@ -250,6 +261,16 @@ export default async function ConfigPage() {
           </Reveal>
 
           <Reveal delay={8 * STAGGER_MS}>
+            <FoldCard index={idx()}>
+              <CardHead icon={Target} title={t("configTitle")} />
+              <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                {t("configDesc")}
+              </p>
+              <FocusQuestToggle initial={focusEnabled} />
+            </FoldCard>
+          </Reveal>
+
+          <Reveal delay={9 * STAGGER_MS}>
             <FoldCard index={idx()}>
               <CardHead icon={ShieldCheck} title="Conta" />
               <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
