@@ -34,7 +34,9 @@ Prioridade: **P0** = trava o launch · **P1** = logo depois · **P2** = quando d
   futuro). ~meio dia.
 - **PDF "retomar página"** no `/leitura` — a coluna `current_page` existe mas não
   é usada; salvar e voltar de onde parou. ~2h.
-- **Quests de foco do dia** (ver `Quests.md`) — feature não construída. ~1 dia.
+- ~~**Quests de foco do dia**~~ → **construída** como "Foco do dia" (ver `Quests.md`
+  e `docs/superpowers/specs/2026-07-06-foco-do-dia-design.md`). Falta só aplicar a
+  migração `0025` no Supabase + QA no navegador.
 - **Ver/regerar o código de recuperação** depois da ativação — hoje só aparece
   1x. Um "gerar novo código" dentro de Gerenciar.
 - **Onboarding do cadastro** — deixar claro no `/signup` o peso da palavra-chave
@@ -57,6 +59,10 @@ Prioridade: **P0** = trava o launch · **P1** = logo depois · **P2** = quando d
 
 ## 4. Feito (já no `main`)
 
+- **Foco do dia** — nota diária opt-in de foco (overlay convite → ativa → concluída
+  com duração). Tabela `focus_quests` (RLS own-row) + `focus_quest_enabled` em
+  `profiles`, toggle no `/config`, conteúdo i18n pt+en. Migração `0025` roda à mão.
+  Spec/plano em `docs/superpowers/`.
 - **Touvi** — assistente de IA (chat, GLM-4.7-Flash grátis via Z.ai). MVP: chat
   puro em `/touvi`, histórico com RLS, sem contexto dos dados ainda. Ver `Touvi.md`
   (falta operacional: `ZAI_API_KEY` na Vercel + migração 0024 no SQL Editor).

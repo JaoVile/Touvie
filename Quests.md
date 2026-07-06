@@ -1,6 +1,10 @@
 # Quests — Nota de Foco do Dia
 
-> **Status:** planejado. Implementar **APÓS o deploy da landpage**, **via Supabase**.
+> **Status:** IMPLEMENTADO como **"Foco do dia"** (jul/2026). Design e plano em
+> `docs/superpowers/specs/2026-07-06-foco-do-dia-design.md` e
+> `docs/superpowers/plans/2026-07-06-foco-do-dia.md`. Este arquivo é o rascunho
+> original que originou a feature. **Pendente:** aplicar a migração `0025` no
+> Supabase SQL Editor + QA no navegador.
 > **Objetivo de produto:** que TODO usuário se sinta bem usando o Touvie —
 > encorajamento + senso de progresso, de forma nítida.
 
