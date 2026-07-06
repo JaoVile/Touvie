@@ -218,6 +218,56 @@
     "subtitle": "Alerts and reminders hub.",
     "empty": "No notifications."
   },
+  "focoDoDia": {
+    "title": "Today's focus",
+    "create": "Set focus",
+    "finish": "Finish",
+    "discard": "Discard",
+    "placeholder": "Write your focus for today…",
+    "configTitle": "Today's focus",
+    "configDesc": "When you open the app, a subtle note invites you to set a focus for the day — and celebrates when you finish it.",
+    "enabledLabel": "On",
+    "disabledLabel": "Off",
+    "affirmations": [
+      "You're already here — that's starting.",
+      "One step at a time builds any road.",
+      "What you tend to today, you thank tomorrow.",
+      "Small and done beats big and postponed.",
+      "Your attention is the most valuable resource you have.",
+      "Today is a blank page — write something good on it.",
+      "Progress, not perfection.",
+      "You're more capable than the rush lets you remember.",
+      "Focus is saying 'no' to ten good things for one essential one.",
+      "Start with what matters; the rest settles.",
+      "Every day is a fresh chance to get closer to who you want to be.",
+      "The future you want is born from today's choices.",
+      "Breathe. Pick one thing. Do it well.",
+      "Quiet consistency beats noisy enthusiasm.",
+      "You don't have to do everything — just the next right thing.",
+      "Trust the process: you've already come far."
+    ],
+    "questions": [
+      "What do you want to do today?",
+      "What's your focus right now?",
+      "Where do you want to put your energy today?",
+      "What would count as a win today?",
+      "What, if done today, would make the day good?",
+      "Where does your attention matter most right now?",
+      "What's your north star for today?"
+    ],
+    "congrats": [
+      "Done! It took {duration} — a fraction of the path toward your future.",
+      "Finished in {duration}. This is how a better life is built: one focus at a time.",
+      "Nicely done! {duration} well spent on who you're becoming.",
+      "Done — {duration} to move from 'thinking' to 'did it'.",
+      "Proud of you! {duration} of real focus. It adds up.",
+      "Finished in {duration}. Small wins, big trajectories.",
+      "Done in {duration}. Tomorrow's you will thank you.",
+      "{duration} of dedication — another brick on your path.",
+      "That's it! {duration} turned into real progress.",
+      "Finished in {duration}. You honored what you set out to do today."
+    ]
+  },
   "common": {
     "loading": "Loading…",
     "error": "Error",

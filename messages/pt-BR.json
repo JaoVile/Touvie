@@ -218,6 +218,56 @@
     "subtitle": "Central de alertas e lembretes.",
     "empty": "Nenhuma notificação."
   },
+  "focoDoDia": {
+    "title": "Foco do dia",
+    "create": "Definir foco",
+    "finish": "Finalizar",
+    "discard": "Descartar",
+    "placeholder": "Escreva seu foco de hoje…",
+    "configTitle": "Foco do dia",
+    "configDesc": "Ao abrir o app, uma nota sutil convida você a definir um foco pro dia — e comemora quando você conclui.",
+    "enabledLabel": "Ligado",
+    "disabledLabel": "Desligado",
+    "affirmations": [
+      "Você já está aqui — isso é começar.",
+      "Um passo de cada vez constrói qualquer caminho.",
+      "O que você cuida hoje, agradece amanhã.",
+      "Pequeno e feito vale mais que grande e adiado.",
+      "Sua atenção é o recurso mais valioso que você tem.",
+      "Hoje é uma folha em branco — escreva algo bom nela.",
+      "Progresso, não perfeição.",
+      "Você é mais capaz do que a pressa deixa você lembrar.",
+      "Foco é dizer 'não' pra dez coisas boas por uma essencial.",
+      "Comece pelo que importa; o resto se acomoda.",
+      "Cada dia é uma chance nova de se aproximar de quem você quer ser.",
+      "O futuro que você quer nasce das escolhas de hoje.",
+      "Respire. Escolha uma coisa. Faça bem feito.",
+      "Consistência silenciosa vence entusiasmo barulhento.",
+      "Você não precisa fazer tudo — só a próxima coisa certa.",
+      "Confie no processo: você já chegou longe."
+    ],
+    "questions": [
+      "O que você quer fazer hoje?",
+      "Qual é o seu foco agora?",
+      "No que você quer colocar sua energia hoje?",
+      "Qual seria uma vitória pra hoje?",
+      "O que, se feito hoje, deixaria o dia bom?",
+      "Onde sua atenção faz mais diferença agora?",
+      "Qual o seu norte pra hoje?"
+    ],
+    "congrats": [
+      "Feito! Levou {duration} — uma fração do caminho rumo ao seu futuro.",
+      "Concluído em {duration}. É assim que se constrói uma vida melhor: um foco de cada vez.",
+      "Mandou bem! {duration} bem investidos em quem você está se tornando.",
+      "Pronto — {duration} pra sair do 'pensar' e entrar no 'fiz'.",
+      "Que orgulho! {duration} de foco real. Isso soma.",
+      "Concluído em {duration}. Pequenas vitórias, grandes trajetórias.",
+      "Feito em {duration}. Amanhã o seu 'eu' vai agradecer.",
+      "{duration} de dedicação — e mais um tijolo no seu caminho.",
+      "Isso! {duration} transformados em progresso de verdade.",
+      "Concluído em {duration}. Você honrou o que se propôs hoje."
+    ]
+  },
   "common": {
     "loading": "Carregando…",
     "error": "Erro",
