@@ -1,5 +1,5 @@
 import { addDays, format, parseISO } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { ptBR } from "date-fns/locale";
 
 const TZ = "America/Sao_Paulo";
@@ -29,6 +29,11 @@ export function todayBRT(): Date {
 
 export function todayBRTISO(): string {
   return todayBRT().toISOString().slice(0, 10);
+}
+
+/** Meia-noite BRT de hoje como instante UTC (ISO). Base do filtro "quest de hoje". */
+export function startOfTodayBRTUTC(): string {
+  return fromZonedTime(`${todayBRTISO()}T00:00:00`, TZ).toISOString();
 }
 
 export function tomorrowBRTISO(): string {

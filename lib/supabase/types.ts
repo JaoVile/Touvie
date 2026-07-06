@@ -42,6 +42,7 @@ export type Database = {
         pin_locked_until: Timestamptz | null;
         theme: string;
         locale: string;
+        focus_quest_enabled: boolean;
         created_at: Timestamptz;
         updated_at: Timestamptz;
       }>;
@@ -50,6 +51,15 @@ export type Database = {
         user_id: string;
         role: "user" | "assistant";
         content: string;
+        created_at: Timestamptz;
+      }>;
+      focus_quests: Table<{
+        id: string;
+        user_id: string;
+        text: string;
+        prompt: string;
+        started_at: Timestamptz;
+        completed_at: Timestamptz | null;
         created_at: Timestamptz;
       }>;
       diary_keys: Table<{
