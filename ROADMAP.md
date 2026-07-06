@@ -1,8 +1,9 @@
 # Touvie — Roadmap
 
-> Estado (01/jul/2026): os **3 bloqueadores do MVP estão prontos e no `main`**
-> (cadastro, diário zero-knowledge, contagem/analytics). O que resta antes do
-> vídeo é pequeno; o resto é pós-launch.
+> Estado (06/jul/2026): os **3 bloqueadores do MVP estão prontos e no `main`**
+> (cadastro, diário zero-knowledge, contagem/analytics), mais o **assistente
+> Touvi** (chat com GLM-4.7-Flash — ver `Touvi.md`). O que resta antes do vídeo é
+> pequeno; o resto é pós-launch.
 
 Prioridade: **P0** = trava o launch · **P1** = logo depois · **P2** = quando der.
 
@@ -56,6 +57,9 @@ Prioridade: **P0** = trava o launch · **P1** = logo depois · **P2** = quando d
 
 ## 4. Feito (já no `main`)
 
+- **Touvi** — assistente de IA (chat, GLM-4.7-Flash grátis via Z.ai). MVP: chat
+  puro em `/touvi`, histórico com RLS, sem contexto dos dados ainda. Ver `Touvi.md`
+  (falta operacional: `ZAI_API_KEY` na Vercel + migração 0024 no SQL Editor).
 - Cadastro `/signup` (email+senha+nome+palavra-chave, sem confirmação de email).
 - Diário **zero-knowledge**: cifra client-side (AES-GCM), DEK trancada por 3
   portas (PIN, palavra-chave, código). Ativar / destrancar / trocar PIN /

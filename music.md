@@ -57,4 +57,4 @@ segura o ouvido. Ganho garantido = **ambiência + ritual**; o efeito de onda cer
 
 - [ ] Confirmar se cada textura é **boa de ouvir** (ex.: `mar-2` veio mais "tempestade").
 - [ ] Afinar o pad quente (corpo/tremolo) e os tempos de rotação/crossfade.
-- [ ] Página `app/sons/` é preview TEMPORÁRio — apagar quando o login estiver validado.
+- [x] ~~Página `app/sons/` (preview temporário)~~ → removida.
