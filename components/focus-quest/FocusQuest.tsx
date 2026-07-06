@@ -8,7 +8,7 @@ import {
 } from "@/components/focus-quest/actions";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 /** Sorteia um item estável (só muda quando `seed` muda). */
 function pick<T>(arr: T[], seed: number): T {
@@ -41,9 +41,15 @@ export function FocusQuest({ initial }: { initial: QuestRow | null }) {
     return m === 0 ? t("durHour", { h }) : t("durHourMin", { h, min: m });
   }
 
-  if (dismissed) return null;
-
   const phase = !quest ? "invite" : quest.completed_at ? "done" : "active";
+
+  useEffect(() => {
+    if (phase !== "done") return;
+    const timer = setTimeout(() => setDismissed(true), 8000);
+    return () => clearTimeout(timer);
+  }, [phase]);
+
+  if (dismissed) return null;
 
   async function onCreate() {
     if (!text.trim() || busy) return;
@@ -149,6 +155,7 @@ export function FocusQuest({ initial }: { initial: QuestRow | null }) {
           <button
             type="button"
             onClick={() => setDismissed(true)}
+            aria-label={t("close")}
             className="justify-self-start text-xs underline opacity-70 transition hover:opacity-100"
           >
             ✕

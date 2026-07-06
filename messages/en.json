@@ -223,6 +223,7 @@
     "create": "Set focus",
     "finish": "Finish",
     "discard": "Discard",
+    "close": "Close",
     "placeholder": "Write your focus for today…",
     "configTitle": "Today's focus",
     "configDesc": "When you open the app, a subtle note invites you to set a focus for the day — and celebrates when you finish it.",

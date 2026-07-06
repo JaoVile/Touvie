@@ -223,6 +223,7 @@
     "create": "Definir foco",
     "finish": "Finalizar",
     "discard": "Descartar",
+    "close": "Fechar",
     "placeholder": "Escreva seu foco de hoje…",
     "configTitle": "Foco do dia",
     "configDesc": "Ao abrir o app, uma nota sutil convida você a definir um foco pro dia — e comemora quando você conclui.",
