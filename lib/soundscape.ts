@@ -189,8 +189,8 @@ export const TEXTURES: Texture[] = [
     name: "Piano",
     icon: "piano",
     group: "instrumento",
-    desc: "Notas esparsas e calmas — alterna entre 3 takes.",
-    variants: 3,
+    desc: "Notas esparsas e calmas — alterna entre 10 takes curados.",
+    variants: 10,
   },
 ];
 

@@ -224,31 +224,31 @@
       "key": "piano",
       "variant": 1,
       "file": "/sounds/piano-1.mp3",
-      "title": "Wonderful - Calm Beautiful Piano Loop",
-      "author": "ispeakwaves",
+      "title": "Serene Piano Reflections",
+      "author": "Matio888",
       "license": "CC BY 4.0",
-      "source": "https://freesound.org/people/ispeakwaves/sounds/439877/",
-      "freesoundId": 439877
+      "source": "https://freesound.org/people/Matio888/sounds/789314/",
+      "freesoundId": 789314
     },
     {
       "key": "piano",
       "variant": 2,
       "file": "/sounds/piano-2.mp3",
-      "title": "Soft Piano Loop #1",
-      "author": "ispeakwaves",
+      "title": "Calm Piano Theme for Serene Moments",
+      "author": "Gustavo_Alivera",
       "license": "CC BY 4.0",
-      "source": "https://freesound.org/people/ispeakwaves/sounds/384934/",
-      "freesoundId": 384934
+      "source": "https://freesound.org/people/Gustavo_Alivera/sounds/761374/",
+      "freesoundId": 761374
     },
     {
       "key": "piano",
       "variant": 3,
       "file": "/sounds/piano-3.mp3",
-      "title": "Soft Piano Loop #2",
-      "author": "ispeakwaves",
+      "title": "Thinking of Driving: Gentle Piano Music for Emotional Scenes",
+      "author": "kjartan_abel",
       "license": "CC BY 4.0",
-      "source": "https://freesound.org/people/ispeakwaves/sounds/384935/",
-      "freesoundId": 384935
+      "source": "https://freesound.org/people/kjartan_abel/sounds/532774/",
+      "freesoundId": 532774
     }
   ]
 }

@@ -122,14 +122,12 @@ const TARGETS = [
     key: "piano",
     variants: 3,
     queries: [
-      "calm piano loop",
-      "felt piano ambient",
-      "soft piano melody loop",
-      "ambient piano gentle",
-      "slow piano loop",
+      "peaceful piano meditation",
+      "relaxing piano background",
+      "emotional piano soft",
     ],
     must: ["piano"],
-    avoid: ["guitar", "horror", "dark", "scary"],
+    avoid: ["guitar", "horror", "dark", "scary", "fast", "upbeat", "drums"],
   },
 ];
 
