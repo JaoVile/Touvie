@@ -44,7 +44,12 @@ export const dynamic = "force-dynamic";
 /* Cascade delay between the stacked setting cards. */
 const STAGGER_MS = 70;
 
-export default async function ConfigPage() {
+export default async function ConfigPage(props: {
+  searchParams?: Promise<{ tab?: string }>;
+}) {
+  const resolvedParams = props.searchParams ? await props.searchParams : {};
+  const currentTab = resolvedParams.tab || "geral";
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -56,23 +61,18 @@ export default async function ConfigPage() {
       .eq("id", user!.id)
       .maybeSingle()
       .then((r) => r.data),
-    // Separate query so a missing 0013 migration degrades only the
-    // profile names — not the theme / PIN / telegram config below.
     supabase
       .from("profiles")
       .select("full_name, display_name")
       .eq("id", user!.id)
       .maybeSingle()
       .then((r) => r.data),
-    // Idem: a 0017 (write_pin_hash) pode não ter rodado ainda — isola pra
-    // não derrubar o resto da config.
     supabase
       .from("profiles")
       .select("write_pin_hash")
       .eq("id", user!.id)
       .maybeSingle()
       .then((r) => r.data),
-    // Foco do dia — isolado: 0025 pode não ter rodado.
     supabase
       .from("profiles")
       .select("focus_quest_enabled")
@@ -89,209 +89,258 @@ export default async function ConfigPage() {
   const cookieStore = await cookies();
   const trustedDevice = await verifyTrustedDevice(cookieStore.get(TRUSTED_COOKIE)?.value, user!.id);
 
-  // Index drives both the editorial corner figure and the reveal stagger.
   let i = 0;
   const idx = () => ++i;
 
+  const TABS = [
+    { id: "geral", label: "Geral", icon: User },
+    { id: "aparencia", label: "Aparência", icon: Palette },
+    { id: "audio", label: "Áudio", icon: AudioLines },
+    { id: "seguranca", label: "Segurança", icon: ShieldCheck },
+    { id: "avancado", label: "Avançado", icon: Settings },
+  ];
+
   return (
-    <>
-      {/* Container largo o suficiente p/ os cards ladearem em 2 colunas no desktop
-          (preenche a tela em vez de uma coluna solitária), mas centralizado e não
-          esticado até a borda. ~1024px. */}
-      <div className="mx-auto w-full max-w-5xl">
-        <Reveal>
-          <GradientHeader
-            icon={Settings}
-            eyebrow="Preferências · App"
-            title="Configurações"
-            subtitle="Personalize o app do seu jeito."
-            watermark
-          />
-        </Reveal>
+    <div className="mx-auto w-full max-w-6xl">
+      <Reveal>
+        <GradientHeader
+          icon={Settings}
+          eyebrow="Preferências · App"
+          title="Configurações"
+          subtitle="Personalize o app do seu jeito."
+          watermark
+        />
+      </Reveal>
 
-        {/* items-start: cada card tem a própria altura (não estica p/ igualar o par). */}
-        <div className="grid items-start gap-4 md:grid-cols-2">
-          <Reveal delay={0 * STAGGER_MS}>
-            <FoldCard index={idx()}>
-              <CardHead icon={User} title="Perfil" />
-              <p className="mb-4 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                Seu nome, o apelido que aparece no dashboard, e os dados de acesso.
-              </p>
-              <ProfileSection
-                fullName={names?.full_name ?? ""}
-                displayName={names?.display_name ?? ""}
-                email={user?.email ?? ""}
-              />
-            </FoldCard>
-          </Reveal>
-
-          <Reveal delay={1 * STAGGER_MS}>
-            <FoldCard index={idx()}>
-              <CardHead icon={Palette} title="Tema visual" />
-              <h3 className="mb-2 text-sm font-semibold" style={{ color: "var(--color-fg-muted)" }}>
-                Qualidade visual
-              </h3>
-              <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                Controle mestre dos efeitos. Na 1ª vez é escolhido automaticamente pelo seu
-                dispositivo; sua escolha aqui fica salva. <strong>Desempenho</strong> deixa o app
-                bem mais fluido em máquinas modestas.
-              </p>
-              <QualityPicker />
-              <div className="mt-6">
-                <h3
-                  className="mb-2 text-sm font-semibold"
-                  style={{ color: "var(--color-fg-muted)" }}
+      <div className="mt-8 flex flex-col items-start gap-8 md:flex-row">
+        <aside className="w-full shrink-0 md:sticky md:top-24 md:w-56">
+          <nav className="flex gap-2 overflow-x-auto pb-4 md:flex-col md:overflow-x-visible md:pb-0 hide-scrollbar">
+            {TABS.map((tab) => {
+              const active = currentTab === tab.id;
+              const Icon = tab.icon;
+              return (
+                <Link
+                  key={tab.id}
+                  href={`/config?tab=${tab.id}`}
+                  className={`flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors md:shrink ${
+                    active
+                      ? "bg-[var(--color-accent)] text-[var(--color-bg)]"
+                      : "text-[var(--color-fg-muted)] hover:bg-[var(--color-card)] hover:text-[var(--color-fg)]"
+                  }`}
                 >
-                  Tema
-                </h3>
-                <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                  Troca o visual do app. Mais presets podem ser adicionados criando arquivos em{" "}
-                  <code>app/themes/</code>.
-                </p>
-                <ThemePicker currentTheme={theme} />
-              </div>
-              <div className="mt-6">
-                <h3
-                  className="mb-3 text-sm font-semibold"
-                  style={{ color: "var(--color-fg-muted)" }}
-                >
-                  Céu de estrelas{" "}
-                  <span style={{ color: "var(--color-fg-subtle)" }}>· só em Completo</span>
-                </h3>
-                <StarsToggle />
-              </div>
-            </FoldCard>
-          </Reveal>
-
-          <Reveal delay={2 * STAGGER_MS}>
-            <FoldCard index={idx()}>
-              <CardHead icon={Music} title="Fita rítmica" />
-              <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                Rastro de pauta musical que segue o cursor (ativo só na qualidade{" "}
-                <strong>Completo</strong>). Desligue aqui se preferir um cursor comum.
-              </p>
-              <CursorToggle />
-              <div className="mt-6">
-                <h3
-                  className="mb-3 text-sm font-semibold"
-                  style={{ color: "var(--color-fg-muted)" }}
-                >
-                  Tamanho
-                </h3>
-                <TrailSizePicker />
-              </div>
-              <div className="mt-6">
-                <h3
-                  className="mb-3 text-sm font-semibold"
-                  style={{ color: "var(--color-fg-muted)" }}
-                >
-                  Cor da fita
-                </h3>
-                <TrailColorPicker />
-              </div>
-            </FoldCard>
-          </Reveal>
-
-          <Reveal delay={3 * STAGGER_MS}>
-            <FoldCard index={idx()}>
-              <CardHead icon={AudioLines} title="Som de fundo" />
-              <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                Atmosferas que tocam enquanto você usa o app — uma camada de frequência que guia o
-                estado mental, com texturas reais por cima. Se deixar ligado, volta ligado.
-              </p>
-              <SoundscapePicker />
-            </FoldCard>
-          </Reveal>
-
-          <SoundCredits />
-
-          <Reveal delay={3 * STAGGER_MS}>
-            <FoldCard index={idx()}>
-              <CardHead icon={Lock} title="Diário privado" />
-              <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                A privacidade do diário mora dentro do próprio{" "}
-                <Link href="/diario" className="underline">
-                  diário
+                  <Icon size={18} />
+                  {tab.label}
                 </Link>
-                : lá você ativa o modo privado, troca o PIN ou desliga. Quando ativo, as anotações
-                são cifradas no seu aparelho antes de sair dele — nem o servidor consegue lê-las.
-              </p>
-            </FoldCard>
-          </Reveal>
+              );
+            })}
+          </nav>
+        </aside>
 
-          <Reveal delay={4 * STAGGER_MS}>
-            <FoldCard index={idx()}>
-              <CardHead icon={KeyRound} title="Código de acesso" />
-              <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                Libera recursos de edição restritos neste dispositivo. Defina um código de 4 a 8
-                dígitos e digite-o em cada aparelho que você quiser autorizar.
-              </p>
-              <AccessCodeForm hasCode={hasWriteCode} trusted={trustedDevice} />
-            </FoldCard>
-          </Reveal>
+        <div className="min-w-0 flex-1">
+          <div className="grid items-start gap-4 md:grid-cols-2">
+            {currentTab === "geral" && (
+              <>
+                <Reveal className="min-w-0" delay={0 * STAGGER_MS}>
+                  <FoldCard index={idx()} className="min-w-0">
+                    <CardHead icon={User} title="Perfil" />
+                    <p className="mb-4 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                      Altere as informações públicas da sua conta.
+                    </p>
+                    <ProfileSection
+                      fullName={names?.full_name ?? ""}
+                      displayName={names?.display_name ?? ""}
+                      email={user?.email ?? ""}
+                    />
+                  </FoldCard>
+                </Reveal>
 
-          <Reveal delay={5 * STAGGER_MS}>
-            <FoldCard index={idx()}>
-              <CardHead icon={Send} title="Telegram" />
-              <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                Lembretes às 08:00 e 20:00 (BRT). Crons rodam só em produção (Vercel).
-              </p>
-              <TelegramSection chatId={profile?.telegram_chat_id ?? null} />
-            </FoldCard>
-          </Reveal>
+                <div className="grid gap-4 min-w-0">
+                  <Reveal className="min-w-0" delay={1 * STAGGER_MS}>
+                    <FoldCard index={idx()} className="min-w-0">
+                      <CardHead icon={Target} title={t("configTitle")} />
+                      <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                        {t("configDesc")}
+                      </p>
+                      <FocusQuestToggle initial={focusEnabled} />
+                    </FoldCard>
+                  </Reveal>
 
-          <Reveal delay={6 * STAGGER_MS}>
-            <FoldCard index={idx()}>
-              <CardHead icon={ScrollText} title="Log Geral" />
-              <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                Últimos 100 eventos do sistema — crons, webhooks e APIs.
-              </p>
-              <LogGeral />
-            </FoldCard>
-          </Reveal>
+                  <Reveal className="min-w-0" delay={2 * STAGGER_MS}>
+                    <FoldCard index={idx()} className="min-w-0">
+                      <CardHead icon={Languages} title="Idioma" />
+                      <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                        Idioma da interface.
+                      </p>
+                      <LocaleSwitcher currentLocale={locale} />
+                    </FoldCard>
+                  </Reveal>
+                </div>
+              </>
+            )}
 
-          <Reveal delay={7 * STAGGER_MS}>
-            <FoldCard index={idx()}>
-              <CardHead icon={Languages} title="Idioma" />
-              <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                Escolha o idioma da interface.
-              </p>
-              <LocaleSwitcher currentLocale={locale} />
-            </FoldCard>
-          </Reveal>
+            {currentTab === "aparencia" && (
+              <>
+                <Reveal className="min-w-0" delay={0 * STAGGER_MS}>
+                  <FoldCard index={idx()} className="min-w-0">
+                    <CardHead icon={Palette} title="Tema visual" />
+                    <h3
+                      className="mb-2 text-sm font-semibold"
+                      style={{ color: "var(--color-fg-muted)" }}
+                    >
+                      Qualidade visual
+                    </h3>
+                    <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                      Nível de efeitos visuais e animações.
+                    </p>
+                    <QualityPicker />
+                    <div className="mt-6">
+                      <h3
+                        className="mb-2 text-sm font-semibold"
+                        style={{ color: "var(--color-fg-muted)" }}
+                      >
+                        Tema
+                      </h3>
+                      <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                        Escolha as cores da interface.
+                      </p>
+                      <ThemePicker currentTheme={theme} />
+                    </div>
+                    <div className="mt-6">
+                      <h3
+                        className="mb-3 text-sm font-semibold"
+                        style={{ color: "var(--color-fg-muted)" }}
+                      >
+                        Céu de estrelas
+                      </h3>
+                      <StarsToggle />
+                    </div>
+                  </FoldCard>
+                </Reveal>
 
-          <Reveal delay={8 * STAGGER_MS}>
-            <FoldCard index={idx()}>
-              <CardHead icon={Target} title={t("configTitle")} />
-              <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                {t("configDesc")}
-              </p>
-              <FocusQuestToggle initial={focusEnabled} />
-            </FoldCard>
-          </Reveal>
+                <Reveal className="min-w-0" delay={1 * STAGGER_MS}>
+                  <FoldCard index={idx()} className="min-w-0">
+                    <CardHead icon={Music} title="Fita rítmica" />
+                    <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                      Rastro musical interativo no cursor.
+                    </p>
+                    <CursorToggle />
+                    <div className="mt-6">
+                      <h3
+                        className="mb-3 text-sm font-semibold"
+                        style={{ color: "var(--color-fg-muted)" }}
+                      >
+                        Tamanho
+                      </h3>
+                      <TrailSizePicker />
+                    </div>
+                    <div className="mt-6">
+                      <h3
+                        className="mb-3 text-sm font-semibold"
+                        style={{ color: "var(--color-fg-muted)" }}
+                      >
+                        Cor da fita
+                      </h3>
+                      <TrailColorPicker />
+                    </div>
+                  </FoldCard>
+                </Reveal>
+              </>
+            )}
 
-          <Reveal delay={9 * STAGGER_MS}>
-            <FoldCard index={idx()}>
-              <CardHead icon={ShieldCheck} title="Conta" />
-              <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                Logado como <strong>{user?.email}</strong>
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <form action={signOutAction}>
-                  <button
-                    type="submit"
-                    className="rounded-lg border px-4 py-1.5 text-sm hover:opacity-80"
-                    style={{ borderColor: "var(--color-border)", color: "var(--color-fg-muted)" }}
-                  >
-                    Sair
-                  </button>
-                </form>
-                <DeleteAccountButton />
-              </div>
-            </FoldCard>
-          </Reveal>
+            {currentTab === "audio" && (
+              <>
+                <Reveal className="min-w-0" delay={0 * STAGGER_MS}>
+                  <FoldCard index={idx()} className="min-w-0">
+                    <CardHead icon={AudioLines} title="Som de fundo" />
+                    <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                      Atmosferas sonoras para guiar seu foco.
+                    </p>
+                    <SoundscapePicker />
+                  </FoldCard>
+                </Reveal>
+
+                <div className="min-w-0">
+                  <SoundCredits />
+                </div>
+              </>
+            )}
+
+            {currentTab === "seguranca" && (
+              <>
+                <Reveal className="min-w-0" delay={0 * STAGGER_MS}>
+                  <FoldCard index={idx()} className="min-w-0">
+                    <CardHead icon={Lock} title="Diário privado" />
+                    <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                      Gerencie seu modo privado, PIN e criptografia dentro do{" "}
+                      <Link href="/diario" className="underline">
+                        próprio diário
+                      </Link>.
+                    </p>
+                  </FoldCard>
+                </Reveal>
+
+                <Reveal className="min-w-0" delay={1 * STAGGER_MS}>
+                  <FoldCard index={idx()} className="min-w-0">
+                    <CardHead icon={KeyRound} title="Código de acesso" />
+                    <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                      Autorize este dispositivo para edição de recursos restritos.
+                    </p>
+                    <AccessCodeForm hasCode={hasWriteCode} trusted={trustedDevice} />
+                  </FoldCard>
+                </Reveal>
+
+                <Reveal className="min-w-0" delay={2 * STAGGER_MS}>
+                  <FoldCard index={idx()} className="min-w-0">
+                    <CardHead icon={ShieldCheck} title="Conta" />
+                    <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                      Logado como <strong>{user?.email}</strong>
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <form action={signOutAction}>
+                        <button
+                          type="submit"
+                          className="rounded-lg border px-4 py-1.5 text-sm hover:opacity-80"
+                          style={{
+                            borderColor: "var(--color-border)",
+                            color: "var(--color-fg-muted)",
+                          }}
+                        >
+                          Sair
+                        </button>
+                      </form>
+                      <DeleteAccountButton />
+                    </div>
+                  </FoldCard>
+                </Reveal>
+              </>
+            )}
+
+            {currentTab === "avancado" && (
+              <>
+                <Reveal className="min-w-0" delay={0 * STAGGER_MS}>
+                  <FoldCard index={idx()} className="min-w-0">
+                    <CardHead icon={Send} title="Telegram" />
+                    <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                      Receba lembretes da sua rotina.
+                    </p>
+                    <TelegramSection chatId={profile?.telegram_chat_id ?? null} />
+                  </FoldCard>
+                </Reveal>
+
+                <Reveal className="min-w-0" delay={1 * STAGGER_MS}>
+                  <FoldCard index={idx()} className="min-w-0">
+                    <CardHead icon={ScrollText} title="Log Geral" />
+                    <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                      Registro de eventos do sistema.
+                    </p>
+                    <LogGeral />
+                  </FoldCard>
+                </Reveal>
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

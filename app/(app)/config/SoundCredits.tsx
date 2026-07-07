@@ -55,10 +55,10 @@ export async function SoundCredits() {
           {credits.map((c) => (
             <li
               key={`${c.key}-${c.variant ?? 0}`}
-              className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border px-3 py-2 text-sm"
+              className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg border px-3 py-2 text-sm"
               style={{ borderColor: "var(--color-border)" }}
             >
-              <span className="min-w-0">
+              <span className="min-w-0 break-words">
                 <span className="font-medium">
                   {NAME.get(c.key) ?? c.key}
                   {c.variant ? ` · var ${c.variant}` : ""}
@@ -66,17 +66,17 @@ export async function SoundCredits() {
                 <span style={{ color: "var(--color-fg-subtle)" }}> · {c.title}</span>
               </span>
               <span
-                className="flex items-center gap-2 text-xs"
+                className="flex flex-wrap items-center gap-2 text-xs"
                 style={{ color: "var(--color-fg-muted)" }}
               >
-                <span>{c.author}</span>
+                <span className="break-words">{c.author}</span>
                 <span
-                  className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                  className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
                   style={{ background: "var(--color-border)" }}
                 >
                   {c.license}
                 </span>
-                <a href={c.source} target="_blank" rel="noopener noreferrer" className="underline">
+                <a href={c.source} target="_blank" rel="noopener noreferrer" className="shrink-0 underline">
                   fonte
                 </a>
               </span>

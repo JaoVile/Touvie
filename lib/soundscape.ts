@@ -181,8 +181,8 @@ export const TEXTURES: Texture[] = [
     name: "Violão",
     icon: "guitar",
     group: "instrumento",
-    desc: "Dedilhado leve — alterna entre 3 takes.",
-    variants: 3,
+    desc: "Dedilhado leve — alterna entre 10 takes curados.",
+    variants: 10,
   },
   {
     key: "piano",

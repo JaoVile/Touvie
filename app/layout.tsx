@@ -114,7 +114,7 @@ async function loadUserTheme(): Promise<string> {
     // again from /config will trip this branch on next load — that's the
     // intended trade-off until/unless we re-enable glass-purple as a
     // first-class option.
-    if (theme === "glass-purple") {
+    if (theme === "glass-purple" || theme === "gemini-stellar") {
       await supabase.from("profiles").update({ theme: "royal" }).eq("id", user.id);
       theme = "royal";
     }

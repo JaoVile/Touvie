@@ -125,7 +125,6 @@ function VolumeSlider({
 
 export function SoundscapePicker() {
   const [state, setState] = useState<SoundState>(DEFAULT_SOUND);
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Hidrata do localStorage só no cliente (evita mismatch de SSR).
   useEffect(() => {
@@ -249,9 +248,9 @@ export function SoundscapePicker() {
   );
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 min-w-0">
       {/* ── Atmosferas: atalhos curados numa linha compacta (rolagem horizontal) ── */}
-      <section>
+      <section className="min-w-0">
         <h4 className={sectionLabel} style={{ color: "var(--color-fg-muted)" }}>
           Atmosferas
         </h4>
@@ -280,7 +279,7 @@ export function SoundscapePicker() {
       </section>
 
       {/* ── Monte o seu: o som ambiente é o core — fica de cara ── */}
-      <section>
+      <section className="min-w-0">
         <h4 className={sectionLabel} style={{ color: "var(--color-fg-muted)" }}>
           Monte o seu
         </h4>
@@ -299,25 +298,9 @@ export function SoundscapePicker() {
         />
       </section>
 
-      {/* ── Avançado (recolhido): frequência, jornadas, ruídos, modo profundo ── */}
-      <section>
-        <button
-          type="button"
-          onClick={() => setShowAdvanced((v) => !v)}
-          aria-expanded={showAdvanced}
-          className="flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition hover:opacity-90"
-          style={{ borderColor: "var(--color-border)", background: "var(--color-card)" }}
-        >
-          <span className="font-medium">Avançado</span>
-          <ChevronDown
-            className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-180")}
-            aria-hidden
-            strokeWidth={1.6}
-          />
-        </button>
-
-        {showAdvanced ? (
-          <div className="mt-4 grid gap-6">
+      {/* ── Frequência, jornadas, ruídos, modo profundo ── */}
+      <section className="min-w-0">
+          <div className="grid gap-6">
             {/* Frequência guia + seu volume (pausada enquanto uma jornada conduz) */}
             <div
               aria-disabled={!!state.journey}
@@ -343,10 +326,10 @@ export function SoundscapePicker() {
                     >
                       <Glyph name={f.icon} className="mt-0.5 h-[18px] w-[18px] shrink-0" />
                       <span className="min-w-0">
-                        <span className="flex items-center gap-2 text-sm font-medium">
-                          {f.name}
+                        <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                          <span className="break-words">{f.name}</span>
                           <span
-                            className="rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+                            className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
                             style={{
                               background: "var(--color-border)",
                               color: "var(--color-fg-muted)",
@@ -394,10 +377,10 @@ export function SoundscapePicker() {
                     >
                       <Glyph name={j.icon} className="mt-0.5 h-[18px] w-[18px] shrink-0" />
                       <span className="min-w-0">
-                        <span className="flex items-center gap-2 text-sm font-medium">
-                          {j.name}
+                        <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                          <span className="break-words">{j.name}</span>
                           <span
-                            className="rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums"
+                            className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums"
                             style={{
                               background: "var(--color-border)",
                               color: "var(--color-fg-muted)",
@@ -493,7 +476,6 @@ export function SoundscapePicker() {
               </button>
             </div>
           </div>
-        ) : null}
       </section>
     </div>
   );

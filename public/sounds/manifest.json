@@ -174,31 +174,51 @@
       "key": "violao",
       "variant": 1,
       "file": "/sounds/violao-1.mp3",
-      "title": "Nylon Guitar [140bpm] [F Sharp Minor]",
-      "author": "deadrobotmusic",
+      "title": "Emotional indie acoustic guitar",
+      "author": "Destructo20",
       "license": "CC0",
-      "source": "https://freesound.org/people/deadrobotmusic/sounds/574339/",
-      "freesoundId": 574339
+      "source": "https://freesound.org/people/Destructo20/sounds/656016/",
+      "freesoundId": 656016
     },
     {
       "key": "violao",
       "variant": 2,
       "file": "/sounds/violao-2.mp3",
-      "title": "Nylon Guitar Strumming",
-      "author": "Alex_hears_things",
-      "license": "CC0",
-      "source": "https://freesound.org/people/Alex_hears_things/sounds/812617/",
-      "freesoundId": 812617
+      "title": "emotive outro music acoustic guitar",
+      "author": "NomisYlad",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/NomisYlad/sounds/822777/",
+      "freesoundId": 822777
     },
     {
       "key": "violao",
       "variant": 3,
       "file": "/sounds/violao-3.mp3",
-      "title": "AcousticGuitar.wav",
-      "author": "FrankyBoomer",
+      "title": "Lo-fi Music Guitar (loop version)",
+      "author": "Migfus20",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/Migfus20/sounds/572710/",
+      "freesoundId": 572710
+    },
+    {
+      "key": "violao",
+      "variant": 4,
+      "file": "/sounds/violao-4.mp3",
+      "title": "Classical Acousitic Guitar, Smart Strings, Scientific Method.m4a",
+      "author": "kate_roselee",
       "license": "CC0",
-      "source": "https://freesound.org/people/FrankyBoomer/sounds/251223/",
-      "freesoundId": 251223
+      "source": "https://freesound.org/people/kate_roselee/sounds/550383/",
+      "freesoundId": 550383
+    },
+    {
+      "key": "violao",
+      "variant": 5,
+      "file": "/sounds/violao-5.mp3",
+      "title": "Melancholic Guitar Tunes",
+      "author": "ViraMiller",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/ViraMiller/sounds/748560/",
+      "freesoundId": 748560
     },
     {
       "key": "piano",

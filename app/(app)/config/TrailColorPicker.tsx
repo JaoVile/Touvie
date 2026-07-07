@@ -51,7 +51,7 @@ export function TrailColorPicker() {
 
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3">
         {cards.map((c) => {
           const active = color === c.id;
           return (
