@@ -380,7 +380,13 @@ export class SoundEngine {
     src.loop = true;
     src.connect(clip);
     clip.connect(voice.gain);
-    src.start();
+    // Começa num ponto ALEATÓRIO do buffer (não sempre no 0): com loop ligado,
+    // toca offset→fim→início→offset, então cada entrada de uma faixa longa expõe
+    // um trecho de ~42s diferente. É o que transforma um take de 240s (do qual só
+    // se ouviria o começo) em vários trechos distintos ao longo do tempo, sem
+    // precisar de mais arquivos. O fade-in de CLIP_FADE mascara a entrada no meio.
+    const offset = Math.random() * buf.duration;
+    src.start(t, offset);
     voice.nodes.push(src, clip);
 
     // Esmaece e para a variação anterior.

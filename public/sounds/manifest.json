@@ -244,11 +244,81 @@
       "key": "piano",
       "variant": 3,
       "file": "/sounds/piano-3.mp3",
-      "title": "Thinking of Driving: Gentle Piano Music for Emotional Scenes",
+      "title": "April Showers: Sweet Lo-Fi Piano Vibes",
       "author": "kjartan_abel",
       "license": "CC BY 4.0",
-      "source": "https://freesound.org/people/kjartan_abel/sounds/532774/",
-      "freesoundId": 532774
+      "source": "https://freesound.org/people/kjartan_abel/sounds/608392/",
+      "freesoundId": 608392
+    },
+    {
+      "key": "piano",
+      "variant": 4,
+      "file": "/sounds/piano-4.mp3",
+      "title": "Soft Piano Loop",
+      "author": "Ncone",
+      "license": "CC0",
+      "source": "https://freesound.org/people/Ncone/sounds/710546/",
+      "freesoundId": 710546
+    },
+    {
+      "key": "piano",
+      "variant": 5,
+      "file": "/sounds/piano-5.mp3",
+      "title": "TheEternalLighthouse - a soft slow piano with basic chords and Rythm for my book promo video",
+      "author": "jcmbo369",
+      "license": "CC0",
+      "source": "https://freesound.org/people/jcmbo369/sounds/819108/",
+      "freesoundId": 819108
+    },
+    {
+      "key": "piano",
+      "variant": 6,
+      "file": "/sounds/piano-6.mp3",
+      "title": "Cinematic Piano Serenity",
+      "author": "Matio888",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/Matio888/sounds/789276/",
+      "freesoundId": 789276
+    },
+    {
+      "key": "piano",
+      "variant": 7,
+      "file": "/sounds/piano-7.mp3",
+      "title": "Melancholic Piano Loop",
+      "author": "Jadis0x",
+      "license": "CC0",
+      "source": "https://freesound.org/people/Jadis0x/sounds/761294/",
+      "freesoundId": 761294
+    },
+    {
+      "key": "piano",
+      "variant": 8,
+      "file": "/sounds/piano-8.mp3",
+      "title": "evening piano.wav",
+      "author": "Nick_Simon-Adams",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/Nick_Simon-Adams/sounds/587151/",
+      "freesoundId": 587151
+    },
+    {
+      "key": "piano",
+      "variant": 9,
+      "file": "/sounds/piano-9.mp3",
+      "title": "Calming Piano Loop 60bpm",
+      "author": "Seth_Makes_Sounds",
+      "license": "CC0",
+      "source": "https://freesound.org/people/Seth_Makes_Sounds/sounds/679738/",
+      "freesoundId": 679738
+    },
+    {
+      "key": "piano",
+      "variant": 10,
+      "file": "/sounds/piano-10.mp3",
+      "title": "Dreamy Piano Romance",
+      "author": "ViraMiller",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/ViraMiller/sounds/744876/",
+      "freesoundId": 744876
     }
   ]
 }

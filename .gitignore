@@ -29,3 +29,6 @@ scripts/tasks/
 
 # typescript incremental build info
 *.tsbuildinfo
+
+# Staging de audição de sons (temporário, não versionar)
+public/sounds/_staging/

@@ -14,12 +14,13 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const ROOT = process.cwd();
-const OUT_DIR = path.join(ROOT, "public", "sounds");
-const MANIFEST = path.join(OUT_DIR, "manifest.json");
+export const OUT_DIR = path.join(ROOT, "public", "sounds");
+export const MANIFEST = path.join(OUT_DIR, "manifest.json");
 
-async function getKey() {
+export async function getKey() {
   if (process.env.FREESOUND_API_KEY) return process.env.FREESOUND_API_KEY.trim();
   try {
     const env = await readFile(path.join(ROOT, ".env.local"), "utf8");
@@ -33,7 +34,7 @@ async function getKey() {
 
 // must: termos que DEVEM aparecer (nome vale +2, tag +1).
 // avoid: termos que derrubam o candidato (-5).
-const TARGETS = [
+export const TARGETS = [
   {
     key: "chuva",
     variants: 3,
@@ -116,7 +117,21 @@ const TARGETS = [
       "emotional acoustic guitar",
     ],
     must: ["guitar", "acoustic"],
-    avoid: ["ominous", "horror", "dark", "scary", "distortion", "metal", "electric", "strumming", "strum", "fast", "bpm", "upbeat", "piano"],
+    avoid: [
+      "ominous",
+      "horror",
+      "dark",
+      "scary",
+      "distortion",
+      "metal",
+      "electric",
+      "strumming",
+      "strum",
+      "fast",
+      "bpm",
+      "upbeat",
+      "piano",
+    ],
   },
   {
     key: "piano",
@@ -125,13 +140,18 @@ const TARGETS = [
       "peaceful piano meditation",
       "relaxing piano background",
       "emotional piano soft",
+      "calm piano loop",
+      "ambient piano reflective",
+      "slow piano sparse notes",
+      "gentle piano lullaby",
+      "tranquil solo piano",
     ],
     must: ["piano"],
-    avoid: ["guitar", "horror", "dark", "scary", "fast", "upbeat", "drums"],
+    avoid: ["guitar", "horror", "dark", "scary", "fast", "upbeat", "drums", "noise"],
   },
 ];
 
-const LICENSE_LABEL = {
+export const LICENSE_LABEL = {
   "http://creativecommons.org/publicdomain/zero/1.0/": "CC0",
   "https://creativecommons.org/publicdomain/zero/1.0/": "CC0",
   "http://creativecommons.org/licenses/by/4.0/": "CC BY 4.0",
@@ -154,7 +174,7 @@ async function fetchT(url, opts = {}, ms = 20_000) {
   }
 }
 
-async function search(query, token) {
+export async function search(query, token) {
   // Sem sort forçado → relevância padrão do Freesound. Inclui tags pra pontuar.
   const filter = 'duration:[15 TO 240] license:("Creative Commons 0" OR "Attribution")';
   const url = `${API}/search/text/?query=${encodeURIComponent(query)}&filter=${encodeURIComponent(
@@ -167,7 +187,7 @@ async function search(query, token) {
   return (await res.json()).results ?? [];
 }
 
-function score(result, target) {
+export function score(result, target) {
   if (!result?.previews?.["preview-hq-mp3"]) return Number.NEGATIVE_INFINITY;
   const name = (result.name ?? "").toLowerCase();
   const tags = (result.tags ?? []).map((t) => t.toLowerCase());
@@ -183,7 +203,7 @@ function score(result, target) {
   return s;
 }
 
-async function download(urlStr, dest) {
+export async function download(urlStr, dest) {
   const res = await fetchT(urlStr, {}, 30_000);
   if (!res.ok) throw new Error(`download ${res.status} ${urlStr}`);
   const buf = Buffer.from(await res.arrayBuffer());
@@ -191,7 +211,7 @@ async function download(urlStr, dest) {
   return buf.length;
 }
 
-async function loadManifest() {
+export async function loadManifest() {
   try {
     const raw = await readFile(MANIFEST, "utf8");
     return JSON.parse(raw).sounds ?? [];
@@ -284,7 +304,12 @@ async function main() {
   console.log(`\n→ manifest.json com ${credits.length} sons.`);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+// Só roda o CLI quando invocado direto (`node scripts/fetch-sounds.mjs`); quando
+// importado por outro script (fetch-candidates), só expõe as funções acima.
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+if (isMain) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
