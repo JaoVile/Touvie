@@ -300,182 +300,182 @@ export function SoundscapePicker() {
 
       {/* ── Frequência, jornadas, ruídos, modo profundo ── */}
       <section className="min-w-0">
-          <div className="grid gap-6">
-            {/* Frequência guia + seu volume (pausada enquanto uma jornada conduz) */}
-            <div
-              aria-disabled={!!state.journey}
+        <div className="grid gap-6">
+          {/* Frequência guia + seu volume (pausada enquanto uma jornada conduz) */}
+          <div
+            aria-disabled={!!state.journey}
+            style={{
+              opacity: state.journey ? 0.45 : 1,
+              pointerEvents: state.journey ? "none" : "auto",
+            }}
+          >
+            <h5 className={sectionLabel} style={{ color: "var(--color-fg-muted)" }}>
+              Frequência {state.journey ? "· pausada na jornada" : "guia"}
+            </h5>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {FREQUENCIES.map((f) => {
+                const active = state.freqMode === f.key;
+                return (
+                  <button
+                    type="button"
+                    key={f.key}
+                    onClick={() => pickFreq(f.key)}
+                    disabled={!!state.journey}
+                    className={cn(cardCls(active), "flex items-start gap-3")}
+                    style={cardStyle(active)}
+                  >
+                    <Glyph name={f.icon} className="mt-0.5 h-[18px] w-[18px] shrink-0" />
+                    <span className="min-w-0">
+                      <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                        <span className="break-words">{f.name}</span>
+                        <span
+                          className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+                          style={{
+                            background: "var(--color-border)",
+                            color: "var(--color-fg-muted)",
+                          }}
+                        >
+                          {f.wave}
+                        </span>
+                      </span>
+                      <span className="block text-xs" style={{ color: "var(--color-fg-subtle)" }}>
+                        {f.desc}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {activeFreq?.warn ? (
+              <p className="mt-2 text-xs" style={{ color: "var(--color-fg-subtle)" }}>
+                {activeFreq.warn}
+              </p>
+            ) : null}
+            <VolumeSlider
+              label="Volume"
+              value={state.freqVolume}
+              onChange={(v) => update({ freqVolume: v })}
+            />
+          </div>
+
+          {/* Guiadas: a frequência migra sozinha no tempo (princípio ISO) */}
+          <div>
+            <h5 className={sectionLabel} style={{ color: "var(--color-fg-muted)" }}>
+              Guiadas
+            </h5>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {JOURNEYS.map((j) => {
+                const active = state.journey === j.key;
+                return (
+                  <button
+                    type="button"
+                    key={j.key}
+                    onClick={() => pickJourney(j.key)}
+                    aria-pressed={active}
+                    className={cn(cardCls(active), "flex items-start gap-3")}
+                    style={cardStyle(active)}
+                  >
+                    <Glyph name={j.icon} className="mt-0.5 h-[18px] w-[18px] shrink-0" />
+                    <span className="min-w-0">
+                      <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                        <span className="break-words">{j.name}</span>
+                        <span
+                          className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums"
+                          style={{
+                            background: "var(--color-border)",
+                            color: "var(--color-fg-muted)",
+                          }}
+                        >
+                          {fmt(journeyGuidedSeconds(j))}
+                        </span>
+                      </span>
+                      <span className="block text-xs" style={{ color: "var(--color-fg-subtle)" }}>
+                        {j.desc}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {activeJourney ? (
+              <div
+                className="mt-3 rounded-lg border p-3 text-sm"
+                style={{ borderColor: "var(--color-accent)", background: "var(--color-card)" }}
+              >
+                <p className="font-medium">
+                  {journeyArrived ? "Chegou" : "Conduzindo"} ·{" "}
+                  <span style={{ color: "var(--color-accent)" }}>
+                    {FREQ_NAME.get(activeJourney.stages[journeyStage].freq)}
+                  </span>
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  {activeJourney.stages.map((st, i) => (
+                    <span
+                      key={st.freq}
+                      className="rounded-full px-2 py-0.5 text-xs transition"
+                      style={{
+                        background:
+                          i <= journeyStage ? "var(--color-accent)" : "var(--color-border)",
+                        color: i <= journeyStage ? "var(--color-bg)" : "var(--color-fg-muted)",
+                        opacity: i === journeyStage ? 1 : i < journeyStage ? 0.7 : 0.6,
+                      }}
+                    >
+                      {FREQ_NAME.get(st.freq)}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs" style={{ color: "var(--color-fg-subtle)" }}>
+                  {journeyArrived
+                    ? "Mantém este estado até você parar."
+                    : `Decorrido ${fmt(journeyElapsed)} de ${fmt(journeyGuidedSeconds(activeJourney))} guiados.`}
+                </p>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Ruídos utilitários (rosa / marrom) */}
+          <div>
+            <h5 className={sectionLabel} style={{ color: "var(--color-fg-muted)" }}>
+              Ruídos
+            </h5>
+            {renderChips(noises)}
+          </div>
+
+          {/* Modo profundo: tom isócrono opt-in (off por padrão) */}
+          <div
+            className="flex items-start justify-between gap-4 rounded-lg border p-3"
+            style={{ borderColor: "var(--color-border)", background: "var(--color-card)" }}
+          >
+            <div className="min-w-0">
+              <h5 className="text-sm font-medium">Modo profundo</h5>
+              <p className="mt-0.5 text-xs" style={{ color: "var(--color-fg-subtle)" }}>
+                Soma o tom isócrono (pulso de entrainment) por cima do som — mais intenso e
+                funcional, mas pode incomodar quem é sensível. Desligado, a frequência é só o pad
+                quente, com respiração suave.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={state.deepMode}
+              aria-label="Modo profundo"
+              onClick={() => update({ deepMode: !state.deepMode })}
+              className="relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition"
               style={{
-                opacity: state.journey ? 0.45 : 1,
-                pointerEvents: state.journey ? "none" : "auto",
+                background: state.deepMode ? "var(--color-accent)" : "var(--color-border)",
               }}
             >
-              <h5 className={sectionLabel} style={{ color: "var(--color-fg-muted)" }}>
-                Frequência {state.journey ? "· pausada na jornada" : "guia"}
-              </h5>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {FREQUENCIES.map((f) => {
-                  const active = state.freqMode === f.key;
-                  return (
-                    <button
-                      type="button"
-                      key={f.key}
-                      onClick={() => pickFreq(f.key)}
-                      disabled={!!state.journey}
-                      className={cn(cardCls(active), "flex items-start gap-3")}
-                      style={cardStyle(active)}
-                    >
-                      <Glyph name={f.icon} className="mt-0.5 h-[18px] w-[18px] shrink-0" />
-                      <span className="min-w-0">
-                        <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                          <span className="break-words">{f.name}</span>
-                          <span
-                            className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
-                            style={{
-                              background: "var(--color-border)",
-                              color: "var(--color-fg-muted)",
-                            }}
-                          >
-                            {f.wave}
-                          </span>
-                        </span>
-                        <span className="block text-xs" style={{ color: "var(--color-fg-subtle)" }}>
-                          {f.desc}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              {activeFreq?.warn ? (
-                <p className="mt-2 text-xs" style={{ color: "var(--color-fg-subtle)" }}>
-                  {activeFreq.warn}
-                </p>
-              ) : null}
-              <VolumeSlider
-                label="Volume"
-                value={state.freqVolume}
-                onChange={(v) => update({ freqVolume: v })}
-              />
-            </div>
-
-            {/* Guiadas: a frequência migra sozinha no tempo (princípio ISO) */}
-            <div>
-              <h5 className={sectionLabel} style={{ color: "var(--color-fg-muted)" }}>
-                Guiadas
-              </h5>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {JOURNEYS.map((j) => {
-                  const active = state.journey === j.key;
-                  return (
-                    <button
-                      type="button"
-                      key={j.key}
-                      onClick={() => pickJourney(j.key)}
-                      aria-pressed={active}
-                      className={cn(cardCls(active), "flex items-start gap-3")}
-                      style={cardStyle(active)}
-                    >
-                      <Glyph name={j.icon} className="mt-0.5 h-[18px] w-[18px] shrink-0" />
-                      <span className="min-w-0">
-                        <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                          <span className="break-words">{j.name}</span>
-                          <span
-                            className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums"
-                            style={{
-                              background: "var(--color-border)",
-                              color: "var(--color-fg-muted)",
-                            }}
-                          >
-                            {fmt(journeyGuidedSeconds(j))}
-                          </span>
-                        </span>
-                        <span className="block text-xs" style={{ color: "var(--color-fg-subtle)" }}>
-                          {j.desc}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {activeJourney ? (
-                <div
-                  className="mt-3 rounded-lg border p-3 text-sm"
-                  style={{ borderColor: "var(--color-accent)", background: "var(--color-card)" }}
-                >
-                  <p className="font-medium">
-                    {journeyArrived ? "Chegou" : "Conduzindo"} ·{" "}
-                    <span style={{ color: "var(--color-accent)" }}>
-                      {FREQ_NAME.get(activeJourney.stages[journeyStage].freq)}
-                    </span>
-                  </p>
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    {activeJourney.stages.map((st, i) => (
-                      <span
-                        key={st.freq}
-                        className="rounded-full px-2 py-0.5 text-xs transition"
-                        style={{
-                          background:
-                            i <= journeyStage ? "var(--color-accent)" : "var(--color-border)",
-                          color: i <= journeyStage ? "var(--color-bg)" : "var(--color-fg-muted)",
-                          opacity: i === journeyStage ? 1 : i < journeyStage ? 0.7 : 0.6,
-                        }}
-                      >
-                        {FREQ_NAME.get(st.freq)}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="mt-2 text-xs" style={{ color: "var(--color-fg-subtle)" }}>
-                    {journeyArrived
-                      ? "Mantém este estado até você parar."
-                      : `Decorrido ${fmt(journeyElapsed)} de ${fmt(journeyGuidedSeconds(activeJourney))} guiados.`}
-                  </p>
-                </div>
-              ) : null}
-            </div>
-
-            {/* Ruídos utilitários (rosa / marrom) */}
-            <div>
-              <h5 className={sectionLabel} style={{ color: "var(--color-fg-muted)" }}>
-                Ruídos
-              </h5>
-              {renderChips(noises)}
-            </div>
-
-            {/* Modo profundo: tom isócrono opt-in (off por padrão) */}
-            <div
-              className="flex items-start justify-between gap-4 rounded-lg border p-3"
-              style={{ borderColor: "var(--color-border)", background: "var(--color-card)" }}
-            >
-              <div className="min-w-0">
-                <h5 className="text-sm font-medium">Modo profundo</h5>
-                <p className="mt-0.5 text-xs" style={{ color: "var(--color-fg-subtle)" }}>
-                  Soma o tom isócrono (pulso de entrainment) por cima do som — mais intenso e
-                  funcional, mas pode incomodar quem é sensível. Desligado, a frequência é só o pad
-                  quente, com respiração suave.
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={state.deepMode}
-                aria-label="Modo profundo"
-                onClick={() => update({ deepMode: !state.deepMode })}
-                className="relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition"
+              <span
+                className="absolute top-0.5 h-5 w-5 rounded-full transition-all"
                 style={{
-                  background: state.deepMode ? "var(--color-accent)" : "var(--color-border)",
+                  left: state.deepMode ? "1.5rem" : "0.125rem",
+                  background: "var(--color-bg)",
                 }}
-              >
-                <span
-                  className="absolute top-0.5 h-5 w-5 rounded-full transition-all"
-                  style={{
-                    left: state.deepMode ? "1.5rem" : "0.125rem",
-                    background: "var(--color-bg)",
-                  }}
-                />
-              </button>
-            </div>
+              />
+            </button>
           </div>
+        </div>
       </section>
     </div>
   );

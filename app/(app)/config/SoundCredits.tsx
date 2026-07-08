@@ -76,7 +76,12 @@ export async function SoundCredits() {
                 >
                   {c.license}
                 </span>
-                <a href={c.source} target="_blank" rel="noopener noreferrer" className="shrink-0 underline">
+                <a
+                  href={c.source}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 underline"
+                >
                   fonte
                 </a>
               </span>

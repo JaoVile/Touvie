@@ -274,7 +274,8 @@ export default async function ConfigPage(props: {
                       Gerencie seu modo privado, PIN e criptografia dentro do{" "}
                       <Link href="/diario" className="underline">
                         próprio diário
-                      </Link>.
+                      </Link>
+                      .
                     </p>
                   </FoldCard>
                 </Reveal>
