@@ -6,11 +6,11 @@
       "key": "chuva",
       "variant": 1,
       "file": "/sounds/chuva-1.mp3",
-      "title": "Rain in Munich Westpark",
-      "author": "myLoop",
+      "title": "Tahoe Rain 1",
+      "author": "deadrobotmusic",
       "license": "CC0",
-      "source": "https://freesound.org/people/myLoop/sounds/849800/",
-      "freesoundId": 849800
+      "source": "https://freesound.org/s/687087/",
+      "freesoundId": 687087
     },
     {
       "key": "chuva",
@@ -33,14 +33,64 @@
       "freesoundId": 416227
     },
     {
+      "key": "chuva",
+      "variant": 4,
+      "file": "/sounds/chuva-4.mp3",
+      "title": "Light Rainfall pt. 2",
+      "author": "daniel463",
+      "license": "CC0",
+      "source": "https://freesound.org/s/612635/",
+      "freesoundId": 612635
+    },
+    {
+      "key": "chuva",
+      "variant": 5,
+      "file": "/sounds/chuva-5.mp3",
+      "title": "Rain from Half Open Window 2",
+      "author": "RutgerMuller",
+      "license": "CC0",
+      "source": "https://freesound.org/s/158689/",
+      "freesoundId": 158689
+    },
+    {
+      "key": "chuva",
+      "variant": 6,
+      "file": "/sounds/chuva-6.mp3",
+      "title": "Rain Outside window or roof top",
+      "author": "rivernile7",
+      "license": "CC BY 3.0",
+      "source": "https://freesound.org/s/244273/",
+      "freesoundId": 244273
+    },
+    {
+      "key": "chuva",
+      "variant": 7,
+      "file": "/sounds/chuva-7.mp3",
+      "title": "Rain on metal sheet roof (Amazon village)",
+      "author": "felix.blume",
+      "license": "CC0",
+      "source": "https://freesound.org/s/673486/",
+      "freesoundId": 673486
+    },
+    {
+      "key": "chuva",
+      "variant": 8,
+      "file": "/sounds/chuva-8.mp3",
+      "title": "Soothing raindrops against the window blind",
+      "author": "mynameisraven",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/751640/",
+      "freesoundId": 751640
+    },
+    {
       "key": "mar",
       "variant": 1,
       "file": "/sounds/mar-1.mp3",
-      "title": "Surf, waves and sea foam from Naplo beach, Lima // Olas y espuma del mar en la playa de Naplo, Lima.",
-      "author": "cesar-gutierrez-99",
-      "license": "CC0",
-      "source": "https://freesound.org/people/cesar-gutierrez-99/sounds/843570/",
-      "freesoundId": 843570
+      "title": "Rockaway Beach Gentle Waves.wav",
+      "author": "simong1006",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/566459/",
+      "freesoundId": 566459
     },
     {
       "key": "mar",
@@ -61,6 +111,66 @@
       "license": "CC0",
       "source": "https://freesound.org/people/SamsterBirdies/sounds/578524/",
       "freesoundId": 578524
+    },
+    {
+      "key": "mar",
+      "variant": 4,
+      "file": "/sounds/mar-4.mp3",
+      "title": "Waves on a sand bar",
+      "author": "plantmonkey",
+      "license": "CC0",
+      "source": "https://freesound.org/s/459813/",
+      "freesoundId": 459813
+    },
+    {
+      "key": "mar",
+      "variant": 5,
+      "file": "/sounds/mar-5.mp3",
+      "title": "calm waves sandy coast 01 140429_0185.wav",
+      "author": "klankbeeld",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/237687/",
+      "freesoundId": 237687
+    },
+    {
+      "key": "mar",
+      "variant": 6,
+      "file": "/sounds/mar-6.mp3",
+      "title": "waves sandy beach  xy90 160717_0920.flac",
+      "author": "klankbeeld",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/432980/",
+      "freesoundId": 432980
+    },
+    {
+      "key": "mar",
+      "variant": 7,
+      "file": "/sounds/mar-7.mp3",
+      "title": "waves small close 01 190515_1380.wav",
+      "author": "klankbeeld",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/470123/",
+      "freesoundId": 470123
+    },
+    {
+      "key": "mar",
+      "variant": 8,
+      "file": "/sounds/mar-8.mp3",
+      "title": "NorthSeaWaves.wav",
+      "author": "derjuli",
+      "license": "CC0",
+      "source": "https://freesound.org/s/824106/",
+      "freesoundId": 824106
+    },
+    {
+      "key": "mar",
+      "variant": 9,
+      "file": "/sounds/mar-9.mp3",
+      "title": "Detailed Beach Ambiance: Lapping Baltic Tide",
+      "author": "Funkelfang",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/851178/",
+      "freesoundId": 851178
     },
     {
       "key": "ruido-rosa",
@@ -84,31 +194,101 @@
       "key": "floresta",
       "variant": 1,
       "file": "/sounds/floresta-1.mp3",
-      "title": "AMBForst_Late spring.A Quiet Forest Edge.Hot.Sunny.Birds.Raven.Wood Pigeon.Mosquitoes 1_EM",
-      "author": "newlocknew",
-      "license": "CC0",
-      "source": "https://freesound.org/people/newlocknew/sounds/855650/",
-      "freesoundId": 855650
+      "title": "forest summer Roond 012 200619_0186.wav",
+      "author": "klankbeeld",
+      "license": "CC-BY",
+      "source": "https://freesound.org/s/527544/",
+      "freesoundId": 527544
     },
     {
       "key": "floresta",
       "variant": 2,
       "file": "/sounds/floresta-2.mp3",
-      "title": "Birds In The Forest",
-      "author": "BurghRecords",
-      "license": "CC0",
-      "source": "https://freesound.org/people/BurghRecords/sounds/456123/",
-      "freesoundId": 456123
+      "title": "forest summer Roond 008 200619_0186.wav",
+      "author": "klankbeeld",
+      "license": "CC-BY",
+      "source": "https://freesound.org/s/524995/",
+      "freesoundId": 524995
     },
     {
       "key": "floresta",
       "variant": 3,
       "file": "/sounds/floresta-3.mp3",
-      "title": "Long Birds Forest Ambience.wav",
-      "author": "Motion_S",
-      "license": "CC BY 4.0",
-      "source": "https://freesound.org/people/Motion_S/sounds/221755/",
-      "freesoundId": 221755
+      "title": "forest summer Roond 010 200619_0186.wav",
+      "author": "klankbeeld",
+      "license": "CC-BY",
+      "source": "https://freesound.org/s/525227/",
+      "freesoundId": 525227
+    },
+    {
+      "key": "floresta",
+      "variant": 4,
+      "file": "/sounds/floresta-4.mp3",
+      "title": "forest summer Roond 009 200619_0186.wav",
+      "author": "klankbeeld",
+      "license": "CC-BY",
+      "source": "https://freesound.org/s/525077/",
+      "freesoundId": 525077
+    },
+    {
+      "key": "floresta",
+      "variant": 5,
+      "file": "/sounds/floresta-5.mp3",
+      "title": "forest summer Roond 003 200619_0186.wav",
+      "author": "klankbeeld",
+      "license": "CC-BY",
+      "source": "https://freesound.org/s/523957/",
+      "freesoundId": 523957
+    },
+    {
+      "key": "floresta",
+      "variant": 6,
+      "file": "/sounds/floresta-6.mp3",
+      "title": "forest summer Roond 002 200619_0186.wav",
+      "author": "klankbeeld",
+      "license": "CC-BY",
+      "source": "https://freesound.org/s/523898/",
+      "freesoundId": 523898
+    },
+    {
+      "key": "floresta",
+      "variant": 7,
+      "file": "/sounds/floresta-7.mp3",
+      "title": "forest summer Roond 020 200619_0186.wav",
+      "author": "klankbeeld",
+      "license": "CC-BY",
+      "source": "https://freesound.org/s/530415/",
+      "freesoundId": 530415
+    },
+    {
+      "key": "floresta",
+      "variant": 8,
+      "file": "/sounds/floresta-8.mp3",
+      "title": "estate Zegenwerp autumn NL CLEAN 117 PM 221029_0537",
+      "author": "klankbeeld",
+      "license": "CC-BY",
+      "source": "https://freesound.org/s/792778/",
+      "freesoundId": 792778
+    },
+    {
+      "key": "floresta",
+      "variant": 9,
+      "file": "/sounds/floresta-9.mp3",
+      "title": "national park Loonse en Drunense Duinen Netherlands 1046 AM 161030_1035",
+      "author": "klankbeeld",
+      "license": "CC-BY",
+      "source": "https://freesound.org/s/809235/",
+      "freesoundId": 809235
+    },
+    {
+      "key": "floresta",
+      "variant": 10,
+      "file": "/sounds/floresta-10.mp3",
+      "title": "Calm forest Nov Oisterwijk NL 02 201127_0208.wav",
+      "author": "klankbeeld",
+      "license": "CC-BY",
+      "source": "https://freesound.org/s/550258/",
+      "freesoundId": 550258
     },
     {
       "key": "vento",
@@ -124,121 +304,371 @@
       "key": "vento",
       "variant": 2,
       "file": "/sounds/vento-2.mp3",
-      "title": "ContinuousHighWindLoop.wav",
-      "author": "zimbot",
-      "license": "CC BY 4.0",
-      "source": "https://freesound.org/people/zimbot/sounds/350678/",
-      "freesoundId": 350678
+      "title": "Soft Wind in the Trees - Leaves rustle",
+      "author": "Borgory",
+      "license": "CC0",
+      "source": "https://freesound.org/s/751473/",
+      "freesoundId": 751473
     },
     {
       "key": "vento",
       "variant": 3,
       "file": "/sounds/vento-3.mp3",
-      "title": "AMBForst_Forest Birds Wind 01_KVV AUDIO_FREE",
-      "author": "KVV_Audio",
+      "title": "wind 13km/h werribee south beach",
+      "author": "FunnyVoices",
+      "license": "CC0",
+      "source": "https://freesound.org/s/546533/",
+      "freesoundId": 546533
+    },
+    {
+      "key": "vento",
+      "variant": 4,
+      "file": "/sounds/vento-4.mp3",
+      "title": "forest summer breeze NL",
+      "author": "klankbeeld",
       "license": "CC BY 4.0",
-      "source": "https://freesound.org/people/KVV_Audio/sounds/800712/",
-      "freesoundId": 800712
+      "source": "https://freesound.org/s/582916/",
+      "freesoundId": 582916
+    },
+    {
+      "key": "vento",
+      "variant": 5,
+      "file": "/sounds/vento-5.mp3",
+      "title": "Forest Edge Light Breeze (quiet birds + insects)",
+      "author": "newlocknew",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/825833/",
+      "freesoundId": 825833
+    },
+    {
+      "key": "fogueira",
+      "variant": 1,
+      "file": "/sounds/fogueira-1.mp3",
+      "title": "fireplace (dobroide 2011)",
+      "author": "dobroide",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/120644/",
+      "freesoundId": 120644
+    },
+    {
+      "key": "fogueira",
+      "variant": 2,
+      "file": "/sounds/fogueira-2.mp3",
+      "title": "Inside fireplace (Crackling)",
+      "author": "Sadiquecat",
+      "license": "CC0",
+      "source": "https://freesound.org/s/800660/",
+      "freesoundId": 800660
+    },
+    {
+      "key": "fogueira",
+      "variant": 3,
+      "file": "/sounds/fogueira-3.mp3",
+      "title": "hearth fire / light",
+      "author": "jarokoco",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/403139/",
+      "freesoundId": 403139
+    },
+    {
+      "key": "fogueira",
+      "variant": 4,
+      "file": "/sounds/fogueira-4.mp3",
+      "title": "Fireplace crackling wood little flame",
+      "author": "BonnyOrbit",
+      "license": "CC0",
+      "source": "https://freesound.org/s/484338/",
+      "freesoundId": 484338
+    },
+    {
+      "key": "fogueira",
+      "variant": 5,
+      "file": "/sounds/fogueira-5.mp3",
+      "title": "Campfire 01",
+      "author": "HECKFRICKER",
+      "license": "CC0",
+      "source": "https://freesound.org/s/729395/",
+      "freesoundId": 729395
+    },
+    {
+      "key": "fogueira",
+      "variant": 6,
+      "file": "/sounds/fogueira-6.mp3",
+      "title": "hearth fire / soft",
+      "author": "jarokoco",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/403140/",
+      "freesoundId": 403140
+    },
+    {
+      "key": "fogueira",
+      "variant": 7,
+      "file": "/sounds/fogueira-7.mp3",
+      "title": "Campfire Close Long Crackling (Artificial)",
+      "author": "newlocknew",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/730704/",
+      "freesoundId": 730704
     },
     {
       "key": "violinos",
       "variant": 1,
       "file": "/sounds/violinos-1.mp3",
-      "title": "Violin strings hiphop loop",
-      "author": "Ehved",
-      "license": "CC0",
-      "source": "https://freesound.org/people/Ehved/sounds/566285/",
-      "freesoundId": 566285
+      "title": "Harmonic Ambient Classical Theme",
+      "author": "TheoJT",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/698281/",
+      "freesoundId": 698281
     },
     {
       "key": "violinos",
       "variant": 2,
       "file": "/sounds/violinos-2.mp3",
-      "title": "Fast Build Up Orchestra",
-      "author": "joshuaempyre",
+      "title": "Orchestral Strings, Warm, A",
+      "author": "InspectorJ",
       "license": "CC BY 4.0",
-      "source": "https://freesound.org/people/joshuaempyre/sounds/346375/",
-      "freesoundId": 346375
+      "source": "https://freesound.org/s/402656/",
+      "freesoundId": 402656
     },
     {
       "key": "violinos",
       "variant": 3,
       "file": "/sounds/violinos-3.mp3",
-      "title": "Strings in C and F .wav",
-      "author": "BuytheField",
+      "title": "Hopeful Cinematic Emotional Orchestra Background",
+      "author": "EvanBoyerman",
       "license": "CC BY 4.0",
-      "source": "https://freesound.org/people/BuytheField/sounds/474521/",
-      "freesoundId": 474521
+      "source": "https://freesound.org/s/753968/",
+      "freesoundId": 753968
+    },
+    {
+      "key": "violinos",
+      "variant": 4,
+      "file": "/sounds/violinos-4.mp3",
+      "title": "BCO - anticipation",
+      "author": "brylie",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/627142/",
+      "freesoundId": 627142
+    },
+    {
+      "key": "violinos",
+      "variant": 5,
+      "file": "/sounds/violinos-5.mp3",
+      "title": "wttmd_stringquartet_2layers",
+      "author": "thanvannispen",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/44844/",
+      "freesoundId": 44844
+    },
+    {
+      "key": "violinos",
+      "variant": 6,
+      "file": "/sounds/violinos-6.mp3",
+      "title": "Calming Background Music Orchestra Loop",
+      "author": "Migfus20",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/560440/",
+      "freesoundId": 560440
+    },
+    {
+      "key": "violinos",
+      "variant": 7,
+      "file": "/sounds/violinos-7.mp3",
+      "title": "Contemplative String Loop (Violin and Cello)",
+      "author": "CVLTIV8R",
+      "license": "CC0",
+      "source": "https://freesound.org/s/839571/",
+      "freesoundId": 839571
+    },
+    {
+      "key": "violinos",
+      "variant": 8,
+      "file": "/sounds/violinos-8.mp3",
+      "title": "Sad bluesy violin",
+      "author": "TheFlyFishingFilmmaker",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/641699/",
+      "freesoundId": 641699
+    },
+    {
+      "key": "violinos",
+      "variant": 9,
+      "file": "/sounds/violinos-9.mp3",
+      "title": "Miss shepherd - ethereal reverb violin",
+      "author": "elp43",
+      "license": "CC0",
+      "source": "https://freesound.org/s/473977/",
+      "freesoundId": 473977
+    },
+    {
+      "key": "violinos",
+      "variant": 10,
+      "file": "/sounds/violinos-10.mp3",
+      "title": "violin minuet boccherini (edit)",
+      "author": "FreqMan",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/s/25481/",
+      "freesoundId": 25481
     },
     {
       "key": "violao",
       "variant": 1,
       "file": "/sounds/violao-1.mp3",
-      "title": "Emotional indie acoustic guitar",
-      "author": "Destructo20",
-      "license": "CC0",
-      "source": "https://freesound.org/people/Destructo20/sounds/656016/",
-      "freesoundId": 656016
+      "title": "acoustic guitar melody fingerstyle #1",
+      "author": "Garuda1982",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/Garuda1982/sounds/657071/",
+      "freesoundId": 657071
     },
     {
       "key": "violao",
       "variant": 2,
       "file": "/sounds/violao-2.mp3",
-      "title": "emotive outro music acoustic guitar",
-      "author": "NomisYlad",
+      "title": "acoustic guitar melody fingerstyle #15",
+      "author": "Garuda1982",
       "license": "CC BY 4.0",
-      "source": "https://freesound.org/people/NomisYlad/sounds/822777/",
-      "freesoundId": 822777
+      "source": "https://freesound.org/people/Garuda1982/sounds/660873/",
+      "freesoundId": 660873
     },
     {
       "key": "violao",
       "variant": 3,
       "file": "/sounds/violao-3.mp3",
-      "title": "Lo-fi Music Guitar (loop version)",
-      "author": "Migfus20",
+      "title": "acoustic guitar melody fingerstyle #12",
+      "author": "Garuda1982",
       "license": "CC BY 4.0",
-      "source": "https://freesound.org/people/Migfus20/sounds/572710/",
-      "freesoundId": 572710
+      "source": "https://freesound.org/people/Garuda1982/sounds/660164/",
+      "freesoundId": 660164
     },
     {
       "key": "violao",
       "variant": 4,
       "file": "/sounds/violao-4.mp3",
-      "title": "Classical Acousitic Guitar, Smart Strings, Scientific Method.m4a",
-      "author": "kate_roselee",
-      "license": "CC0",
-      "source": "https://freesound.org/people/kate_roselee/sounds/550383/",
-      "freesoundId": 550383
+      "title": "acoustic guitar melody fingerstyle #9",
+      "author": "Garuda1982",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/Garuda1982/sounds/659628/",
+      "freesoundId": 659628
     },
     {
       "key": "violao",
       "variant": 5,
       "file": "/sounds/violao-5.mp3",
-      "title": "Melancholic Guitar Tunes",
+      "title": "acoustic guitar melody fingerstyle #14",
+      "author": "Garuda1982",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/Garuda1982/sounds/660514/",
+      "freesoundId": 660514
+    },
+    {
+      "key": "violao",
+      "variant": 6,
+      "file": "/sounds/violao-6.mp3",
+      "title": "acoustic guitar melody fingerstyle #10",
+      "author": "Garuda1982",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/Garuda1982/sounds/659800/",
+      "freesoundId": 659800
+    },
+    {
+      "key": "violao",
+      "variant": 7,
+      "file": "/sounds/violao-7.mp3",
+      "title": "acoustic guitar melody fingerstyle #19",
+      "author": "Garuda1982",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/Garuda1982/sounds/663269/",
+      "freesoundId": 663269
+    },
+    {
+      "key": "violao",
+      "variant": 8,
+      "file": "/sounds/violao-8.mp3",
+      "title": "acoustic guitar melody fingerstyle #18",
+      "author": "Garuda1982",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/Garuda1982/sounds/663146/",
+      "freesoundId": 663146
+    },
+    {
+      "key": "violao",
+      "variant": 9,
+      "file": "/sounds/violao-9.mp3",
+      "title": "acoustic guitar melody fingerstyle #13",
+      "author": "Garuda1982",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/Garuda1982/sounds/660288/",
+      "freesoundId": 660288
+    },
+    {
+      "key": "violao",
+      "variant": 10,
+      "file": "/sounds/violao-10.mp3",
+      "title": "acoustic guitar melody fingerstyle #11",
+      "author": "Garuda1982",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/Garuda1982/sounds/659991/",
+      "freesoundId": 659991
+    },
+    {
+      "key": "violao",
+      "variant": 11,
+      "file": "/sounds/violao-11.mp3",
+      "title": "acoustic guitar melody fingerstyle #2",
+      "author": "Garuda1982",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/Garuda1982/sounds/657433/",
+      "freesoundId": 657433
+    },
+    {
+      "key": "violao",
+      "variant": 12,
+      "file": "/sounds/violao-12.mp3",
+      "title": "Archtop Jazz Guitar Solo - Emotional, Chords and Solo Notes #001",
+      "author": "bassimat",
+      "license": "CC0",
+      "source": "https://freesound.org/people/bassimat/sounds/832732/",
+      "freesoundId": 832732
+    },
+    {
+      "key": "violao",
+      "variant": 13,
+      "file": "/sounds/violao-13.mp3",
+      "title": "Ambient Acoustic",
+      "author": "StrangerEight",
+      "license": "CC BY 4.0",
+      "source": "https://freesound.org/people/StrangerEight/sounds/148695/",
+      "freesoundId": 148695
+    },
+    {
+      "key": "violao",
+      "variant": 14,
+      "file": "/sounds/violao-14.mp3",
+      "title": "Tranquil Guitar Harmony",
       "author": "ViraMiller",
       "license": "CC BY 4.0",
-      "source": "https://freesound.org/people/ViraMiller/sounds/748560/",
-      "freesoundId": 748560
+      "source": "https://freesound.org/people/ViraMiller/sounds/745587/",
+      "freesoundId": 745587
     },
     {
       "key": "piano",
       "variant": 1,
       "file": "/sounds/piano-1.mp3",
-      "title": "Serene Piano Reflections",
-      "author": "Matio888",
+      "title": "Wonderful - Calm Beautiful Piano Loop",
+      "author": "ispeakwaves",
       "license": "CC BY 4.0",
-      "source": "https://freesound.org/people/Matio888/sounds/789314/",
-      "freesoundId": 789314
+      "source": "https://freesound.org/people/ispeakwaves/sounds/439877/",
+      "freesoundId": 439877
     },
     {
       "key": "piano",
       "variant": 2,
       "file": "/sounds/piano-2.mp3",
-      "title": "Calm Piano Theme for Serene Moments",
-      "author": "Gustavo_Alivera",
+      "title": "Soft Piano Loop #1",
+      "author": "ispeakwaves",
       "license": "CC BY 4.0",
-      "source": "https://freesound.org/people/Gustavo_Alivera/sounds/761374/",
-      "freesoundId": 761374
+      "source": "https://freesound.org/people/ispeakwaves/sounds/384934/",
+      "freesoundId": 384934
     },
     {
       "key": "piano",

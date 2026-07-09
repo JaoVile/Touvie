@@ -51,7 +51,7 @@ export async function SoundCredits() {
           </a>{" "}
           sob licenças CC0 / CC-BY. Obrigado aos autores 🙏
         </p>
-        <ul className="grid gap-2">
+        <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {credits.map((c) => (
             <li
               key={`${c.key}-${c.variant ?? 0}`}

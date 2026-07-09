@@ -248,7 +248,7 @@ export default async function ConfigPage(props: {
             )}
 
             {currentTab === "audio" && (
-              <>
+              <div className="grid gap-4 min-w-0" style={{ gridColumn: "1 / -1" }}>
                 <Reveal className="min-w-0" delay={0 * STAGGER_MS}>
                   <FoldCard index={idx()} className="min-w-0">
                     <CardHead icon={AudioLines} title="Som de fundo" />
@@ -262,7 +262,7 @@ export default async function ConfigPage(props: {
                 <div className="min-w-0">
                   <SoundCredits />
                 </div>
-              </>
+              </div>
             )}
 
             {currentTab === "seguranca" && (

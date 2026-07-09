@@ -36,7 +36,8 @@ export type IconName =
   | "leaf"
   | "coffee"
   | "brain"
-  | "book";
+  | "book"
+  | "flame";
 
 export type Soundscape = {
   key: SoundscapeKey;
@@ -102,6 +103,7 @@ export type TextureKey =
   | "ruido-marrom"
   | "floresta"
   | "vento"
+  | "fogueira"
   | "violinos"
   | "violao"
   | "piano";
@@ -127,16 +129,16 @@ export const TEXTURES: Texture[] = [
     name: "Chuva",
     icon: "cloud-rain",
     group: "ambiente",
-    desc: "Chuva suave — alterna entre 3 takes.",
-    variants: 3,
+    desc: "Chuva suave — alterna entre 8 takes curados.",
+    variants: 8,
   },
   {
     key: "mar",
     name: "Ondas do mar",
     icon: "waves",
     group: "ambiente",
-    desc: "Ondas indo e voltando — alterna entre 3 takes.",
-    variants: 3,
+    desc: "Ondas indo e voltando — alterna entre 9 takes.",
+    variants: 9,
   },
   {
     key: "ruido-rosa",
@@ -157,32 +159,40 @@ export const TEXTURES: Texture[] = [
     name: "Floresta",
     icon: "trees",
     group: "ambiente",
-    desc: "Folhas + pássaros distantes — alterna entre 3 takes.",
-    variants: 3,
+    desc: "Folhas + pássaros distantes — alterna entre 10 takes curados.",
+    variants: 10,
   },
   {
     key: "vento",
     name: "Vento",
     icon: "wind",
     group: "ambiente",
-    desc: "Vento contínuo, respirando — alterna entre 3 takes.",
-    variants: 3,
+    desc: "Vento contínuo, respirando — alterna entre 5 takes curados.",
+    variants: 5,
+  },
+  {
+    key: "fogueira",
+    name: "Fogueira",
+    icon: "flame",
+    group: "ambiente",
+    desc: "Crepitar de lenha — alterna entre 7 takes curados.",
+    variants: 7,
   },
   {
     key: "violinos",
     name: "Violinos",
     icon: "music",
     group: "instrumento",
-    desc: "Cordas suaves sustentadas — alterna entre 3 takes.",
-    variants: 3,
+    desc: "Cordas suaves sustentadas — alterna entre 10 takes curados.",
+    variants: 10,
   },
   {
     key: "violao",
     name: "Violão",
     icon: "guitar",
     group: "instrumento",
-    desc: "Dedilhado leve — alterna entre 10 takes curados.",
-    variants: 10,
+    desc: "Dedilhado leve — alterna entre 14 takes curados.",
+    variants: 14,
   },
   {
     key: "piano",
@@ -314,7 +324,7 @@ export const SCENES: Scene[] = [
     freqMode: "calma",
     textures: ["chuva", "piano"],
     freqVolume: 0.4,
-    textureVolume: 0.6,
+    textureVolume: 0.55,
   },
   {
     key: "cafe-foco",
@@ -323,7 +333,7 @@ export const SCENES: Scene[] = [
     desc: "Foco + ruído marrom + violão.",
     freqMode: "foco",
     textures: ["ruido-marrom", "violao"],
-    freqVolume: 0.45,
+    freqVolume: 0.4,
     textureVolume: 0.55,
   },
   {
@@ -333,8 +343,8 @@ export const SCENES: Scene[] = [
     desc: "Foco + ruído rosa + chuva.",
     freqMode: "foco",
     textures: ["ruido-rosa", "chuva"],
-    freqVolume: 0.5,
-    textureVolume: 0.5,
+    freqVolume: 0.4,
+    textureVolume: 0.55,
   },
   {
     key: "floresta-calma",
@@ -344,7 +354,7 @@ export const SCENES: Scene[] = [
     freqMode: "reflexao",
     textures: ["floresta", "vento"],
     freqVolume: 0.4,
-    textureVolume: 0.6,
+    textureVolume: 0.55,
   },
   {
     key: "tarde-leitura",
@@ -363,8 +373,8 @@ export const SCENES: Scene[] = [
     desc: "Calma + violinos + piano.",
     freqMode: "calma",
     textures: ["violinos", "piano"],
-    freqVolume: 0.35,
-    textureVolume: 0.6,
+    freqVolume: 0.4,
+    textureVolume: 0.55,
   },
   {
     key: "diario-noite",
@@ -384,7 +394,7 @@ export const SCENES: Scene[] = [
     freqMode: "calma",
     textures: ["vento", "mar"],
     freqVolume: 0.4,
-    textureVolume: 0.6,
+    textureVolume: 0.55,
   },
   {
     key: "mare-noturna",
@@ -393,7 +403,37 @@ export const SCENES: Scene[] = [
     desc: "Soneca + mar + ruído marrom.",
     freqMode: "soneca",
     textures: ["mar", "ruido-marrom"],
-    freqVolume: 0.35,
+    freqVolume: 0.4,
+    textureVolume: 0.55,
+  },
+  {
+    key: "fogueira-floresta",
+    name: "Fogueira na floresta",
+    icon: "flame",
+    desc: "Reflexão + floresta + fogueira.",
+    freqMode: "reflexao",
+    textures: ["floresta", "fogueira"],
+    freqVolume: 0.4,
+    textureVolume: 0.55,
+  },
+  {
+    key: "lareira-chuva",
+    name: "Lareira e chuva",
+    icon: "flame",
+    desc: "Calma + chuva + fogueira crepitando.",
+    freqMode: "calma",
+    textures: ["chuva", "fogueira"],
+    freqVolume: 0.4,
+    textureVolume: 0.55,
+  },
+  {
+    key: "fogueira-violao",
+    name: "Noite de violão",
+    icon: "flame",
+    desc: "Calma + fogueira + violão.",
+    freqMode: "calma",
+    textures: ["fogueira", "violao"],
+    freqVolume: 0.4,
     textureVolume: 0.55,
   },
   // Cenas que usam JORNADA (a frequência migra sozinha):
@@ -405,7 +445,7 @@ export const SCENES: Scene[] = [
     journey: "aterrissar",
     textures: ["chuva"],
     freqVolume: 0.4,
-    textureVolume: 0.5,
+    textureVolume: 0.55,
   },
   {
     key: "bom-dia",
@@ -424,8 +464,8 @@ export const SCENES: Scene[] = [
     desc: "Jornada Desacelerar + mar.",
     journey: "desacelerar",
     textures: ["mar"],
-    freqVolume: 0.35,
-    textureVolume: 0.5,
+    freqVolume: 0.4,
+    textureVolume: 0.55,
   },
 ];
 

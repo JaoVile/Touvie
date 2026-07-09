@@ -19,6 +19,7 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   LICENSE_LABEL,
   OUT_DIR,
@@ -43,7 +44,7 @@ async function existingHashes(key) {
   return hashes;
 }
 
-function auditionHtml(key, cands) {
+export function auditionHtml(key, cands) {
   const rows = cands
     .map(
       (c) => `
@@ -83,7 +84,7 @@ function auditionHtml(key, cands) {
 </body></html>`;
 }
 
-function escapeHtml(s) {
+export function escapeHtml(s) {
   return String(s).replace(
     /[&<>"]/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
@@ -183,7 +184,10 @@ async function main() {
   );
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+// Só roda o CLI quando invocado direto; importável (auditionHtml) sem efeitos.
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

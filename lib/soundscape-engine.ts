@@ -14,21 +14,39 @@ import {
   TEXTURES,
   type TextureKey,
 } from "./soundscape";
+import { LOUDNESS_GAIN } from "./soundscape-loudness";
 
 /** Teto do ganho real — os volumes 0–1 do usuário multiplicam por isto. */
 const MAX_GAIN = 0.5;
 
 /** Ganho base por textura (ajuste fino de loudness entre arquivos diferentes). */
 const TEXTURE_GAIN: Partial<Record<TextureKey, number>> = {
-  // default 0.8; sobrescreva aqui depois de ouvir, se algum vier alto/baixo demais.
+  // default 0.8 (multiplica o LOUDNESS_GAIN por variante). Ruído contínuo de banda
+  // larga soa mais alto/cansativo que música no MESMO RMS — a normalização por RMS
+  // o subestima. E são camadas "fill" de fundo. Então puxo de propósito: o rosa
+  // (chiado agudo) mais que o marrom (grave, mais macio).
+  "ruido-rosa": 0.4,
+  "ruido-marrom": 0.6,
 };
 
-/** Quanto tempo cada variação toca antes de trocar pra outra (textura com variants). */
-const ROTATE_MS = 42_000;
+/**
+ * Quanto tempo cada variação toca antes de trocar pra outra. Instrumentos seguram
+ * mais (1:30) que ambientes (2:00) — trocar melodia rápido demais cansa; ambiente
+ * pode respirar ainda mais. Clip menor que a janela dá loop (src.loop) pra preencher.
+ */
+const ROTATE_INSTRUMENT_MS = 90_000; // 1:30
+const ROTATE_AMBIENT_MS = 120_000; // 2:00
+const rotateMsOf = (key: TextureKey): number =>
+  TEXTURES.find((t) => t.key === key)?.group === "instrumento"
+    ? ROTATE_INSTRUMENT_MS
+    : ROTATE_AMBIENT_MS;
 /** Crossfade ao trocar de variação (segundos). */
 const CLIP_FADE = 3;
 
 const variantsOf = (key: TextureKey): number => TEXTURES.find((t) => t.key === key)?.variants ?? 1;
+/** Ganho de normalização de loudness do arquivo (id = <key> ou <key>-<variante>). */
+const loudnessOf = (key: TextureKey, variant: number): number =>
+  LOUDNESS_GAIN[variantsOf(key) > 1 ? `${key}-${variant}` : key] ?? 1;
 const pickVariant = (count: number, not?: number): number => {
   if (count <= 1) return 1;
   let v = 1 + Math.floor(Math.random() * count);
@@ -362,7 +380,7 @@ export class SoundEngine {
     this.fadeIn(voice);
     // Com mais de uma variação, agenda a troca periódica (crossfade).
     if (count > 1) {
-      const timer = window.setInterval(() => void this.rotateClip(key), ROTATE_MS);
+      const timer = window.setInterval(() => void this.rotateClip(key), rotateMsOf(key));
       this.texTimers.set(key, timer);
     }
   }
@@ -371,7 +389,7 @@ export class SoundEngine {
   private playClip(key: TextureKey, voice: Voice, variant: number, buf: AudioBuffer): void {
     const ctx = this.ctx!;
     const t = ctx.currentTime;
-    const level = TEXTURE_GAIN[key] ?? 0.8;
+    const level = (TEXTURE_GAIN[key] ?? 0.8) * loudnessOf(key, variant);
     const clip = ctx.createGain();
     clip.gain.setValueAtTime(0.0001, t);
     clip.gain.linearRampToValueAtTime(level, t + CLIP_FADE);
@@ -382,7 +400,7 @@ export class SoundEngine {
     clip.connect(voice.gain);
     // Começa num ponto ALEATÓRIO do buffer (não sempre no 0): com loop ligado,
     // toca offset→fim→início→offset, então cada entrada de uma faixa longa expõe
-    // um trecho de ~42s diferente. É o que transforma um take de 240s (do qual só
+    // um trecho diferente a cada janela (90-120s). É o que transforma um take longo (do qual só
     // se ouviria o começo) em vários trechos distintos ao longo do tempo, sem
     // precisar de mais arquivos. O fade-in de CLIP_FADE mascara a entrada no meio.
     const offset = Math.random() * buf.duration;
