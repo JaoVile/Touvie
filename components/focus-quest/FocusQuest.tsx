@@ -6,9 +6,10 @@ import {
   createQuest,
   discardQuest,
 } from "@/components/focus-quest/actions";
+import { playNotification } from "@/lib/notification-sound";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 /** Sorteia um item estável (só muda quando `seed` muda). */
 function pick<T>(arr: T[], seed: number): T {
@@ -43,8 +44,13 @@ export function FocusQuest({ initial }: { initial: QuestRow | null }) {
 
   const phase = !quest ? "invite" : quest.completed_at ? "done" : "active";
 
+  const prevPhase = useRef(phase);
   useEffect(() => {
+    const was = prevPhase.current;
+    prevPhase.current = phase;
     if (phase !== "done") return;
+    // Sino só na transição ativa→concluída (não no reload de uma quest já feita).
+    if (was !== "done") playNotification();
     const timer = setTimeout(() => setDismissed(true), 8000);
     return () => clearTimeout(timer);
   }, [phase]);

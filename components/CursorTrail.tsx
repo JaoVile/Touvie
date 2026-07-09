@@ -107,6 +107,21 @@ function melodyRootFrom(s: SoundState): number {
   return f ? f.rootHz * 4 : DEFAULT_ROOT;
 }
 
+// Timbre do clique POR atmosfera — muda o "instrumento" pra REMETER ao clima, não
+// só afinar a nota. `octave`/`fifth` = ganho dos harmônicos (brilho/cristalinidade);
+// `release` multiplica a cauda. Sem frequência ativa → sino neutro (comportamento antigo).
+type Timbre = { osc: OscillatorType; octave: number; fifth: number; release: number };
+const TIMBRES: Record<string, Timbre> = {
+  default: { osc: "sine", octave: 0.22, fifth: 0, release: 1 },
+  calma: { osc: "sine", octave: 0.28, fifth: 0.05, release: 1.1 }, // quente, brilho leve
+  foco: { osc: "triangle", octave: 0.34, fifth: 0.16, release: 0.8 }, // cristalino, curto
+  reflexao: { osc: "sine", octave: 0.12, fifth: 0, release: 1.5 }, // suave, cauda longa
+  soneca: { osc: "sine", octave: 0.05, fifth: 0, release: 1.9 }, // aveludado, quase sem brilho
+};
+function melodyTimbreFrom(s: SoundState): Timbre {
+  return TIMBRES[s.freqMode ?? "default"] ?? TIMBRES.default;
+}
+
 // Notas especiais na fita: a DUPLA é o "♫" (duas notinhas numa só, barra em
 // cima — maior que a normal pra ler de longe); a CLAVE DE SOL é a da própria
 // marca (path real #6 de public/brand/touvie-mark.svg via Path2D, coordenadas
@@ -368,8 +383,11 @@ export function CursorTrail() {
     // som que está tocando, então cada clique soa consonante com o pad. Atualiza
     // ao vivo quando o /config muda o som (mesmo evento do SoundscapeLayer).
     let melodyRoot = melodyRootFrom(readSoundState());
+    let melodyTimbre = melodyTimbreFrom(readSoundState());
     const onSound = (e: Event) => {
-      melodyRoot = melodyRootFrom((e as CustomEvent<SoundState>).detail);
+      const s = (e as CustomEvent<SoundState>).detail;
+      melodyRoot = melodyRootFrom(s);
+      melodyTimbre = melodyTimbreFrom(s);
     };
     window.addEventListener(SOUND_EVENT, onSound);
     const noteFreq = (idx: number) => melodyRoot * 2 ** (MAJOR_STEPS[idx] / 12);
@@ -408,7 +426,8 @@ export function CursorTrail() {
         if (audioCtx.state === "suspended") void audioCtx.resume();
         const ac = audioCtx;
         const t0 = ac.currentTime;
-        const dur = CONFIG.attack + CONFIG.release;
+        const timbre = melodyTimbre; // timbre da atmosfera ativa no momento do clique
+        const dur = CONFIG.attack + CONFIG.release * timbre.release;
 
         const gain = ac.createGain();
         gain.connect(ac.destination);
@@ -416,10 +435,11 @@ export function CursorTrail() {
         gain.gain.linearRampToValueAtTime(vol, t0 + CONFIG.attack);
         gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
 
-        // Fundamental + a soft octave above for a gentle, bell-ish colour.
+        // Fundamental + harmônicos conforme o timbre da atmosfera (octave = brilho,
+        // fifth = cristalino). Waveform também segue o timbre.
         const voice = (f: number, g: number) => {
           const osc = ac.createOscillator();
-          osc.type = "sine";
+          osc.type = timbre.osc;
           osc.frequency.value = f;
           const og = ac.createGain();
           og.gain.value = g;
@@ -429,7 +449,8 @@ export function CursorTrail() {
           osc.stop(t0 + dur + 0.05);
         };
         voice(freq, 1);
-        voice(freq * 2, 0.22);
+        voice(freq * 2, timbre.octave);
+        if (timbre.fifth) voice(freq * 3, timbre.fifth);
       } catch {
         /* audio unavailable — fail silently */
       }
