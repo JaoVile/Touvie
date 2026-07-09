@@ -42,17 +42,13 @@ const rotateMsOf = (key: TextureKey): number =>
     : ROTATE_AMBIENT_MS;
 /** Crossfade ao trocar de variação (segundos). */
 const CLIP_FADE = 3;
+/** Duração máxima de um preview (créditos) — o suficiente pra julgar o take. */
+const PREVIEW_MAX_S = 15;
 
 const variantsOf = (key: TextureKey): number => TEXTURES.find((t) => t.key === key)?.variants ?? 1;
 /** Ganho de normalização de loudness do arquivo (id = <key> ou <key>-<variante>). */
 const loudnessOf = (key: TextureKey, variant: number): number =>
   LOUDNESS_GAIN[variantsOf(key) > 1 ? `${key}-${variant}` : key] ?? 1;
-const pickVariant = (count: number, not?: number): number => {
-  if (count <= 1) return 1;
-  let v = 1 + Math.floor(Math.random() * count);
-  while (v === not) v = 1 + Math.floor(Math.random() * count);
-  return v;
-};
 
 type WebkitWindow = Window & { webkitAudioContext?: typeof AudioContext };
 type Voice = { gain: GainNode; nodes: AudioNode[] };
@@ -86,6 +82,15 @@ export class SoundEngine {
     { gain: GainNode; src: AudioBufferSourceNode; variant: number }
   >();
   private texTimers = new Map<TextureKey, number>();
+  // Variantes que o usuário desligou nos créditos (ids "<key>-<n>") — fora do shuffle.
+  private disabled = new Set<string>();
+  // Preview ativo (toca 1 take isolado a partir dos créditos), pra poder interromper.
+  private previewClip: {
+    src: AudioBufferSourceNode;
+    gain: GainNode;
+    bus: GainNode | null;
+    busVol: number;
+  } | null = null;
 
   // ───────────────────────── infra ─────────────────────────
 
@@ -159,6 +164,7 @@ export class SoundEngine {
 
   stopAll(): void {
     this.clearJourney();
+    this.stopPreview();
     if (this.freqVoice) this.stopVoice(this.freqVoice);
     this.freqVoice = null;
     this.freqMode = null;
@@ -367,9 +373,95 @@ export class SoundEngine {
     }
   }
 
+  /** Sorteia uma variante HABILITADA da textura (ignora as desligadas nos créditos). */
+  private pickEnabledVariant(key: TextureKey, count: number, not?: number): number {
+    if (count <= 1) return 1;
+    const enabled: number[] = [];
+    for (let v = 1; v <= count; v++) {
+      if (!this.disabled.has(`${key}-${v}`)) enabled.push(v);
+    }
+    // Segurança: se TODAS estiverem desligadas (não deve, por causa do impede-a-última),
+    // ignora o filtro pra nunca ficar mudo.
+    const pool = enabled.length ? enabled : Array.from({ length: count }, (_, i) => i + 1);
+    if (pool.length === 1) return pool[0];
+    let v = pool[Math.floor(Math.random() * pool.length)];
+    while (v === not) v = pool[Math.floor(Math.random() * pool.length)];
+    return v;
+  }
+
+  /** Atualiza as variantes desligadas e reconcilia a rotação ao vivo. */
+  setDisabled(ids: Iterable<string>): void {
+    this.disabled = new Set(ids);
+    // Se a variante tocando agora de alguma textura virou desligada, troca na hora.
+    for (const [key, clip] of this.texClips) {
+      if (this.disabled.has(`${key}-${clip.variant}`)) void this.rotateClip(key);
+    }
+  }
+
+  private stopPreview(): void {
+    const p = this.previewClip;
+    this.previewClip = null;
+    if (!p) return;
+    try {
+      p.src.stop();
+    } catch {
+      /* já parado */
+    }
+    try {
+      p.gain.disconnect();
+    } catch {
+      /* já desconectado */
+    }
+    if (p.bus && this.ctx) {
+      const t = this.ctx.currentTime;
+      p.bus.gain.cancelScheduledValues(t);
+      p.bus.gain.linearRampToValueAtTime(p.busVol, t + 0.25);
+    }
+  }
+
+  /** Toca um take isolado (a partir dos créditos) no loudness real, com duck na mix. */
+  async preview(key: TextureKey, variant?: number): Promise<void> {
+    try {
+      const ctx = this.ensure();
+      if (ctx.state === "suspended") await ctx.resume();
+      const v = variant ?? 1;
+      const buf = await this.loadBuffer(key, variantsOf(key) > 1 ? v : undefined);
+      if (!buf || !this.master) return;
+      this.stopPreview(); // interrompe um preview anterior
+      const t = ctx.currentTime;
+      const level = (TEXTURE_GAIN[key] ?? 0.8) * loudnessOf(key, v);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(level, t);
+      g.connect(this.master);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(g);
+      // duck da mix enquanto o preview toca, se ela estiver audível
+      const bus = this.texBus;
+      const duck = !!bus && bus.gain.value > 0.01;
+      const busVol = bus?.gain.value ?? 0;
+      if (bus && duck) {
+        bus.gain.cancelScheduledValues(t);
+        bus.gain.setValueAtTime(busVol, t);
+        bus.gain.linearRampToValueAtTime(busVol * 0.3, t + 0.12);
+      }
+      const dur = Math.min(buf.duration, PREVIEW_MAX_S);
+      g.gain.setValueAtTime(level, t + Math.max(0, dur - 0.3));
+      g.gain.linearRampToValueAtTime(0.0001, t + dur); // fade out no fim
+      src.start(t);
+      src.stop(t + dur + 0.05);
+      this.previewClip = { src, gain: g, bus: duck ? bus : null, busVol };
+      src.onended = () => {
+        if (this.previewClip?.src === src) this.stopPreview();
+      };
+    } catch {
+      /* áudio indisponível — silêncio */
+    }
+  }
+
   private async addTexture(key: TextureKey): Promise<void> {
     const count = variantsOf(key);
-    const first = pickVariant(count); // 1 se sem variações
+    const first = this.pickEnabledVariant(key, count); // 1 se sem variações
     const buf = await this.loadBuffer(key, count > 1 ? first : undefined);
     this.loading.delete(key);
     // Pode ter sido desligada enquanto carregava.
@@ -439,7 +531,7 @@ export class SoundEngine {
     if (!voice || !this.desired.has(key)) return;
     const count = variantsOf(key);
     const cur = this.texClips.get(key)?.variant;
-    const next = pickVariant(count, cur);
+    const next = this.pickEnabledVariant(key, count, cur);
     const buf = await this.loadBuffer(key, next);
     // Pode ter sido desligada enquanto carregava o próximo take.
     if (!buf || !this.texVoices.has(key) || !this.desired.has(key)) return;

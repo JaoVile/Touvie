@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  DISABLED_EVENT,
+  PREVIEW_EVENT,
+  type PreviewDetail,
+  readDisabled,
+} from "@/lib/sound-disabled";
 import { SOUND_EVENT, type SoundState, readSoundState } from "@/lib/soundscape";
 import { SoundEngine } from "@/lib/soundscape-engine";
 import { useEffect, useRef } from "react";
@@ -41,10 +47,22 @@ export function SoundscapeLayer() {
     const onEvent = (e: Event) => apply((e as CustomEvent<SoundState>).detail);
     window.addEventListener(SOUND_EVENT, onEvent);
 
+    // Curadoria de variantes: alimenta o engine com as desligadas + reage aos previews.
+    const onDisabled = () => engine.setDisabled(readDisabled());
+    const onPreview = (e: Event) => {
+      const d = (e as CustomEvent<PreviewDetail>).detail;
+      void engine.preview(d.key, d.variant);
+    };
+    window.addEventListener(DISABLED_EVENT, onDisabled);
+    window.addEventListener(PREVIEW_EVENT, onPreview);
+    engine.setDisabled(readDisabled());
+
     apply(readSoundState());
 
     return () => {
       window.removeEventListener(SOUND_EVENT, onEvent);
+      window.removeEventListener(DISABLED_EVENT, onDisabled);
+      window.removeEventListener(PREVIEW_EVENT, onPreview);
       engine.stopAll();
     };
   }, []);
