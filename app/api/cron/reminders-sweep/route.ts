@@ -1,4 +1,4 @@
-import { todayBRT } from "@/lib/datetime";
+import { todayBRT, todayBRTISO } from "@/lib/datetime";
 import { logEvent } from "@/lib/logger";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { escapeHtml, sendMessage } from "@/lib/telegram";
@@ -14,8 +14,9 @@ type Row = {
   id: string;
   user_id: string;
   message: string;
-  schedule_type: "daily" | "weekly" | "interval";
+  schedule_type: "daily" | "weekly" | "interval" | "once";
   at_time: string | null;
+  on_date: string | null;
   days: number[] | null;
   every_hours: number | null;
   window_from: string | null;
@@ -32,6 +33,12 @@ function toMin(hhmm: string | null): number | null {
 
 /** Minutos-do-dia em que o lembrete deveria disparar hoje (weekday BRT). */
 function targetsToday(r: Row, weekday: number): number[] {
+  if (r.schedule_type === "once") {
+    // Dispara só no dia marcado (BRT). Depois de disparar, o sweep desativa (active=false).
+    if (r.on_date !== todayBRTISO()) return [];
+    const t = toMin(r.at_time);
+    return t === null ? [] : [t];
+  }
   if (r.schedule_type === "daily") {
     const t = toMin(r.at_time);
     return t === null ? [] : [t];
@@ -90,7 +97,7 @@ export async function GET(req: Request) {
   const { data, error } = await admin
     .from("user_reminders")
     .select(
-      "id, user_id, message, schedule_type, at_time, days, every_hours, window_from, window_to, last_fired_at",
+      "id, user_id, message, schedule_type, at_time, on_date, days, every_hours, window_from, window_to, last_fired_at",
     )
     .eq("active", true);
 
@@ -128,9 +135,13 @@ export async function GET(req: Request) {
     if (!cid) continue;
     try {
       await sendMessage(cid, `🔔 <b>${escapeHtml(r.message)}</b>`);
+      // 'once' é uma vez só: desativa depois de disparar (não repete nunca mais).
       await admin
         .from("user_reminders")
-        .update({ last_fired_at: new Date().toISOString() })
+        .update({
+          last_fired_at: new Date().toISOString(),
+          ...(r.schedule_type === "once" ? { active: false } : {}),
+        })
         .eq("id", r.id);
       sent++;
     } catch (err) {

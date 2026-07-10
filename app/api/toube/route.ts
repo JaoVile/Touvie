@@ -40,7 +40,8 @@ export async function POST(req: Request) {
   // Metas + tarefas ativas da pessoa — o Toube usa pra orientar E pra editar/concluir/
   // deletar (por isso mando o id de cada uma). Vão junto ao modelo (Z.ai); limitado e
   // com descrição truncada pra segurar tokens e dado enviado.
-  const [{ data: goals }, { data: tasks }] = await Promise.all([
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  const [{ data: goals }, { data: tasks }, { data: cats }] = await Promise.all([
     supabase
       .from("goals")
       .select("id, title, description, target_date")
@@ -55,6 +56,12 @@ export async function POST(req: Request) {
       .eq("done", false)
       .order("created_at")
       .limit(30),
+    supabase
+      .from("finance_categories")
+      .select("id, name, kind")
+      .eq("user_id", user.id)
+      .eq("archived", false)
+      .limit(40),
   ]);
   const metasBlock =
     goals && goals.length > 0
@@ -72,7 +79,13 @@ export async function POST(req: Request) {
           .map((t) => `- [id ${t.id}] "${t.title}"${t.due_date ? ` (até ${t.due_date})` : ""}`)
           .join("\n")}`
       : "";
-  const metasContext = metasBlock + tasksBlock;
+  const catsBlock =
+    cats && cats.length > 0
+      ? `\n\nCATEGORIAS DE FINANÇAS (mande o id no lancar_transacao quando a fala casar):\n${cats
+          .map((c) => `- [id ${c.id}] "${c.name}" (${c.kind === "income" ? "receita" : "gasto"})`)
+          .join("\n")}`
+      : "";
+  const metasContext = `Hoje é ${today}.\n\n${metasBlock}${tasksBlock}${catsBlock}`;
 
   let result: ToubeResult;
   try {

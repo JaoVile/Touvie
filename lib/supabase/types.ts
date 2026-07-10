@@ -232,8 +232,9 @@ export type Database = {
         user_id: string;
         area: string;
         message: string;
-        schedule_type: "daily" | "weekly" | "interval";
+        schedule_type: "daily" | "weekly" | "interval" | "once";
         at_time: string | null;
+        on_date: string | null;
         days: number[];
         every_hours: number | null;
         window_from: string | null;

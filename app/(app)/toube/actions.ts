@@ -1,5 +1,6 @@
 "use server";
 
+import { saveTransaction } from "@/app/(app)/financas/actions";
 import {
   deleteGoal,
   deleteTask,
@@ -8,8 +9,12 @@ import {
   setGoalStatus,
   toggleTaskDone,
 } from "@/app/(app)/metas/actions";
+import { saveReminder } from "@/app/(app)/notificacoes/actions";
+import { saveDailyBlock } from "@/app/(app)/rotina/actions";
 import { createClient } from "@/lib/supabase/server";
 import type { ToubeAction } from "@/lib/toube";
+
+const todayBRT = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 
 const isUuid = (v: unknown) => /^[0-9a-fA-F-]{36}$/.test(String(v ?? ""));
 const str = (v: unknown) => (v == null ? "" : String(v));
@@ -24,7 +29,7 @@ const str = (v: unknown) => (v == null ? "" : String(v));
 export async function executeToubeAction(
   action: ToubeAction,
   args: Record<string, unknown>,
-): Promise<{ error?: string; ok?: boolean }> {
+): Promise<{ error?: string; ok?: boolean; note?: string }> {
   const id = str(args.id);
 
   switch (action) {
@@ -86,6 +91,34 @@ export async function executeToubeAction(
       if (!isUuid(id)) return { error: "id inválido." };
       await deleteTask(id);
       return { ok: true };
+
+    case "lancar_transacao": {
+      const fd = new FormData();
+      fd.set("kind", str(args.kind) === "income" ? "income" : "expense");
+      fd.set("amount", str(args.valor));
+      fd.set("occurred_on", str(args.data) || todayBRT());
+      if (args.descricao != null) fd.set("description", str(args.descricao));
+      if (isUuid(args.category_id)) fd.set("category_id", str(args.category_id));
+      const res = await saveTransaction(fd);
+      return res?.error ? { error: res.error } : { ok: true };
+    }
+
+    case "adicionar_bloco_rotina": {
+      const fd = new FormData();
+      fd.set("time_slot", str(args.hora));
+      fd.set("title", str(args.titulo));
+      const res = await saveDailyBlock(fd);
+      return res?.error ? { error: res.error } : { ok: true };
+    }
+
+    case "criar_lembrete": {
+      const fd = new FormData();
+      fd.set("at_time", str(args.hora));
+      fd.set("message", str(args.mensagem));
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str(args.data))) fd.set("on_date", str(args.data));
+      const res = await saveReminder(fd);
+      return res?.error ? { error: res.error } : { ok: true, note: res.warning };
+    }
 
     default:
       return { error: "Ação desconhecida." };

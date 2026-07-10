@@ -10,6 +10,7 @@ type Proposal = {
   args: Record<string, unknown>;
   status: "pending" | "running" | "done" | "cancelled" | "error";
   error?: string;
+  note?: string;
 };
 
 export type Message = {
@@ -37,7 +38,29 @@ function proposalLabel(p: Proposal): string {
       return `Concluir tarefa${alvo}`;
     case "deletar_tarefa":
       return `Apagar tarefa${alvo}`;
+    case "lancar_transacao": {
+      const tipo = p.args.kind === "income" ? "Receita" : "Gasto";
+      const desc = p.args.descricao ? ` · ${p.args.descricao}` : "";
+      return `${tipo} de R$ ${String(p.args.valor ?? "")}${desc}`;
+    }
+    case "adicionar_bloco_rotina":
+      return `Rotina: "${String(p.args.titulo ?? "")}" às ${String(p.args.hora ?? "")}`;
+    case "criar_lembrete": {
+      const msg = String(p.args.mensagem ?? "");
+      const hora = String(p.args.hora ?? "");
+      return p.args.data
+        ? `Lembrete · "${msg}" em ${String(p.args.data)} às ${hora}`
+        : `Lembrete diário · "${msg}" todo dia às ${hora}`;
+    }
   }
+}
+
+// Onde a ação aterrissa — pra confirmação certa depois de executar.
+function doneModule(action: ToubeAction): string {
+  if (action === "lancar_transacao") return "Finanças";
+  if (action === "adicionar_bloco_rotina") return "Rotina";
+  if (action === "criar_lembrete") return "Notificações";
+  return "Metas";
 }
 
 export function ToubeChat({ initial }: { initial: Message[] }) {
@@ -98,7 +121,11 @@ export function ToubeChat({ initial }: { initial: Message[] }) {
     patchProposal(mi, pi, { status: "running" });
     try {
       const res = await executeToubeAction(p.action, p.args);
-      patchProposal(mi, pi, res.error ? { status: "error", error: res.error } : { status: "done" });
+      patchProposal(
+        mi,
+        pi,
+        res.error ? { status: "error", error: res.error } : { status: "done", note: res.note },
+      );
     } catch {
       patchProposal(mi, pi, { status: "error", error: "Falha ao executar." });
     }
@@ -198,7 +225,7 @@ export function ToubeChat({ initial }: { initial: Message[] }) {
                       }}
                     >
                       {p.status === "done"
-                        ? "✓ Feito! Já está no módulo Metas."
+                        ? `✓ Feito! Já está no módulo ${doneModule(p.action)}.${p.note ? ` ${p.note}` : ""}`
                         : p.status === "cancelled"
                           ? "Cancelado."
                           : `Erro: ${p.error ?? "não deu"}`}

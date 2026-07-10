@@ -25,7 +25,12 @@ CONDUTAS (como você orienta):
 - Celebre progresso, mas seja honesto: não puxe saco nem invente números.
 - Se ela não tem metas, incentive a criar uma no módulo Metas.
 
-O QUE VOCÊ FAZ (no módulo Metas): você mesmo CRIA, EDITA, CONCLUI e DELETA metas e tarefas — chamando a ferramenta (criar_meta, editar_meta, concluir_meta, deletar_meta, criar_tarefa, concluir_tarefa, deletar_tarefa). Pra editar/concluir/deletar, pegue o "id" da lista do contexto e mande junto (no concluir/deletar mande também o "titulo", só pra exibir). Pode propor VÁRIAS ações de uma vez. A pessoa CONFIRMA cada uma no app antes de executar — então proponha sem medo, INCLUSIVE apagar.
+O QUE VOCÊ FAZ (pelas ferramentas, com confirmação):
+- Metas: CRIAR, EDITAR, CONCLUIR e DELETAR metas e tarefas (use o "id" da lista do contexto pra editar/concluir/deletar; mande "titulo" no concluir/deletar só pra exibir).
+- Finanças: LANÇAR gasto (kind=expense) ou receita (kind=income) com lancar_transacao — valor em REAIS. Se a fala casar com uma das categorias do contexto, mande o category_id dela.
+- Rotina: ADICIONAR bloco do dia com adicionar_bloco_rotina (hora HH:MM + título).
+- Notificações: CRIAR lembrete/alerta com criar_lembrete (hora HH:MM + mensagem) — chega pelo Telegram. Use quando pedirem "me lembra", "cria um alerta", "me notifica" num horário. Se for pra UMA VEZ SÓ (ex.: "hoje às 17:34", "amanhã às 9"), mande também data=YYYY-MM-DD (calcule a partir do "Hoje é" do contexto). Se for recorrente ("todo dia", "sempre"), NÃO mande data — vira diário.
+Pode propor VÁRIAS ações de uma vez. A pessoa CONFIRMA cada uma no app antes de executar — então proponha sem medo, INCLUSIVE apagar.
 
 REGRAS ABSOLUTAS (não quebre nenhuma):
 1. Você CONSEGUE apagar, editar e concluir meta/tarefa pela conversa. NUNCA diga "não consigo remover/editar pela conversa" nem "abra o módulo Metas pra fazer isso" — isso é MENTIRA, você faz sozinho pela ferramenta.
@@ -33,7 +38,7 @@ REGRAS ABSOLUTAS (não quebre nenhuma):
 3. NUNCA peça confirmação em texto — o app já mostra o botão de confirmar. Só chame a ferramenta e deixe a pessoa confirmar lá.
 4. Só chame ferramenta quando a pessoa quiser agir; pra conversa normal, responda em texto.
 
-Pra gasto, treino, refeição, diário etc. (que você ainda NÃO faz), aí sim oriente a abrir o módulo certo. Use SOMENTE os dados passados abaixo; nunca invente metas, prazos, ids ou números.`;
+Pra treino, dieta/refeição, notas, diário etc. (que você ainda NÃO faz), aí sim oriente a abrir o módulo certo. Use SOMENTE os dados passados abaixo; nunca invente metas, categorias, ids, prazos ou números.`;
 
 export type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
@@ -45,7 +50,10 @@ export type ToubeAction =
   | "deletar_meta"
   | "criar_tarefa"
   | "concluir_tarefa"
-  | "deletar_tarefa";
+  | "deletar_tarefa"
+  | "lancar_transacao"
+  | "adicionar_bloco_rotina"
+  | "criar_lembrete";
 
 /** Ações destrutivas — o card pede confirmação reforçada (vermelho). */
 export const DESTRUCTIVE_ACTIONS: ToubeAction[] = ["deletar_meta", "deletar_tarefa"];
@@ -65,6 +73,9 @@ const ACTION_NAMES: ToubeAction[] = [
   "criar_tarefa",
   "concluir_tarefa",
   "deletar_tarefa",
+  "lancar_transacao",
+  "adicionar_bloco_rotina",
+  "criar_lembrete",
 ];
 
 const idParam = { type: "string", description: "id da meta/tarefa (copiado da lista no contexto)" };
@@ -169,6 +180,74 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "lancar_transacao",
+      description:
+        "Lança um GASTO (kind=expense) ou uma RECEITA/entrada (kind=income) no módulo Finanças. Valor em REAIS.",
+      parameters: {
+        type: "object",
+        properties: {
+          kind: {
+            type: "string",
+            enum: ["expense", "income"],
+            description: "expense = gasto; income = receita/entrada de dinheiro",
+          },
+          valor: {
+            type: "number",
+            description: "Valor em REAIS (ex.: 50 ou 50.90) — nunca em centavos",
+          },
+          descricao: { type: "string", description: "Descrição curta (ex.: 'mercado')" },
+          data: { type: "string", description: "Data YYYY-MM-DD (opcional; padrão hoje)" },
+          category_id: {
+            type: "string",
+            description: "id da categoria da lista do contexto que MELHOR casa (opcional)",
+          },
+        },
+        required: ["kind", "valor"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "adicionar_bloco_rotina",
+      description: "Adiciona um bloco de hábito/tarefa no dia (módulo Rotina).",
+      parameters: {
+        type: "object",
+        properties: {
+          hora: { type: "string", description: "Horário HH:MM (ex.: 08:00)" },
+          titulo: { type: "string", description: "O que é o bloco (ex.: 'Academia')" },
+        },
+        required: ["hora", "titulo"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "criar_lembrete",
+      description:
+        "Cria um LEMBRETE/ALERTA/NOTIFICAÇÃO que chega pelo Telegram todo dia no mesmo horário (módulo Notificações). Use quando a pessoa pedir pra ser lembrada/avisada/notificada num horário.",
+      parameters: {
+        type: "object",
+        properties: {
+          hora: { type: "string", description: "Horário HH:MM (ex.: 17:34)" },
+          mensagem: {
+            type: "string",
+            description: "O texto do lembrete (ex.: 'Beber água', 'Revisar metas')",
+          },
+          data: {
+            type: "string",
+            description:
+              "Data YYYY-MM-DD SÓ pra lembrete de UMA VEZ (ex.: 'hoje às 17:34', 'amanhã às 9'). Se for TODO DIA, NÃO mande data.",
+          },
+        },
+        required: ["hora", "mensagem"],
+      },
+    },
+  },
 ];
 
 /** Frase humana de uma proposta (fallback quando o modelo não manda texto). */
@@ -189,6 +268,14 @@ function proposalText(p: ToubeProposal): string {
       return `concluir a tarefa "${t}"`;
     case "deletar_tarefa":
       return `apagar a tarefa "${t}"`;
+    case "lancar_transacao":
+      return `lançar ${p.args.kind === "income" ? "a receita" : "o gasto"} de R$ ${p.args.valor}${p.args.descricao ? ` (${p.args.descricao})` : ""}`;
+    case "adicionar_bloco_rotina":
+      return `adicionar "${p.args.titulo}" na rotina às ${p.args.hora}`;
+    case "criar_lembrete":
+      return p.args.data
+        ? `criar um lembrete: "${p.args.mensagem}" em ${p.args.data} às ${p.args.hora}`
+        : `criar um lembrete diário: "${p.args.mensagem}" todo dia às ${p.args.hora}`;
   }
 }
 
