@@ -66,6 +66,7 @@ Acessa http://localhost:3007, faz login. No notebook, marca **"Confiar neste dis
    - `CRON_SECRET`
    - `TELEGRAM_BOT_TOKEN` (do @BotFather)
    - `TELEGRAM_WEBHOOK_SECRET` (qualquer string aleatória)
+   - `GROQ_API_KEY` — chave do Groq (free) usada pelo **Toube Planos** pra montar treino; sem ela, a aba Planos não responde
 4. Deploy. Os dois crons em `vercel.json` são ativados automaticamente (plano Hobby permite 2).
 5. Abre `/config`, clica em "Conectar bot" e manda `/start` no bot.
 
