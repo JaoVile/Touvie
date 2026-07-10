@@ -37,25 +37,42 @@ export async function POST(req: Request) {
     .limit(HISTORY_WINDOW);
   const history = ((rows ?? []) as ChatMessage[]).reverse();
 
-  // Metas ativas da pessoa — o Toube usa pra orientar. Vão junto ao modelo (Z.ai);
-  // limitado a 20 metas e descrição truncada pra segurar tokens e dado enviado.
-  const { data: goals } = await supabase
-    .from("goals")
-    .select("title, description, target_date")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .order("sort_order")
-    .limit(20);
-  const metasContext =
+  // Metas + tarefas ativas da pessoa — o Toube usa pra orientar E pra editar/concluir/
+  // deletar (por isso mando o id de cada uma). Vão junto ao modelo (Z.ai); limitado e
+  // com descrição truncada pra segurar tokens e dado enviado.
+  const [{ data: goals }, { data: tasks }] = await Promise.all([
+    supabase
+      .from("goals")
+      .select("id, title, description, target_date")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .order("sort_order")
+      .limit(20),
+    supabase
+      .from("tasks")
+      .select("id, title, due_date")
+      .eq("user_id", user.id)
+      .eq("done", false)
+      .order("created_at")
+      .limit(30),
+  ]);
+  const metasBlock =
     goals && goals.length > 0
-      ? `METAS ATIVAS DA PESSOA:\n${goals
+      ? `METAS ATIVAS (use o id pra editar/concluir/deletar):\n${goals
           .map((g) => {
             const prazo = g.target_date ? ` (prazo: ${g.target_date})` : "";
             const desc = g.description ? ` — ${g.description.slice(0, 160)}` : "";
-            return `- ${g.title}${prazo}${desc}`;
+            return `- [id ${g.id}] "${g.title}"${prazo}${desc}`;
           })
           .join("\n")}`
-      : "A pessoa ainda não tem metas ativas cadastradas.";
+      : "A pessoa ainda não tem metas ativas.";
+  const tasksBlock =
+    tasks && tasks.length > 0
+      ? `\n\nTAREFAS ABERTAS (use o id pra concluir/deletar):\n${tasks
+          .map((t) => `- [id ${t.id}] "${t.title}"${t.due_date ? ` (até ${t.due_date})` : ""}`)
+          .join("\n")}`
+      : "";
+  const metasContext = metasBlock + tasksBlock;
 
   let result: ToubeResult;
   try {
@@ -73,8 +90,8 @@ export async function POST(req: Request) {
     .insert({ user_id: user.id, role: "assistant", content: result.text });
 
   return NextResponse.json(
-    result.kind === "proposal"
-      ? { reply: result.text, proposal: { action: result.action, args: result.args } }
+    result.kind === "proposals"
+      ? { reply: result.text, proposals: result.proposals }
       : { reply: result.text },
   );
 }
