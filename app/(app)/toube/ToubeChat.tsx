@@ -52,6 +52,12 @@ function proposalLabel(p: Proposal): string {
         ? `Lembrete · "${msg}" em ${String(p.args.data)} às ${hora}`
         : `Lembrete diário · "${msg}" todo dia às ${hora}`;
     }
+    case "criar_nota":
+      return `Nota · "${String(p.args.titulo ?? "")}"`;
+    case "registrar_medida":
+      return `Medida · ${p.args.peso ? `${String(p.args.peso)}kg` : "corpo"}${p.args.cintura_cm ? ` · cintura ${String(p.args.cintura_cm)}cm` : ""}`;
+    case "logar_serie":
+      return `Série · ${String(p.args.exercicio ?? "exercício")} ${String(p.args.carga ?? "")}kg × ${String(p.args.reps ?? "")}${p.args.rpe ? ` @RPE${String(p.args.rpe)}` : ""}`;
   }
 }
 
@@ -60,6 +66,9 @@ function doneModule(action: ToubeAction): string {
   if (action === "lancar_transacao") return "Finanças";
   if (action === "adicionar_bloco_rotina") return "Rotina";
   if (action === "criar_lembrete") return "Notificações";
+  if (action === "criar_nota") return "Notas";
+  if (action === "registrar_medida") return "Dieta";
+  if (action === "logar_serie") return "Treino";
   return "Metas";
 }
 

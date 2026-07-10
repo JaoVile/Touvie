@@ -41,28 +41,31 @@ export async function POST(req: Request) {
   // deletar (por isso mando o id de cada uma). Vão junto ao modelo (Z.ai); limitado e
   // com descrição truncada pra segurar tokens e dado enviado.
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
-  const [{ data: goals }, { data: tasks }, { data: cats }] = await Promise.all([
-    supabase
-      .from("goals")
-      .select("id, title, description, target_date")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .order("sort_order")
-      .limit(20),
-    supabase
-      .from("tasks")
-      .select("id, title, due_date")
-      .eq("user_id", user.id)
-      .eq("done", false)
-      .order("created_at")
-      .limit(30),
-    supabase
-      .from("finance_categories")
-      .select("id, name, kind")
-      .eq("user_id", user.id)
-      .eq("archived", false)
-      .limit(40),
-  ]);
+  const [{ data: goals }, { data: tasks }, { data: cats }, { data: exercises }] = await Promise.all(
+    [
+      supabase
+        .from("goals")
+        .select("id, title, description, target_date")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .order("sort_order")
+        .limit(20),
+      supabase
+        .from("tasks")
+        .select("id, title, due_date")
+        .eq("user_id", user.id)
+        .eq("done", false)
+        .order("created_at")
+        .limit(30),
+      supabase
+        .from("finance_categories")
+        .select("id, name, kind")
+        .eq("user_id", user.id)
+        .eq("archived", false)
+        .limit(40),
+      supabase.from("exercises").select("id, name, muscle_group").eq("user_id", user.id).limit(60),
+    ],
+  );
   const metasBlock =
     goals && goals.length > 0
       ? `METAS ATIVAS (use o id pra editar/concluir/deletar):\n${goals
@@ -85,7 +88,13 @@ export async function POST(req: Request) {
           .map((c) => `- [id ${c.id}] "${c.name}" (${c.kind === "income" ? "receita" : "gasto"})`)
           .join("\n")}`
       : "";
-  const metasContext = `Hoje é ${today}.\n\n${metasBlock}${tasksBlock}${catsBlock}`;
+  const exercisesBlock =
+    exercises && exercises.length > 0
+      ? `\n\nEXERCÍCIOS DO CATÁLOGO (use o id no logar_serie; só existe o que está aqui):\n${exercises
+          .map((e) => `- [id ${e.id}] "${e.name}"${e.muscle_group ? ` (${e.muscle_group})` : ""}`)
+          .join("\n")}`
+      : "";
+  const metasContext = `Hoje é ${today}.\n\n${metasBlock}${tasksBlock}${catsBlock}${exercisesBlock}`;
 
   let result: ToubeResult;
   try {
@@ -95,6 +104,20 @@ export async function POST(req: Request) {
       { error: e instanceof Error ? e.message : "Erro ao falar com o Toube." },
       { status: 502 },
     );
+  }
+
+  // logar_serie: o modelo às vezes casa o exercício ERRADO (chumba um id do catálogo
+  // pra algo que a pessoa nem citou). O id é a fonte da verdade — reescrevo o nome
+  // exibido com o nome REAL do id pra confirmação ser honesta (a pessoa cancela se
+  // não for o que quis). Se o id nem está no catálogo, marco pra barrar no execute.
+  if (result.kind === "proposals" && exercises) {
+    const exName = new Map(exercises.map((e) => [e.id, e.name]));
+    for (const p of result.proposals) {
+      if (p.action !== "logar_serie") continue;
+      const real = exName.get(String(p.args.exercise_id));
+      p.args.exercicio = real ?? "⚠️ exercício fora do catálogo";
+      if (!real) p.args.exercise_id = "";
+    }
   }
 
   // Grava o texto da resposta (a proposta em si é efêmera — a pessoa confirma no ato).

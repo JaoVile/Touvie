@@ -334,6 +334,38 @@ export async function saveLog(input: {
   return { ok: true, id: data.id };
 }
 
+/**
+ * Loga UMA série pelo Toube: reusa/abre a sessão de hoje, calcula o próximo
+ * número de série pra esse exercício na sessão e grava. O exercício precisa já
+ * existir no catálogo (o `exercise_id` vem do contexto do agente, casado por nome).
+ */
+export async function logQuickSet(input: {
+  exercise_id: string;
+  reps: string;
+  weight_kg: string;
+  rpe?: string;
+}): Promise<{ ok?: boolean; error?: string }> {
+  const session = await startSession(null);
+  if (session.error || !session.sessionId) {
+    return { error: session.error ?? "Não consegui abrir a sessão de hoje." };
+  }
+  const { supabase } = await requireUser();
+  const { count } = await supabase
+    .from("exercise_logs")
+    .select("id", { count: "exact", head: true })
+    .eq("session_id", session.sessionId)
+    .eq("exercise_id", input.exercise_id);
+  const res = await saveLog({
+    session_id: session.sessionId,
+    exercise_id: input.exercise_id,
+    set_number: (count ?? 0) + 1,
+    reps: input.reps,
+    weight_kg: input.weight_kg,
+    rpe: input.rpe ?? "",
+  });
+  return res?.error ? { error: res.error } : { ok: true };
+}
+
 export async function deleteLog(id: string) {
   const { supabase } = await requireUser();
   await supabase.from("exercise_logs").delete().eq("id", id);

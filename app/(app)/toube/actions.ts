@@ -1,5 +1,6 @@
 "use server";
 
+import { saveMeasurement } from "@/app/(app)/dieta/actions";
 import { saveTransaction } from "@/app/(app)/financas/actions";
 import {
   deleteGoal,
@@ -9,8 +10,10 @@ import {
   setGoalStatus,
   toggleTaskDone,
 } from "@/app/(app)/metas/actions";
+import { createQuickNote } from "@/app/(app)/notas/actions";
 import { saveReminder } from "@/app/(app)/notificacoes/actions";
 import { saveDailyBlock } from "@/app/(app)/rotina/actions";
+import { logQuickSet } from "@/app/(app)/treino/actions";
 import { createClient } from "@/lib/supabase/server";
 import type { ToubeAction } from "@/lib/toube";
 
@@ -118,6 +121,35 @@ export async function executeToubeAction(
       if (/^\d{4}-\d{2}-\d{2}$/.test(str(args.data))) fd.set("on_date", str(args.data));
       const res = await saveReminder(fd);
       return res?.error ? { error: res.error } : { ok: true, note: res.warning };
+    }
+
+    case "criar_nota": {
+      const fd = new FormData();
+      fd.set("title", str(args.titulo));
+      if (args.corpo != null) fd.set("content", str(args.corpo));
+      const res = await createQuickNote(fd);
+      return res?.error ? { error: res.error } : { ok: true };
+    }
+
+    case "registrar_medida": {
+      const fd = new FormData();
+      fd.set("measured_on", str(args.data) || todayBRT());
+      if (args.peso != null) fd.set("weight_kg", str(args.peso));
+      if (args.cintura_cm != null) fd.set("waist_cm", str(args.cintura_cm));
+      if (args.gordura_pct != null) fd.set("bodyfat_pct", str(args.gordura_pct));
+      const res = await saveMeasurement(fd);
+      return res?.error ? { error: res.error } : { ok: true };
+    }
+
+    case "logar_serie": {
+      if (!isUuid(args.exercise_id)) return { error: "exercício inválido (não está no catálogo)." };
+      const res = await logQuickSet({
+        exercise_id: str(args.exercise_id),
+        reps: str(args.reps),
+        weight_kg: str(args.carga),
+        rpe: args.rpe != null ? str(args.rpe) : undefined,
+      });
+      return res?.error ? { error: res.error } : { ok: true };
     }
 
     default:

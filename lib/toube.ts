@@ -30,6 +30,9 @@ O QUE VOCÊ FAZ (pelas ferramentas, com confirmação):
 - Finanças: LANÇAR gasto (kind=expense) ou receita (kind=income) com lancar_transacao — valor em REAIS. Se a fala casar com uma das categorias do contexto, mande o category_id dela.
 - Rotina: ADICIONAR bloco do dia com adicionar_bloco_rotina (hora HH:MM + título).
 - Notificações: CRIAR lembrete/alerta com criar_lembrete (hora HH:MM + mensagem) — chega pelo Telegram. Use quando pedirem "me lembra", "cria um alerta", "me notifica" num horário. Se for pra UMA VEZ SÓ (ex.: "hoje às 17:34", "amanhã às 9"), mande também data=YYYY-MM-DD (calcule a partir do "Hoje é" do contexto). Se for recorrente ("todo dia", "sempre"), NÃO mande data — vira diário.
+- Notas: CRIAR nota rápida com criar_nota (título + corpo opcional).
+- Dieta: REGISTRAR medida do corpo com registrar_medida (peso em kg; cintura_cm e gordura_pct opcionais; data padrão hoje). Ex.: "registra que tô com 82kg".
+- Treino: LOGAR uma série com logar_serie (exercise_id do catálogo + carga em kg + reps; rpe opcional). SÓ pra exercício que está na lista EXERCÍCIOS DO CATÁLOGO — mande o id exato. Se a pessoa citar um exercício que NÃO está no catálogo, NÃO invente id: diga que ela precisa criar esse exercício no módulo Treino primeiro.
 Pode propor VÁRIAS ações de uma vez. A pessoa CONFIRMA cada uma no app antes de executar — então proponha sem medo, INCLUSIVE apagar.
 
 REGRAS ABSOLUTAS (não quebre nenhuma):
@@ -37,8 +40,9 @@ REGRAS ABSOLUTAS (não quebre nenhuma):
 2. Se uma meta/tarefa está na lista do contexto, ela EXISTE agora. Pra mexer nela, CHAME a ferramenta com o id EXATO. NUNCA responda que "já foi feita/removida/concluída".
 3. NUNCA peça confirmação em texto — o app já mostra o botão de confirmar. Só chame a ferramenta e deixe a pessoa confirmar lá.
 4. Só chame ferramenta quando a pessoa quiser agir; pra conversa normal, responda em texto.
+5. "loguei/fiz/registrei X kg Y reps" É AÇÃO: CHAME logar_serie (não responda "parabéns pela série" em texto). Mas SÓ com um exercise_id que aparece EXATO na lista EXERCÍCIOS DO CATÁLOGO. Se o exercício falado NÃO está na lista, é PROIBIDO mandar o id de outro parecido — responda em texto pedindo pra criar esse exercício no módulo Treino primeiro.
 
-Pra treino, dieta/refeição, notas, diário etc. (que você ainda NÃO faz), aí sim oriente a abrir o módulo certo. Use SOMENTE os dados passados abaixo; nunca invente metas, categorias, ids, prazos ou números.`;
+Pra REGISTRAR refeição/comida na dieta (logar alimento) e pro DIÁRIO — que você ainda NÃO faz — oriente a abrir o módulo. O diário é privado, você nunca acessa. Use SOMENTE os dados passados abaixo; nunca invente metas, categorias, ids, exercícios, prazos ou números.`;
 
 export type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
@@ -53,7 +57,10 @@ export type ToubeAction =
   | "deletar_tarefa"
   | "lancar_transacao"
   | "adicionar_bloco_rotina"
-  | "criar_lembrete";
+  | "criar_lembrete"
+  | "criar_nota"
+  | "registrar_medida"
+  | "logar_serie";
 
 /** Ações destrutivas — o card pede confirmação reforçada (vermelho). */
 export const DESTRUCTIVE_ACTIONS: ToubeAction[] = ["deletar_meta", "deletar_tarefa"];
@@ -76,6 +83,9 @@ const ACTION_NAMES: ToubeAction[] = [
   "lancar_transacao",
   "adicionar_bloco_rotina",
   "criar_lembrete",
+  "criar_nota",
+  "registrar_medida",
+  "logar_serie",
 ];
 
 const idParam = { type: "string", description: "id da meta/tarefa (copiado da lista no contexto)" };
@@ -248,6 +258,61 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "criar_nota",
+      description: "Cria uma nota rápida no módulo Notas.",
+      parameters: {
+        type: "object",
+        properties: {
+          titulo: { type: "string", description: "Título da nota" },
+          corpo: { type: "string", description: "Conteúdo/corpo da nota (opcional)" },
+        },
+        required: ["titulo"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "registrar_medida",
+      description:
+        "Registra uma medida do corpo no módulo Dieta (peso e/ou cintura/gordura) numa data.",
+      parameters: {
+        type: "object",
+        properties: {
+          peso: { type: "number", description: "Peso em kg (ex.: 82.5)" },
+          cintura_cm: { type: "number", description: "Cintura em cm (opcional)" },
+          gordura_pct: { type: "number", description: "% de gordura corporal (opcional)" },
+          data: { type: "string", description: "Data YYYY-MM-DD (opcional; padrão hoje)" },
+        },
+        required: ["peso"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "logar_serie",
+      description:
+        "Loga UMA série de um exercício no treino de hoje (módulo Treino). O exercício PRECISA estar no catálogo do contexto — mande o exercise_id dele. A sessão de hoje e o número da série são resolvidos sozinhos.",
+      parameters: {
+        type: "object",
+        properties: {
+          exercise_id: {
+            type: "string",
+            description: "id do exercício da lista EXERCÍCIOS DO CATÁLOGO que casa com a fala",
+          },
+          exercicio: { type: "string", description: "Nome do exercício (só pra exibir)" },
+          carga: { type: "number", description: "Carga em kg (ex.: 80)" },
+          reps: { type: "number", description: "Repetições (ex.: 8)" },
+          rpe: { type: "number", description: "Esforço percebido 1-10 (opcional)" },
+        },
+        required: ["exercise_id", "carga", "reps"],
+      },
+    },
+  },
 ];
 
 /** Frase humana de uma proposta (fallback quando o modelo não manda texto). */
@@ -276,6 +341,12 @@ function proposalText(p: ToubeProposal): string {
       return p.args.data
         ? `criar um lembrete: "${p.args.mensagem}" em ${p.args.data} às ${p.args.hora}`
         : `criar um lembrete diário: "${p.args.mensagem}" todo dia às ${p.args.hora}`;
+    case "criar_nota":
+      return `criar a nota "${p.args.titulo}"`;
+    case "registrar_medida":
+      return `registrar ${p.args.peso ? `${p.args.peso}kg` : "medida"}${p.args.data ? ` em ${p.args.data}` : ""}`;
+    case "logar_serie":
+      return `logar ${p.args.exercicio ?? "exercício"}: ${p.args.carga}kg × ${p.args.reps}${p.args.rpe ? ` @RPE${p.args.rpe}` : ""}`;
   }
 }
 

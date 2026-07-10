@@ -55,6 +55,34 @@ export async function saveNote(
   return { ok: true, saved_at: new Date().toISOString() };
 }
 
+const quickNoteSchema = z.object({
+  title: z.string().trim().min(1, "Título obrigatório").max(200),
+  content: z.string().max(100_000),
+});
+
+/**
+ * Cria uma nota JÁ com conteúdo (usada pelo Toube). A `createNote` acima cria
+ * vazia e redireciona — não serve pro fluxo do agente.
+ */
+export async function createQuickNote(fd: FormData): Promise<{ ok?: boolean; error?: string }> {
+  const parsed = quickNoteSchema.safeParse({
+    title: fd.get("title")?.toString() ?? "",
+    content: fd.get("content")?.toString() ?? "",
+  });
+  if (!parsed.success) return { error: parsed.error.errors[0]?.message };
+
+  const { supabase, userId } = await requireUser();
+  const { error } = await supabase.from("notes").insert({
+    user_id: userId,
+    title: parsed.data.title,
+    content: parsed.data.content,
+    tags: [],
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/notas");
+  return { ok: true };
+}
+
 export async function togglePin(id: string, pinned: boolean): Promise<void> {
   const { supabase, userId } = await requireUser();
   await supabase.from("notes").update({ pinned }).eq("id", id).eq("user_id", userId);
