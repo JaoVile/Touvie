@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { type ChatMessage, toubeReply } from "@/lib/toube";
+import { type ChatMessage, type ToubeResult, toubeReply } from "@/lib/toube";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -57,9 +57,9 @@ export async function POST(req: Request) {
           .join("\n")}`
       : "A pessoa ainda não tem metas ativas cadastradas.";
 
-  let reply: string;
+  let result: ToubeResult;
   try {
-    reply = await toubeReply(history, metasContext);
+    result = await toubeReply(history, metasContext);
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Erro ao falar com o Toube." },
@@ -67,10 +67,14 @@ export async function POST(req: Request) {
     );
   }
 
-  // Grava a resposta do assistente.
+  // Grava o texto da resposta (a proposta em si é efêmera — a pessoa confirma no ato).
   await supabase
     .from("toube_messages")
-    .insert({ user_id: user.id, role: "assistant", content: reply });
+    .insert({ user_id: user.id, role: "assistant", content: result.text });
 
-  return NextResponse.json({ reply });
+  return NextResponse.json(
+    result.kind === "proposal"
+      ? { reply: result.text, proposal: { action: result.action, args: result.args } }
+      : { reply: result.text },
+  );
 }
