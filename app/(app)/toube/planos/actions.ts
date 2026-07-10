@@ -45,10 +45,10 @@ export async function saveDraftPlan(id: string, plan: Plan): Promise<void> {
 
 export async function novoRascunho(): Promise<{ id: string }> {
   const { supabase, userId } = await requireUser();
-  // Fecha rascunhos em aberto pra abrir um novo limpo.
+  // Descarta rascunhos em aberto (nunca viraram programa) pra abrir um novo limpo.
   await supabase
     .from("workout_program_drafts")
-    .update({ status: "committed" })
+    .delete()
     .eq("user_id", userId)
     .eq("status", "building");
   const { data, error } = await supabase
@@ -94,10 +94,11 @@ export async function criarProgramaCompleto(): Promise<{
   };
 
   // Catálogo atual do usuário pra achar-ou-criar exercício por nome (case-insensitive).
-  const { data: catalog } = await supabase
+  const { data: catalog, error: catErr } = await supabase
     .from("exercises")
     .select("id, name")
     .eq("user_id", userId);
+  if (catErr) return rollback("Não consegui ler seu catálogo de exercícios. Tenta de novo.");
   const byName = new Map((catalog ?? []).map((e) => [e.name.trim().toLowerCase(), e.id]));
 
   async function ensureExercise(
@@ -145,10 +146,13 @@ export async function criarProgramaCompleto(): Promise<{
   }
 
   // 4) Fecha o rascunho
-  await supabase
+  const { error: closeErr } = await supabase
     .from("workout_program_drafts")
     .update({ status: "committed", created_program_id: program.id })
     .eq("id", draft.id);
+  if (closeErr) {
+    return rollback("Programa criado, mas não consegui fechar o rascunho. Tenta de novo.");
+  }
 
   revalidatePath("/treino");
   revalidatePath("/toube/planos");
