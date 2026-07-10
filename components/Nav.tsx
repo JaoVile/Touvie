@@ -11,7 +11,6 @@ import {
   Lock,
   type LucideIcon,
   Salad,
-  Search,
   Settings,
   Sparkles,
   StickyNote,
@@ -52,7 +51,6 @@ export function Nav() {
     { href: "/diario", label: t("diary"), Icon: Lock },
     { href: "/notas", label: t("notes"), Icon: StickyNote },
     { href: "/leitura", label: t("reading"), Icon: BookOpen },
-    { href: "/busca", label: t("search"), Icon: Search },
     { href: "/notificacoes", label: t("notifications"), Icon: Bell },
   ];
   const CONFIG: NavItem = { href: "/config", label: t("config"), Icon: Settings };

@@ -37,9 +37,29 @@ export async function POST(req: Request) {
     .limit(HISTORY_WINDOW);
   const history = ((rows ?? []) as ChatMessage[]).reverse();
 
+  // Metas ativas da pessoa — o Toube usa pra orientar. Vão junto ao modelo (Z.ai);
+  // limitado a 20 metas e descrição truncada pra segurar tokens e dado enviado.
+  const { data: goals } = await supabase
+    .from("goals")
+    .select("title, description, target_date")
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .order("sort_order")
+    .limit(20);
+  const metasContext =
+    goals && goals.length > 0
+      ? `METAS ATIVAS DA PESSOA:\n${goals
+          .map((g) => {
+            const prazo = g.target_date ? ` (prazo: ${g.target_date})` : "";
+            const desc = g.description ? ` — ${g.description.slice(0, 160)}` : "";
+            return `- ${g.title}${prazo}${desc}`;
+          })
+          .join("\n")}`
+      : "A pessoa ainda não tem metas ativas cadastradas.";
+
   let reply: string;
   try {
-    reply = await toubeReply(history);
+    reply = await toubeReply(history, metasContext);
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Erro ao falar com o Toube." },
