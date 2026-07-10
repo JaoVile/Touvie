@@ -163,6 +163,22 @@ const TOOLS = [
   },
 ];
 
+// llama-3.3 no Groq às vezes emite um tool-call malformado (HTTP 400 tool_use_failed)
+// ou bate rate limit / 5xx — transitórios. Tenta de novo até 3x antes de desistir.
+async function callGroqWithRetry(body: Record<string, unknown>) {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await groqChat(body);
+    } catch (e) {
+      lastErr = e;
+      const msg = e instanceof Error ? e.message : "";
+      if (!/tool_use_failed|Groq 429|Groq 50\d/.test(msg)) throw e;
+    }
+  }
+  throw lastErr;
+}
+
 export async function planosReply(
   history: ChatMessage[],
   plan: Plan,
@@ -172,7 +188,7 @@ export async function planosReply(
     ? `${describePlanForModel(plan)}\n\nFONTE (base pro plano — resuma e monte):\n${sourceText.slice(0, 12000)}`
     : describePlanForModel(plan);
 
-  const data = await groqChat({
+  const data = await callGroqWithRetry({
     tools: TOOLS,
     tool_choice: "auto",
     temperature: 0.6,
