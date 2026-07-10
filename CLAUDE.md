@@ -67,6 +67,11 @@ convenções que o Biome **não** garante:
 - **Migrations rodam manualmente** no SQL Editor do Supabase, em ordem numérica
   (`supabase/migrations/`). Não há CLI de migration automatizada aqui.
 - **Tailwind v4 (beta)** + PostCSS — sintaxe/config diferem da v3.
+- **Som de fundo (soundscape):** `lib/soundscape-loudness.ts` é **GERADO** por
+  `scripts/measure-loudness.py` (normaliza volume por variante) — não edite à mão;
+  regenere após trocar qualquer take. Curadoria de texturas (buscar/aplicar/verificar)
+  tem runbook em `scripts/CURADORIA.md`; `verify-credits.mjs` confere se o md5 do
+  arquivo bate com o crédito no `manifest.json` (crédito dessincronizado é armadilha real).
 - **Worktrees:** existe um git worktree em `.claude/worktrees/` pra trabalho isolado.
   Não confundir com a árvore principal ao buscar/editar arquivos.
 

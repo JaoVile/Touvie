@@ -22,6 +22,8 @@ takes longos (≥40s); os curtos loopam dentro da janela de 42s e enjoam.
 | `stage-current.mjs <key>` | Monta `_staging/<key>-atual/audition.html` com os takes ATUAIS (pra comparar). |
 | `apply-candidates.mjs <key> <slot>=<id> …` | Copia o cand pro `<key>-<slot>.mp3` de produção **e** grava o crédito no `manifest.json`. |
 | `fetch-candidates.mjs <key> <n>` | Alternativa automática (busca+baixa por query usando `TARGETS` do fetch-sounds). |
+| `verify-credits.mjs [key]` | Re-baixa o preview de cada crédito e compara md5 com o arquivo local — **pega crédito DESSINCRONIZADO** (áudio trocado, crédito velho). |
+| `measure-loudness.py` | Mede RMS+pico de todos os mp3 (gstreamer→numpy) e **gera `lib/soundscape-loudness.ts`** (ganho por variante, alvo −28 dBFS). |
 
 ## Servidor de audição (porta 4444)
 Serve `public/sounds/_staging/`. Se não estiver no ar (uma janela só precisa subir):
@@ -52,7 +54,16 @@ Links: `http://127.0.0.1:4444/<key>/audition.html` e `…/<key>-atual/audition.h
 6. **Fase 2 (serial)** — aplique: `node scripts/apply-candidates.mjs <key> 1=<id> 4=<id> …`
    (troque os ruins, mantenha os bons, use slots novos pra expandir).
 7. Ajuste `variants:` e `desc:` da textura em `lib/soundscape.ts`.
-8. Verifique: durações + sem md5 duplicado + N/N creditado + `pnpm exec tsc --noEmit`.
+8. Verifique: durações + sem md5 duplicado + N/N creditado + **`node scripts/verify-credits.mjs <key>`** (md5 bate com a fonte) + `pnpm exec tsc --noEmit`.
+9. **Loudness:** `python3 scripts/measure-loudness.py` regenera `lib/soundscape-loudness.ts`
+   (normaliza o volume por variante). **Rode sempre que trocar/adicionar um take.**
+
+## ⚠️ Armadilha de crédito (aprendida na marra)
+Curadoria manual antiga trocava o ÁUDIO mas mantinha o CRÉDITO velho → md5 não bate
+(aconteceu com piano-1/2 e violão 1-5). **Sempre** rode `verify-credits.mjs` após aplicar.
+Pra recuperar a fonte real de um arquivo órfão/dessincronizado: cross-match do md5 (ou do
+tamanho, via HEAD `content-length`) contra os previews do autor/queries. md5 diferente NÃO
+é crédito errado se o arquivo foi só transcodificado (ex.: volume reduzido) — é o mesmo som.
 
 ## Adicionar uma textura NOVA (ex.: fogueira)
 Além do fluxo acima, o scaffolding (FASE 2, serial):
