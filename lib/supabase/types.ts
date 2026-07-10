@@ -342,6 +342,16 @@ export type Database = {
         bodyfat_pct: number | null;
         notes: string | null;
       }>;
+      workout_program_drafts: Table<{
+        id: string;
+        user_id: string;
+        plan: Json;
+        source_kind: string | null;
+        status: "building" | "committed";
+        created_program_id: string | null;
+        created_at: Timestamptz;
+        updated_at: Timestamptz;
+      }>;
     };
     Views: {
       finance_account_balances: View<{
