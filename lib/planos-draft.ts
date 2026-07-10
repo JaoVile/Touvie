@@ -45,27 +45,35 @@ const clampInt = (v: unknown, lo: number, hi: number): number | null => {
   return Math.min(hi, Math.max(lo, Math.round(n)));
 };
 
-function cleanExercise(raw: Record<string, unknown>): PlanExercise | null {
-  const name = str(raw.name, 80);
+/** Resolve um índice de array de forma ESTRITA — fora do range é null (nunca clampeia). */
+const idx = (v: unknown, length: number): number | null => {
+  const n = typeof v === "number" ? v : Number.parseInt(String(v ?? ""), 10);
+  return Number.isInteger(n) && n >= 0 && n < length ? n : null;
+};
+
+function cleanExercise(raw: unknown): PlanExercise | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  const name = str(r.name, 80);
   if (!name) return null;
   return {
     name,
-    muscle_group: str(raw.muscle_group, 40),
-    target_sets: clampInt(raw.target_sets, 1, 20),
-    reps_low: clampInt(raw.reps_low, 1, 50),
-    reps_high: clampInt(raw.reps_high, 1, 50),
-    notes: str(raw.notes, 200),
+    muscle_group: str(r.muscle_group, 40),
+    target_sets: clampInt(r.target_sets, 1, 20),
+    reps_low: clampInt(r.reps_low, 1, 50),
+    reps_high: clampInt(r.reps_high, 1, 50),
+    notes: str(r.notes, 200),
   };
 }
 
-function cleanDay(raw: Record<string, unknown>): PlanDay | null {
-  const name = str(raw.name, 60);
-  const weekday = clampInt(raw.weekday, 0, 6);
+function cleanDay(raw: unknown): PlanDay | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  const name = str(r.name, 60);
+  const weekday = clampInt(r.weekday, 0, 6);
   if (!name || weekday === null) return null;
-  const exercises = Array.isArray(raw.exercises)
-    ? (raw.exercises as Record<string, unknown>[])
-        .map(cleanExercise)
-        .filter((e): e is PlanExercise => e !== null)
+  const exercises = Array.isArray(r.exercises)
+    ? r.exercises.map(cleanExercise).filter((e): e is PlanExercise => e !== null)
     : [];
   return { weekday, name, exercises };
 }
@@ -74,16 +82,14 @@ function cleanDay(raw: Record<string, unknown>): PlanDay | null {
 export function applyMutation(plan: Plan, tool: string, args: Record<string, unknown>): Plan {
   const days = plan.days.map((d) => ({ ...d, exercises: [...d.exercises] }));
   const next: Plan = { name: plan.name, days };
-  const di = clampInt(args.dia_index, 0, days.length - 1);
+  const di = idx(args.dia_index, days.length);
   const day = di !== null ? days[di] : undefined;
 
   switch (tool) {
     case "montar_do_zero": {
       const name = str(args.name, 80) ?? "Novo plano";
       const newDays = Array.isArray(args.days)
-        ? (args.days as Record<string, unknown>[])
-            .map(cleanDay)
-            .filter((d): d is PlanDay => d !== null)
+        ? args.days.map(cleanDay).filter((d): d is PlanDay => d !== null)
         : [];
       return { name, days: newDays };
     }
@@ -116,7 +122,7 @@ export function applyMutation(plan: Plan, tool: string, args: Record<string, unk
     }
     case "editar_exercicio": {
       if (!day) return next;
-      const ei = clampInt(args.ex_index, 0, day.exercises.length - 1);
+      const ei = idx(args.ex_index, day.exercises.length);
       if (ei === null) return next;
       const cur = day.exercises[ei];
       const merged = cleanExercise({ ...cur, ...args });
@@ -125,7 +131,7 @@ export function applyMutation(plan: Plan, tool: string, args: Record<string, unk
     }
     case "remover_exercicio": {
       if (!day) return next;
-      const ei = clampInt(args.ex_index, 0, day.exercises.length - 1);
+      const ei = idx(args.ex_index, day.exercises.length);
       if (ei !== null) day.exercises.splice(ei, 1);
       return next;
     }
