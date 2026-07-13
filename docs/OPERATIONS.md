@@ -157,6 +157,7 @@ chamando a URL abaixo com header `Authorization: Bearer $CRON_SECRET`:
 
 | Cron | Path | Schedule sugerido (BRT) |
 | ---- | ---- | ---------------------- |
+| **Lembretes do Toube (sweep)** | `/api/cron/reminders-sweep` | `*/5 * * * *` — varre `user_reminders` (diário/semanal/intervalo/once). **Sem este job, NENHUM lembrete criado pelo Toube dispara.** |
 | Lembrete manhã | `/api/cron/daily-reminders` | `0 11 * * *` (08:00 BRT = 11:00 UTC) |
 | Lembrete noite | `/api/cron/evening-reminders` | `0 23 * * *` (20:00 BRT) |
 | **Fluxo financeiro mensal** | `/api/cron/monthly-finance` | `0 0 28-31 * *` (21:00 BRT) — só dispara mesmo no último dia do mês |
