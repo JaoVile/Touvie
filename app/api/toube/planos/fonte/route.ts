@@ -50,7 +50,7 @@ export async function POST(req: Request) {
 
   let nextPlan = plan;
   for (const m of result.mutations) nextPlan = applyMutation(nextPlan, m.tool, m.args);
-  await saveDraftPlan(id, nextPlan);
+  if (result.mutations.length) await saveDraftPlan(id, nextPlan);
   await supabase
     .from("workout_program_drafts")
     .update({ source_kind: source.kind })

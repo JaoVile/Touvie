@@ -8,6 +8,32 @@ import { YoutubeTranscript } from "youtube-transcript";
 
 const YT = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{6,})/;
 
+// Barra SSRF básico: só http(s) e nada de host privado/loopback/metadata.
+function assertPublicHttpUrl(raw: string): URL {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    throw new Error("Link inválido.");
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") {
+    throw new Error("Só consigo abrir links http(s).");
+  }
+  const host = u.hostname.toLowerCase();
+  const blocked =
+    host === "localhost" ||
+    host === "0.0.0.0" ||
+    host === "::1" ||
+    host.endsWith(".localhost") ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+  if (blocked) throw new Error("Não consigo abrir esse endereço.");
+  return u;
+}
+
 export async function extractFromUrl(
   url: string,
 ): Promise<{ kind: "youtube" | "link"; text: string }> {
@@ -28,9 +54,13 @@ export async function extractFromUrl(
     }
   }
   // Link comum: fetch + tira tags/scripts, colapsa espaço.
+  const safeUrl = assertPublicHttpUrl(url);
   let res: Response;
   try {
-    res = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 Touvie" } });
+    res = await fetch(safeUrl, {
+      headers: { "user-agent": "Mozilla/5.0 Touvie" },
+      signal: AbortSignal.timeout(8000),
+    });
   } catch {
     throw new Error("Não consegui abrir esse link.");
   }
