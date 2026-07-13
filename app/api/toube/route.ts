@@ -60,6 +60,11 @@ export async function POST(req: Request) {
   // deletar (por isso mando o id de cada uma). Vão junto ao modelo (Z.ai); limitado e
   // com descrição truncada pra segurar tokens e dado enviado.
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  const agora = new Date().toLocaleTimeString("en-GB", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   const [{ data: goals }, { data: tasks }, { data: cats }, { data: exercises }] = await Promise.all(
     [
       supabase
@@ -113,7 +118,7 @@ export async function POST(req: Request) {
           .map((e) => `- [id ${e.id}] "${e.name}"${e.muscle_group ? ` (${e.muscle_group})` : ""}`)
           .join("\n")}`
       : "";
-  const metasContext = `Hoje é ${today}.\n\n${metasBlock}${tasksBlock}${catsBlock}${exercisesBlock}`;
+  const metasContext = `Hoje é ${today} e agora são ${agora} (horário de Brasília).\n\n${metasBlock}${tasksBlock}${catsBlock}${exercisesBlock}`;
 
   let result: ToubeResult;
   try {
