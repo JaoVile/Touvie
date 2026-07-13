@@ -2,15 +2,24 @@
 import type { Plan } from "@/lib/planos-draft";
 import { useRef, useState } from "react";
 
-export function SourceInput({ onResult }: { onResult: (reply: string, plan: Plan) => void }) {
+export function SourceInput({
+  onResult,
+  onBusyChange,
+  disabled,
+}: {
+  onResult: (reply: string, plan: Plan) => void;
+  onBusyChange?: (b: boolean) => void;
+  disabled?: boolean;
+}) {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>();
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function sendUrl() {
-    if (!url.trim() || busy) return;
+    if (!url.trim() || busy || disabled) return;
     setBusy(true);
+    onBusyChange?.(true);
     setErr(undefined);
     try {
       const res = await fetch("/api/toube/planos/fonte", {
@@ -26,11 +35,14 @@ export function SourceInput({ onResult }: { onResult: (reply: string, plan: Plan
       setErr(e instanceof Error ? e.message : "Erro.");
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
 
   async function sendPdf(file: File) {
+    if (busy || disabled) return;
     setBusy(true);
+    onBusyChange?.(true);
     setErr(undefined);
     try {
       const fd = new FormData();
@@ -43,6 +55,7 @@ export function SourceInput({ onResult }: { onResult: (reply: string, plan: Plan
       setErr(e instanceof Error ? e.message : "Erro.");
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
 
@@ -52,14 +65,15 @@ export function SourceInput({ onResult }: { onResult: (reply: string, plan: Plan
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          disabled={busy || disabled}
           placeholder="Cola um link do YouTube ou site…"
-          className="flex-1 rounded-lg border bg-transparent px-3 py-1.5 text-sm outline-none"
+          className="flex-1 rounded-lg border bg-transparent px-3 py-1.5 text-sm outline-none disabled:opacity-50"
           style={{ borderColor: "var(--color-border)", color: "var(--color-fg)" }}
         />
         <button
           type="button"
           onClick={sendUrl}
-          disabled={busy || !url.trim()}
+          disabled={busy || disabled || !url.trim()}
           className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
           style={{ background: "var(--gradient-brand)" }}
         >
@@ -68,7 +82,7 @@ export function SourceInput({ onResult }: { onResult: (reply: string, plan: Plan
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          disabled={busy}
+          disabled={busy || disabled}
           className="rounded-lg border px-3 py-1.5 text-xs font-medium disabled:opacity-40"
           style={{ borderColor: "var(--color-border)", color: "var(--color-fg-muted)" }}
         >

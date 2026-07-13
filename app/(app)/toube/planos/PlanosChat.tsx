@@ -1,9 +1,9 @@
 "use client";
-import type { Plan } from "@/lib/planos-draft";
+import { EMPTY_PLAN, type Plan } from "@/lib/planos-draft";
 import { type KeyboardEvent, useState } from "react";
 import { PlanPreview } from "./PlanPreview";
 import { SourceInput } from "./SourceInput";
-import { criarProgramaCompleto } from "./actions";
+import { criarProgramaCompleto, novoRascunho } from "./actions";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -13,12 +13,15 @@ export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [committing, setCommitting] = useState(false);
+  const [sourceBusy, setSourceBusy] = useState(false);
   const [done, setDone] = useState<string>();
   const [error, setError] = useState<string>();
 
+  const anyBusy = sending || committing || sourceBusy;
+
   async function send() {
     const text = input.trim();
-    if (!text || sending) return;
+    if (!text || anyBusy) return;
     setError(undefined);
     setInput("");
     setMessages((m) => [...m, { role: "user", content: text }]);
@@ -46,7 +49,7 @@ export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
   }
 
   async function commit() {
-    if (committing) return;
+    if (anyBusy) return;
     setCommitting(true);
     setError(undefined);
     try {
@@ -55,6 +58,22 @@ export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
       setDone("✓ Programa criado! Já está no módulo Treino.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao criar.");
+    } finally {
+      setCommitting(false);
+    }
+  }
+
+  async function montarOutro() {
+    if (anyBusy) return;
+    setCommitting(true);
+    try {
+      await novoRascunho();
+      setPlan(EMPTY_PLAN);
+      setMessages([]);
+      setDone(undefined);
+      setError(undefined);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao reiniciar.");
     } finally {
       setCommitting(false);
     }
@@ -79,11 +98,11 @@ export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
         >
           <PlanPreview plan={plan} />
         </div>
-        {plan.days.length ? (
+        {plan.days.length && !done ? (
           <button
             type="button"
             onClick={commit}
-            disabled={committing}
+            disabled={anyBusy}
             className="mt-3 w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
             style={{ background: "var(--gradient-brand)" }}
           >
@@ -91,15 +110,30 @@ export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
           </button>
         ) : null}
         {done ? (
-          <p className="mt-2 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-            {done}
-          </p>
+          <>
+            <p className="mt-2 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+              {done}
+            </p>
+            <button
+              type="button"
+              onClick={montarOutro}
+              disabled={anyBusy}
+              className="mt-2 w-full rounded-xl border px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
+              style={{ borderColor: "var(--color-border)", color: "var(--color-fg)" }}
+            >
+              Montar outro plano
+            </button>
+          </>
         ) : null}
       </div>
 
       {/* Chat */}
       <div className="order-2 flex flex-col gap-3 md:order-1">
-        <SourceInput onResult={onSource} />
+        <SourceInput
+          onResult={onSource}
+          onBusyChange={setSourceBusy}
+          disabled={sending || committing}
+        />
         <div className="flex flex-col gap-2">
           {messages.map((m, i) => (
             <div
@@ -149,14 +183,15 @@ export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
             rows={1}
+            disabled={anyBusy}
             placeholder="Fala como quer o treino…"
-            className="max-h-40 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none"
+            className="max-h-40 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none disabled:opacity-50"
             style={{ color: "var(--color-fg)" }}
           />
           <button
             type="button"
             onClick={send}
-            disabled={sending || !input.trim()}
+            disabled={anyBusy || !input.trim()}
             className="rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
             style={{ background: "var(--gradient-brand)" }}
           >
