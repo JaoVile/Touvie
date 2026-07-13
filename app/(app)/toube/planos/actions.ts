@@ -151,7 +151,8 @@ export async function criarProgramaCompleto(): Promise<{
     .update({ status: "committed", created_program_id: program.id })
     .eq("id", draft.id);
   if (closeErr) {
-    return rollback("Programa criado, mas não consegui fechar o rascunho. Tenta de novo.");
+    // rollback já desfez o programa — não dá pra dizer que foi criado. Mensagem honesta.
+    return rollback("Não consegui finalizar o programa agora. Tenta de novo.");
   }
 
   revalidatePath("/treino");
