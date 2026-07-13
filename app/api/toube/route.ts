@@ -9,6 +9,24 @@ const HISTORY_WINDOW = 20;
 
 const bodySchema = z.object({ message: z.string().trim().min(1).max(4000) });
 
+// Histórico pro painel flutuante (a página /toube carrega server-side; o painel
+// busca aqui na primeira abertura). Mesma auth do POST.
+export async function GET() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+
+  const { data } = await supabase
+    .from("toube_messages")
+    .select("id, role, content")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(40);
+  return NextResponse.json({ messages: (data ?? []).reverse() });
+}
+
 export async function POST(req: Request) {
   const supabase = await createClient();
   const {
