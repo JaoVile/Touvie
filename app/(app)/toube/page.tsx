@@ -2,7 +2,8 @@ import { PageGlyphs } from "@/components/PageGlyphs";
 import { Reveal } from "@/components/Reveal";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { createClient } from "@/lib/supabase/server";
-import { Sparkles } from "lucide-react";
+import { Dumbbell, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { type Message, ToubeChat } from "./ToubeChat";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,15 @@ export default async function ToubePage() {
           subtitle="Converse, pense em voz alta, peça um empurrão."
         />
       </Reveal>
+
+      <Link
+        href="/toube/planos"
+        className="mx-auto mb-4 flex w-fit items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-medium"
+        style={{ borderColor: "var(--color-border)", color: "var(--color-accent)" }}
+      >
+        <Dumbbell className="size-4" />
+        Montar um plano de treino
+      </Link>
 
       <ToubeChat initial={initial} />
     </>
