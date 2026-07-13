@@ -62,8 +62,21 @@ convenções que o Biome **não** garante:
   (`pin_attempts`/`pin_locked_until`). Toda validação de PIN é server-side —
   nunca mova pro client.
 - **Crons são híbridos:** os 2 críticos ficam em `vercel.json` (limite do plano
-  Hobby); os demais num scheduler externo. O cron financeiro mensal é blindado
-  server-side pra só disparar no dia certo.
+  Hobby); os demais no cron-job.org (ver tabela em `docs/OPERATIONS.md` — os jobs
+  autenticam com o header **`x-cron-secret`**, não Bearer). Os lembretes criados
+  pelo Toube (`user_reminders`) SÓ disparam porque o job `reminders-sweep` roda a
+  cada 5 min lá — se lembrete "não chega", cheque esse job primeiro.
+- **Toube (assistente IA)** vive em `lib/toube.ts` (prompt+tools+loop de consulta,
+  Z.ai glm-4.7-flash), `lib/toube-reads.ts` (consultas RLS), `lib/toube-planos.ts`
+  + `lib/planos-draft.ts` + `lib/planos-source.ts` (modo Plano, Groq llama-3.3),
+  `lib/groq.ts` (chat/Whisper/visão), UI em `app/(app)/toube/` + o painel flutuante
+  `components/FloatingToube.tsx`. Segredos `ZAI_API_KEY` e `GROQ_API_KEY` precisam
+  estar **na Vercel** (env local não basta — a IA quebra em prod sem eles).
+  Armadilhas do glm: histórico de teste polui as respostas (limpar `toube_messages`
+  ao testar, só com OK do usuário); regras "ABSOLUTAS" numeradas no prompt são o
+  que segura o tool-calling. Smoke de módulos com alias `@/` roda com
+  `node --import ./scripts/dev-alias.mjs <script>.ts`.
+  **O Diário é INTOCÁVEL pelo Toube** — nenhuma tool/consulta lê `journal_entries`.
 - **Migrations rodam manualmente** no SQL Editor do Supabase, em ordem numérica
   (`supabase/migrations/`). Não há CLI de migration automatizada aqui.
 - **Tailwind v4 (beta)** + PostCSS — sintaxe/config diferem da v3.
