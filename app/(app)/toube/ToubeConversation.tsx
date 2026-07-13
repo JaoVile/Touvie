@@ -1,11 +1,14 @@
 "use client";
 
+import { EMPTY_PLAN, type Plan } from "@/lib/planos-draft";
 import { DESTRUCTIVE_ACTIONS, type ToubeAction } from "@/lib/toube";
-import { Mic, Paperclip, Square, X } from "lucide-react";
+import { Dumbbell, Mic, Paperclip, Square, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { KeyboardEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { executeToubeAction } from "./actions";
+import { PlanPreview } from "./planos/PlanPreview";
+import { criarProgramaCompleto } from "./planos/actions";
 
 type Proposal = {
   action: ToubeAction;
@@ -102,13 +105,51 @@ export function ToubeConversation({
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [micOk, setMicOk] = useState(true);
+  // Modo Plano (toggle ao lado dos anexos): a conversa passa a montar um plano
+  // de treino — mesmo cérebro/rascunho da página /toube/planos.
+  const [planMode, setPlanMode] = useState(false);
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [committing, setCommitting] = useState(false);
+  const [planDone, setPlanDone] = useState<string>();
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const stopTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  const busy = sending || transcribing || attaching;
+  const busy = sending || transcribing || attaching || committing;
+
+  async function togglePlanMode() {
+    if (busy || recording) return;
+    const next = !planMode;
+    setPlanMode(next);
+    if (next && plan === null) {
+      try {
+        const res = await fetch("/api/toube/planos");
+        const data = await res.json();
+        setPlan(res.ok && data.plan ? data.plan : EMPTY_PLAN);
+      } catch {
+        setPlan(EMPTY_PLAN);
+      }
+    }
+  }
+
+  async function commitPlan() {
+    if (busy) return;
+    setCommitting(true);
+    setError(undefined);
+    try {
+      const res = await criarProgramaCompleto();
+      if (res.error) throw new Error(res.error);
+      setPlanDone("✓ Programa criado! Já está no módulo Treino.");
+      setPlan(EMPTY_PLAN); // o rascunho fechou; o próximo começa do zero
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao criar o programa.");
+    } finally {
+      setCommitting(false);
+    }
+  }
 
   useEffect(() => {
     setMicOk(typeof window !== "undefined" && "MediaRecorder" in window);
@@ -146,6 +187,22 @@ export function ToubeConversation({
     setMessages((m) => [...m, { role: "user", content: text }]);
     setSending(true);
     try {
+      if (planMode) {
+        // URL sozinha vira FONTE (YouTube/link → transcript/texto); o resto vai
+        // pro chat do plano. O anexo já chega como texto dentro da mensagem.
+        const isUrl = /^https?:\/\/\S+$/.test(typed) && !attachment;
+        const res = await fetch(isUrl ? "/api/toube/planos/fonte" : "/api/toube/planos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(isUrl ? { url: typed } : { message: text }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Erro no modo Plano.");
+        setPlan(data.plan);
+        setPlanDone(undefined);
+        setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
+        return;
+      }
       const res = await fetch("/api/toube", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -296,6 +353,20 @@ export function ToubeConversation({
       >
         <Paperclip className="size-4" />
       </button>
+      <button
+        type="button"
+        onClick={togglePlanMode}
+        disabled={busy || recording}
+        title={planMode ? "Sair do modo Plano" : "Modo Plano de treino"}
+        className="rounded-lg p-2 disabled:opacity-40"
+        style={
+          planMode
+            ? { color: "#fff", background: "var(--gradient-brand)" }
+            : { color: "var(--color-fg-muted)" }
+        }
+      >
+        <Dumbbell className="size-4" />
+      </button>
       <input
         ref={fileRef}
         type="file"
@@ -315,7 +386,9 @@ export function ToubeConversation({
               ? "Transcrevendo…"
               : attaching
                 ? "Lendo o anexo…"
-                : "Escreva ou fale com o Toube…"
+                : planMode
+                  ? "Modo Plano — descreve teu treino ou cola um link do YouTube…"
+                  : "Escreva ou fale com o Toube…"
         }
         className="max-h-40 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none"
         style={{ color: "var(--color-fg)" }}
@@ -472,6 +545,48 @@ export function ToubeConversation({
         <p className="text-xs" style={{ color: "var(--color-danger)" }}>
           {error}
         </p>
+      ) : null}
+
+      {planMode ? (
+        <div
+          className="rounded-2xl border p-2"
+          style={{ borderColor: "var(--color-accent)", background: "var(--color-bg-elevated)" }}
+        >
+          <div className="flex items-center justify-between gap-2 px-1 pb-1">
+            <span
+              className="flex items-center gap-1.5 text-xs font-semibold"
+              style={{ color: "var(--color-accent)" }}
+            >
+              <Dumbbell className="size-3.5" />
+              Modo Plano de treino
+            </span>
+            {plan?.days.length ? (
+              <button
+                type="button"
+                onClick={commitPlan}
+                disabled={busy}
+                className="rounded-lg px-3 py-1 text-xs font-semibold text-white disabled:opacity-50"
+                style={{ background: "var(--gradient-brand)" }}
+              >
+                {committing ? "Criando…" : "Criar programa completo"}
+              </button>
+            ) : null}
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            {plan === null ? (
+              <p className="p-3 text-xs" style={{ color: "var(--color-fg-muted)" }}>
+                Carregando o rascunho…
+              </p>
+            ) : (
+              <PlanPreview plan={plan} />
+            )}
+          </div>
+          {planDone ? (
+            <p className="px-1 pt-1 text-xs" style={{ color: "var(--color-fg-muted)" }}>
+              {planDone}
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       {attachment ? (

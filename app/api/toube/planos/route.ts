@@ -6,7 +6,20 @@ import { planosReply } from "@/lib/toube-planos";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-const bodySchema = z.object({ message: z.string().trim().min(1).max(4000) });
+// Máx maior que o chat comum: no modo Plano a mensagem pode carregar um bloco
+// [ANEXO] com texto extraído (~6k) além do que a pessoa digitou.
+const bodySchema = z.object({ message: z.string().trim().min(1).max(12000) });
+
+// Rascunho atual — pro modo Plano do chat (toggle no ToubeConversation) hidratar.
+export async function GET() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  const { plan } = await getOrCreateDraft();
+  return NextResponse.json({ plan });
+}
 
 export async function POST(req: Request) {
   const supabase = await createClient();
