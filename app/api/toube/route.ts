@@ -118,7 +118,11 @@ export async function POST(req: Request) {
           .map((e) => `- [id ${e.id}] "${e.name}"${e.muscle_group ? ` (${e.muscle_group})` : ""}`)
           .join("\n")}`
       : "";
-  const metasContext = `Hoje é ${today} e agora são ${agora} (horário de Brasília).\n\n${metasBlock}${tasksBlock}${catsBlock}${exercisesBlock}`;
+  const diaSemana = new Date().toLocaleDateString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    weekday: "long",
+  });
+  const metasContext = `Hoje é ${diaSemana}, ${today}, e agora são ${agora} (horário de Brasília).\n\n${metasBlock}${tasksBlock}${catsBlock}${exercisesBlock}`;
 
   let result: ToubeResult;
   try {

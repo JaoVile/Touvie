@@ -134,6 +134,62 @@ async function rotina(supabase: Client, userId: string): Promise<string> {
   return `ROTINA DE HOJE (${today}) — ${doneSet.size}/${blocks.length} concluídos:\n${lines}`;
 }
 
+const WD_LONG = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+/** Programa ativo com dias e exercícios-alvo — pro Toube saber "o treino de amanhã". */
+async function programaAtivo(supabase: Client, userId: string): Promise<string> {
+  const { data: prog } = await supabase
+    .from("workout_programs")
+    .select("id, name")
+    .eq("user_id", userId)
+    .eq("active", true)
+    .maybeSingle();
+  if (!prog) return "";
+  const { data: days } = await supabase
+    .from("workout_days")
+    .select("id, weekday, name")
+    .eq("program_id", prog.id)
+    .order("weekday");
+  if (!days?.length) return `\n\nPROGRAMA ATIVO "${prog.name}": sem dias cadastrados.`;
+  type JRow = {
+    program_day_id: string;
+    sort_order: number;
+    target_sets: number | null;
+    target_reps_low: number | null;
+    target_reps_high: number | null;
+    exercises: { name: string } | null;
+  };
+  const { data: exs } = await supabase
+    .from("workout_day_exercises")
+    .select(
+      "program_day_id, sort_order, target_sets, target_reps_low, target_reps_high, exercises(name)",
+    )
+    .in(
+      "program_day_id",
+      days.map((d) => d.id),
+    )
+    .order("sort_order")
+    .returns<JRow[]>();
+  const byDay = new Map<string, JRow[]>();
+  for (const e of exs ?? []) {
+    const list = byDay.get(e.program_day_id) ?? [];
+    list.push(e);
+    byDay.set(e.program_day_id, list);
+  }
+  const linhas = days
+    .map((d) => {
+      const items = (byDay.get(d.id) ?? [])
+        .map(
+          (e) =>
+            `${e.exercises?.name ?? "?"}${e.target_sets ? ` ${e.target_sets}x${e.target_reps_low ?? "?"}-${e.target_reps_high ?? "?"}` : ""}`,
+        )
+        .join(" · ");
+      return `${WD_LONG[d.weekday]} — ${d.name}: ${items || "(sem exercícios)"}`;
+    })
+    .join("\n");
+  return `\n\nPROGRAMA ATIVO "${prog.name}" (dias da semana):\n${linhas}`;
+}
+
 async function treino(supabase: Client, userId: string): Promise<string> {
   type LogRow = {
     set_number: number;
@@ -158,7 +214,10 @@ async function treino(supabase: Client, userId: string): Promise<string> {
       .order("best_weight", { ascending: false })
       .limit(10),
   ]);
-  if (!logs?.length && !prs?.length) return "TREINO: nenhuma série logada ainda.";
+  const programa = await programaAtivo(supabase, userId);
+  if (!logs?.length && !prs?.length && !programa) {
+    return "TREINO: nenhum programa ativo e nenhuma série logada ainda.";
+  }
   const ultimas = (logs ?? [])
     .map(
       (l) =>
@@ -171,7 +230,7 @@ async function treino(supabase: Client, userId: string): Promise<string> {
         `${p.exercise_name}: ${p.best_weight ?? "?"}kg (1RM~${p.best_1rm ?? "?"}kg, ${p.total_sets} séries)`,
     )
     .join("\n");
-  return `TREINO — últimas séries:\n${ultimas || "—"}\n\nRecordes (PRs):\n${recordes || "—"}`;
+  return `TREINO — últimas séries:\n${ultimas || "—"}\n\nRecordes (PRs):\n${recordes || "—"}${programa}`;
 }
 
 async function dieta(supabase: Client, userId: string): Promise<string> {
