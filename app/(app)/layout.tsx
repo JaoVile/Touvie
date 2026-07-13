@@ -1,3 +1,4 @@
+import { FloatingToube } from "@/components/FloatingToube";
 import { Nav } from "@/components/Nav";
 import { ScrollProgress } from "@/components/ScrollProgress";
 import { SideLabel } from "@/components/SideLabel";
@@ -52,6 +53,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       >
         {children}
       </main>
+      <FloatingToube />
     </div>
   );
 }

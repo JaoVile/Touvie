@@ -38,11 +38,26 @@ export default async function ToubePage() {
 
       <Link
         href="/toube/planos"
-        className="mx-auto mb-4 flex w-fit items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-medium"
-        style={{ borderColor: "var(--color-border)", color: "var(--color-accent)" }}
+        className="mx-auto mb-5 flex w-full max-w-2xl items-center gap-4 rounded-2xl border p-4 transition-transform hover:scale-[1.01]"
+        style={{ borderColor: "var(--color-border)", background: "var(--color-card)" }}
       >
-        <Dumbbell className="size-4" />
-        Montar um plano de treino
+        <span
+          className="flex size-11 shrink-0 items-center justify-center rounded-xl text-white"
+          style={{ background: "var(--gradient-brand)" }}
+        >
+          <Dumbbell className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold" style={{ color: "var(--color-fg)" }}>
+            Planos de treino
+          </span>
+          <span className="block truncate text-xs" style={{ color: "var(--color-fg-muted)" }}>
+            Monta teu treino conversando — cola um vídeo ou PDF e ele estrutura tudo
+          </span>
+        </span>
+        <span aria-hidden className="text-lg" style={{ color: "var(--color-accent)" }}>
+          →
+        </span>
       </Link>
 
       <ToubeChat initial={initial} />
