@@ -52,9 +52,11 @@ function proposalLabel(p: Proposal): string {
     case "criar_lembrete": {
       const msg = String(p.args.mensagem ?? "");
       const hora = String(p.args.hora ?? "");
-      return p.args.data
-        ? `Lembrete · "${msg}" em ${String(p.args.data)} às ${hora}`
-        : `Lembrete diário · "${msg}" todo dia às ${hora}`;
+      return p.args.recorrente
+        ? `Lembrete diário · "${msg}" todo dia às ${hora}`
+        : p.args.data
+          ? `Lembrete · "${msg}" em ${String(p.args.data)} às ${hora}`
+          : `Lembrete · "${msg}" na próxima ${hora} (uma vez)`;
     }
     case "criar_nota":
       return `Nota · "${String(p.args.titulo ?? "")}"`;

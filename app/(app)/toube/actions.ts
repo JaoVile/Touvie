@@ -19,6 +19,21 @@ import type { ToubeAction } from "@/lib/toube";
 
 const todayBRT = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 
+// Próxima ocorrência de um HH:MM em BRT: hoje se ainda não passou, senão amanhã.
+// (Regra: lembrete sem recorrência explícita vale UMA vez, dentro de 24h.)
+const nextOccurrenceBRT = (hhmm: string) => {
+  const now = new Date();
+  const nowHM = now.toLocaleTimeString("en-GB", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  if (hhmm > nowHM) return todayBRT();
+  return new Date(now.getTime() + 24 * 60 * 60 * 1000).toLocaleDateString("en-CA", {
+    timeZone: "America/Sao_Paulo",
+  });
+};
+
 const isUuid = (v: unknown) => /^[0-9a-fA-F-]{36}$/.test(String(v ?? ""));
 const str = (v: unknown) => (v == null ? "" : String(v));
 
@@ -118,7 +133,15 @@ export async function executeToubeAction(
       const fd = new FormData();
       fd.set("at_time", str(args.hora));
       fd.set("message", str(args.mensagem));
-      if (/^\d{4}-\d{2}-\d{2}$/.test(str(args.data))) fd.set("on_date", str(args.data));
+      // Só vira diário com recorrência EXPLÍCITA; senão é uma vez — na data dita
+      // ou na próxima ocorrência do horário (hoje/amanhã, calculado aqui em BRT).
+      if (args.recorrente !== true) {
+        // O modelo não sabe a hora atual e às vezes manda data=hoje pra horário
+        // que JÁ passou (viraria lembrete morto). Só aceitamos data FUTURA; hoje
+        // ou passado recalcula pra próxima ocorrência (hoje se dá tempo, senão amanhã).
+        const given = /^\d{4}-\d{2}-\d{2}$/.test(str(args.data)) ? str(args.data) : "";
+        fd.set("on_date", given > todayBRT() ? given : nextOccurrenceBRT(str(args.hora)));
+      }
       const res = await saveReminder(fd);
       return res?.error ? { error: res.error } : { ok: true, note: res.warning };
     }

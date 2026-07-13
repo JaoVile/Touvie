@@ -29,7 +29,7 @@ O QUE VOCÊ FAZ (pelas ferramentas, com confirmação):
 - Metas: CRIAR, EDITAR, CONCLUIR e DELETAR metas e tarefas (use o "id" da lista do contexto pra editar/concluir/deletar; mande "titulo" no concluir/deletar só pra exibir).
 - Finanças: LANÇAR gasto (kind=expense) ou receita (kind=income) com lancar_transacao — valor em REAIS. Se a fala casar com uma das categorias do contexto, mande o category_id dela.
 - Rotina: ADICIONAR bloco do dia com adicionar_bloco_rotina (hora HH:MM + título).
-- Notificações: CRIAR lembrete/alerta com criar_lembrete (hora HH:MM + mensagem) — chega pelo Telegram. Use quando pedirem "me lembra", "cria um alerta", "me notifica" num horário. Se for pra UMA VEZ SÓ (ex.: "hoje às 17:34", "amanhã às 9"), mande também data=YYYY-MM-DD (calcule a partir do "Hoje é" do contexto). Se for recorrente ("todo dia", "sempre"), NÃO mande data — vira diário.
+- Notificações: CRIAR lembrete/alerta com criar_lembrete (hora HH:MM + mensagem) — chega pelo Telegram. Use quando pedirem "me lembra", "cria um alerta", "me notifica" num horário. REGRA: só é recorrente se a pessoa pedir EXPLICITAMENTE ("todo dia", "sempre") → recorrente=true. Caso contrário recorrente=false e o lembrete vale UMA vez: se ela citou o dia ("amanhã", "dia 15"), mande data=YYYY-MM-DD (calcule pelo "Hoje é" do contexto); se só falou o horário, NÃO mande data — o app agenda a próxima ocorrência sozinho.
 - Notas: CRIAR nota rápida com criar_nota (título + corpo opcional).
 - Dieta: REGISTRAR medida do corpo com registrar_medida (peso em kg; cintura_cm e gordura_pct opcionais; data padrão hoje). Ex.: "registra que tô com 82kg".
 - Treino: LOGAR uma série com logar_serie (exercise_id do catálogo + carga em kg + reps; rpe opcional). SÓ pra exercício que está na lista EXERCÍCIOS DO CATÁLOGO — mande o id exato. Se a pessoa citar um exercício que NÃO está no catálogo, NÃO invente id: diga que ela precisa criar esse exercício no módulo Treino primeiro.
@@ -256,10 +256,15 @@ const TOOLS = [
             type: "string",
             description: "O texto do lembrete (ex.: 'Beber água', 'Revisar metas')",
           },
+          recorrente: {
+            type: "boolean",
+            description:
+              "true SÓ se a pessoa pedir explicitamente repetição ('todo dia', 'sempre', 'diariamente'). Sem pedido explícito, false — o lembrete vale UMA vez.",
+          },
           data: {
             type: "string",
             description:
-              "Data YYYY-MM-DD SÓ pra lembrete de UMA VEZ (ex.: 'hoje às 17:34', 'amanhã às 9'). Se for TODO DIA, NÃO mande data.",
+              "Data YYYY-MM-DD se a pessoa citou o dia ('amanhã', 'dia 15'). Se não citou dia e não é recorrente, NÃO mande — o app agenda a próxima ocorrência do horário sozinho.",
           },
         },
         required: ["hora", "mensagem"],
@@ -402,9 +407,11 @@ function proposalText(p: ToubeProposal): string {
     case "adicionar_bloco_rotina":
       return `adicionar "${p.args.titulo}" na rotina às ${p.args.hora}`;
     case "criar_lembrete":
-      return p.args.data
-        ? `criar um lembrete: "${p.args.mensagem}" em ${p.args.data} às ${p.args.hora}`
-        : `criar um lembrete diário: "${p.args.mensagem}" todo dia às ${p.args.hora}`;
+      return p.args.recorrente
+        ? `criar um lembrete diário: "${p.args.mensagem}" todo dia às ${p.args.hora}`
+        : p.args.data
+          ? `criar um lembrete: "${p.args.mensagem}" em ${p.args.data} às ${p.args.hora}`
+          : `criar um lembrete: "${p.args.mensagem}" na próxima ${p.args.hora} (uma vez)`;
     case "criar_nota":
       return `criar a nota "${p.args.titulo}"`;
     case "registrar_medida":
