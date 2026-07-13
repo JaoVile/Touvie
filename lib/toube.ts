@@ -35,11 +35,19 @@ O QUE VOCÊ FAZ (pelas ferramentas, com confirmação):
 - Treino: LOGAR uma série com logar_serie (exercise_id do catálogo + carga em kg + reps; rpe opcional). SÓ pra exercício que está na lista EXERCÍCIOS DO CATÁLOGO — mande o id exato. Se a pessoa citar um exercício que NÃO está no catálogo, NÃO invente id: diga que ela precisa criar esse exercício no módulo Treino primeiro.
 Pode propor VÁRIAS ações de uma vez. A pessoa CONFIRMA cada uma no app antes de executar — então proponha sem medo, INCLUSIVE apagar.
 
+O QUE VOCÊ CONSULTA (executa NA HORA, sem confirmação — ler não muda nada): quando a pessoa PERGUNTAR sobre os dados dela ("quanto gastei?", "como tá minha rotina?", "qual meu último peso?", "meus recordes?"), CHAME a ferramenta de consulta certa e responda com os números REAIS que ela devolver:
+- consultar_financas — saldo, gastos e receitas do mês, categorias, últimos lançamentos.
+- consultar_rotina — blocos de hoje e o que já foi concluído.
+- consultar_treino — últimas séries logadas e recordes (PRs).
+- consultar_dieta — últimas medidas do corpo e refeições de hoje.
+- consultar_notas — títulos das notas salvas.
+NUNCA invente números: se não consultou, consulte. O DIÁRIO não tem consulta e NUNCA terá.
+
 REGRAS ABSOLUTAS (não quebre nenhuma):
 1. Você CONSEGUE apagar, editar e concluir meta/tarefa pela conversa. NUNCA diga "não consigo remover/editar pela conversa" nem "abra o módulo Metas pra fazer isso" — isso é MENTIRA, você faz sozinho pela ferramenta.
 2. Se uma meta/tarefa está na lista do contexto, ela EXISTE agora. Pra mexer nela, CHAME a ferramenta com o id EXATO. NUNCA responda que "já foi feita/removida/concluída".
 3. NUNCA peça confirmação em texto — o app já mostra o botão de confirmar. Só chame a ferramenta e deixe a pessoa confirmar lá.
-4. Só chame ferramenta quando a pessoa quiser agir; pra conversa normal, responda em texto.
+4. Só chame ferramenta quando a pessoa quiser agir ou consultar os dados; pra conversa normal, responda em texto.
 5. "loguei/fiz/registrei X kg Y reps" É AÇÃO: CHAME logar_serie (não responda "parabéns pela série" em texto). Mas SÓ com um exercise_id que aparece EXATO na lista EXERCÍCIOS DO CATÁLOGO. Se o exercício falado NÃO está na lista, é PROIBIDO mandar o id de outro parecido — responda em texto pedindo pra criar esse exercício no módulo Treino primeiro.
 
 Pra REGISTRAR refeição/comida na dieta (logar alimento) e pro DIÁRIO — que você ainda NÃO faz — oriente a abrir o módulo. O diário é privado, você nunca acessa. Use SOMENTE os dados passados abaixo; nunca invente metas, categorias, ids, exercícios, prazos ou números.`;
@@ -315,6 +323,62 @@ const TOOLS = [
   },
 ];
 
+// Consultas (Fase 5): executam na hora via readTool e o resultado volta pro
+// modelo num segundo turno. Sem params além do mês em finanças — enxuto.
+const READ_TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "consultar_financas",
+      description:
+        "Consulta as finanças do mês: receitas, gastos, saldo, top categorias e últimos lançamentos. Use quando perguntarem de dinheiro/gasto/saldo.",
+      parameters: {
+        type: "object",
+        properties: {
+          mes: { type: "string", description: "Mês YYYY-MM (opcional; padrão mês atual)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "consultar_rotina",
+      description: "Consulta os blocos da rotina e o que já foi concluído hoje.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "consultar_treino",
+      description: "Consulta as últimas séries logadas e os recordes pessoais (PRs).",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "consultar_dieta",
+      description: "Consulta as últimas medidas do corpo e as refeições de hoje.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "consultar_notas",
+      description: "Lista os títulos das notas salvas.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+];
+
+const READ_NAMES = new Set(READ_TOOLS.map((t) => t.function.name));
+
+/** Executor de consulta (injetado pelo route — mantém este módulo sem Supabase). */
+export type ToubeReadTool = (name: string, args: Record<string, unknown>) => Promise<string>;
+
 /** Frase humana de uma proposta (fallback quando o modelo não manda texto). */
 function proposalText(p: ToubeProposal): string {
   const t = String(p.args.title ?? p.args.titulo ?? "");
@@ -350,15 +414,17 @@ function proposalText(p: ToubeProposal): string {
   }
 }
 
-export async function toubeReply(
-  history: ChatMessage[],
-  metasContext?: string,
-): Promise<ToubeResult> {
+// Mensagem "de fio" da API (inclui os formatos de tool-calling OpenAI que não
+// cabem no ChatMessage público: assistant com tool_calls e o resultado role:"tool").
+type RawToolCall = { id?: string; function?: { name?: string; arguments?: string } };
+type WireMessage =
+  | ChatMessage
+  | { role: "assistant"; content: string; tool_calls: RawToolCall[] }
+  | { role: "tool"; tool_call_id: string; content: string };
+
+async function zaiChat(messages: WireMessage[]) {
   const key = process.env.ZAI_API_KEY;
   if (!key) throw new Error("ZAI_API_KEY não configurada");
-  // O contexto das metas ativas entra no system prompt (montado pelo route handler).
-  const system = metasContext ? `${TOUBE_SYSTEM}\n\n${metasContext}` : TOUBE_SYSTEM;
-
   const res = await fetch(ZAI_URL, {
     method: "POST",
     headers: {
@@ -369,51 +435,84 @@ export async function toubeReply(
       model: MODEL,
       // Thinking off (chat curto); tool calling funciona mesmo assim (confirmado).
       thinking: { type: "disabled" },
-      tools: TOOLS,
+      tools: [...TOOLS, ...READ_TOOLS],
       tool_choice: "auto",
-      messages: [{ role: "system", content: system }, ...history],
+      messages,
       temperature: 0.8,
-      max_tokens: 600,
+      max_tokens: 700,
     }),
   });
-
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new Error(`Z.ai ${res.status}: ${detail.slice(0, 200)}`);
   }
-
   const data = (await res.json()) as {
-    choices?: {
-      message?: {
-        content?: string;
-        tool_calls?: { function?: { name?: string; arguments?: string } }[];
-      };
-    }[];
+    choices?: { message?: { content?: string; tool_calls?: RawToolCall[] } }[];
   };
-  const msg = data.choices?.[0]?.message;
+  return data.choices?.[0]?.message;
+}
 
-  // Se o modelo decidiu agir, vira uma ou mais PROPOSTAS (não executa aqui). Aceita
-  // várias tool_calls no mesmo turno ("cria a meta X e 3 tarefas").
-  const proposals: ToubeProposal[] = (msg?.tool_calls ?? [])
-    .filter((t) => ACTION_NAMES.includes(t.function?.name as ToubeAction))
-    .map((tc) => {
-      let args: Record<string, unknown> = {};
-      try {
-        args = JSON.parse(tc.function?.arguments || "{}");
-      } catch {
-        /* args inválidos — a validação no confirmar barra */
+export async function toubeReply(
+  history: ChatMessage[],
+  metasContext?: string,
+  readTool?: ToubeReadTool,
+): Promise<ToubeResult> {
+  // O contexto das metas ativas entra no system prompt (montado pelo route handler).
+  const system = metasContext ? `${TOUBE_SYSTEM}\n\n${metasContext}` : TOUBE_SYSTEM;
+  let messages: WireMessage[] = [{ role: "system", content: system }, ...history];
+
+  // Até 2 chamadas: se a 1ª pedir CONSULTA, executamos e devolvemos o resultado
+  // pro modelo responder com os números reais. Ações viram proposta em qualquer
+  // uma das rodadas; consulta pedida na 2ª rodada é ignorada (teto de custo).
+  for (let round = 0; round < 2; round++) {
+    const msg = await zaiChat(messages);
+    const calls = msg?.tool_calls ?? [];
+    const readCalls = calls.filter((c) => READ_NAMES.has(c.function?.name ?? ""));
+
+    if (round === 0 && readTool && readCalls.length) {
+      const toolMsgs: WireMessage[] = [];
+      for (const [i, c] of readCalls.entries()) {
+        let args: Record<string, unknown> = {};
+        try {
+          args = JSON.parse(c.function?.arguments || "{}");
+        } catch {
+          /* args inválidos — a consulta usa os padrões */
+        }
+        const content = await readTool(c.function?.name ?? "", args);
+        toolMsgs.push({ role: "tool", tool_call_id: c.id ?? `call_${i}`, content });
       }
-      return { action: tc.function?.name as ToubeAction, args };
-    });
+      messages = [
+        ...messages,
+        { role: "assistant", content: msg?.content ?? "", tool_calls: readCalls },
+        ...toolMsgs,
+      ];
+      continue;
+    }
 
-  if (proposals.length) {
-    const text =
-      msg?.content?.trim() ||
-      `Posso ${proposals.map(proposalText).join("; e ")} — é só confirmar abaixo. ✅`;
-    return { kind: "proposals", text, proposals };
+    // Se o modelo decidiu agir, vira uma ou mais PROPOSTAS (não executa aqui). Aceita
+    // várias tool_calls no mesmo turno ("cria a meta X e 3 tarefas").
+    const proposals: ToubeProposal[] = calls
+      .filter((t) => ACTION_NAMES.includes(t.function?.name as ToubeAction))
+      .map((tc) => {
+        let args: Record<string, unknown> = {};
+        try {
+          args = JSON.parse(tc.function?.arguments || "{}");
+        } catch {
+          /* args inválidos — a validação no confirmar barra */
+        }
+        return { action: tc.function?.name as ToubeAction, args };
+      });
+
+    if (proposals.length) {
+      const text =
+        msg?.content?.trim() ||
+        `Posso ${proposals.map(proposalText).join("; e ")} — é só confirmar abaixo. ✅`;
+      return { kind: "proposals", text, proposals };
+    }
+
+    const text = msg?.content?.trim();
+    if (!text) throw new Error("Resposta vazia do modelo");
+    return { kind: "text", text };
   }
-
-  const text = msg?.content?.trim();
-  if (!text) throw new Error("Resposta vazia do modelo");
-  return { kind: "text", text };
+  throw new Error("Resposta vazia do modelo");
 }

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { type ChatMessage, type ToubeResult, toubeReply } from "@/lib/toube";
+import { executeToubeRead } from "@/lib/toube-reads";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -98,7 +99,10 @@ export async function POST(req: Request) {
 
   let result: ToubeResult;
   try {
-    result = await toubeReply(history, metasContext);
+    // Consultas de leitura executam na hora com o client RLS deste usuário.
+    result = await toubeReply(history, metasContext, (tool, args) =>
+      executeToubeRead(supabase, user.id, tool, args),
+    );
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Erro ao falar com o Toube." },
