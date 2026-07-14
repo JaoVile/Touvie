@@ -7,24 +7,63 @@ import { z } from "zod";
 // Quantas mensagens do histórico mandar ao modelo (segura custo/contexto).
 const HISTORY_WINDOW = 20;
 
-const bodySchema = z.object({ message: z.string().trim().min(1).max(4000) });
+const bodySchema = z.object({
+  message: z.string().trim().min(1).max(4000),
+  session_id: z.string().uuid(),
+});
 
-// Histórico pro painel flutuante (a página /toube carrega server-side; o painel
-// busca aqui na primeira abertura). Mesma auth do POST.
-export async function GET() {
+// Resolve a sessão ativa: a pedida (se for do usuário), senão a mais recente,
+// senão cria uma. Garante que sempre há uma sessão pra ler/gravar.
+async function activeSession(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  requested?: string | null,
+): Promise<string> {
+  if (requested && /^[0-9a-f-]{36}$/i.test(requested)) {
+    const { data } = await supabase
+      .from("toube_sessions")
+      .select("id")
+      .eq("id", requested)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (data) return data.id;
+  }
+  const { data: recent } = await supabase
+    .from("toube_sessions")
+    .select("id")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (recent) return recent.id;
+  const { data: created } = await supabase
+    .from("toube_sessions")
+    .insert({ user_id: userId })
+    .select("id")
+    .single();
+  if (!created) throw new Error("Não consegui abrir uma conversa.");
+  return created.id;
+}
+
+// Histórico de UMA sessão (a página carrega server-side; o painel busca aqui).
+// Sem ?session → a sessão mais recente. Devolve o sessionId resolvido.
+export async function GET(req: Request) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
+  const requested = new URL(req.url).searchParams.get("session");
+  const sessionId = await activeSession(supabase, user.id, requested);
   const { data } = await supabase
     .from("toube_messages")
     .select("id, role, content")
     .eq("user_id", user.id)
+    .eq("session_id", sessionId)
     .order("created_at", { ascending: false })
     .limit(40);
-  return NextResponse.json({ messages: (data ?? []).reverse() });
+  return NextResponse.json({ sessionId, messages: (data ?? []).reverse() });
 }
 
 export async function POST(req: Request) {
@@ -35,23 +74,38 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
   let message: string;
+  let sessionId: string;
   try {
-    message = bodySchema.parse(await req.json()).message;
+    const body = bodySchema.parse(await req.json());
+    message = body.message;
+    // Confirma que a sessão é do usuário (senão resolve a ativa).
+    sessionId = await activeSession(supabase, user.id, body.session_id);
   } catch {
     return NextResponse.json({ error: "Mensagem inválida." }, { status: 400 });
   }
 
-  // Grava a mensagem do usuário.
+  // Grava a mensagem do usuário NA SESSÃO.
   const { error: insErr } = await supabase
     .from("toube_messages")
-    .insert({ user_id: user.id, role: "user", content: message });
+    .insert({ user_id: user.id, session_id: sessionId, role: "user", content: message });
   if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
 
-  // Histórico recente (já inclui a mensagem acima) em ordem cronológica.
+  // Auto-título no 1º recado da sessão + bump do updated_at (pra ordenar a lista).
+  const { data: sess } = await supabase
+    .from("toube_sessions")
+    .select("title")
+    .eq("id", sessionId)
+    .single();
+  const patch: { updated_at: string; title?: string } = { updated_at: new Date().toISOString() };
+  if (!sess?.title) patch.title = message.slice(0, 60);
+  await supabase.from("toube_sessions").update(patch).eq("id", sessionId).eq("user_id", user.id);
+
+  // Histórico recente DESSA SESSÃO (o modelo só vê a conversa atual — anti-alucinação).
   const { data: rows } = await supabase
     .from("toube_messages")
     .select("role, content")
     .eq("user_id", user.id)
+    .eq("session_id", sessionId)
     .order("created_at", { ascending: false })
     .limit(HISTORY_WINDOW);
   const history = ((rows ?? []) as ChatMessage[]).reverse();
@@ -154,7 +208,7 @@ export async function POST(req: Request) {
   // Grava o texto da resposta (a proposta em si é efêmera — a pessoa confirma no ato).
   await supabase
     .from("toube_messages")
-    .insert({ user_id: user.id, role: "assistant", content: result.text });
+    .insert({ user_id: user.id, session_id: sessionId, role: "assistant", content: result.text });
 
   return NextResponse.json(
     result.kind === "proposals"
