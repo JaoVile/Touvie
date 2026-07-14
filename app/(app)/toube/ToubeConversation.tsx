@@ -116,26 +116,34 @@ export function ToubeConversation({
   const [planHistory, setPlanHistory] = useState<{ role: "user" | "assistant"; content: string }[]>(
     [],
   );
+  const [loadingPlan, setLoadingPlan] = useState(false); // trava síncrona do toggle
+  const [startingRec, setStartingRec] = useState(false); // trava síncrona do mic
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const stopTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  const busy = sending || transcribing || attaching || committing;
+  const busy = sending || transcribing || attaching || committing || loadingPlan;
 
   async function togglePlanMode() {
     if (busy || recording) return;
     const next = !planMode;
     setPlanMode(next);
-    if (next) setPlanHistory([]); // sessão de plano nova começa sem histórico
+    if (next) {
+      setPlanHistory([]); // sessão de plano nova começa sem histórico
+      setPlanDone(undefined); // não deixa banner "✓ criado" grudado no plano novo
+    }
     if (next && plan === null) {
+      setLoadingPlan(true);
       try {
         const res = await fetch("/api/toube/planos");
         const data = await res.json();
         setPlan(res.ok && data.plan ? data.plan : EMPTY_PLAN);
       } catch {
         setPlan(EMPTY_PLAN);
+      } finally {
+        setLoadingPlan(false);
       }
     }
   }
@@ -269,7 +277,8 @@ export function ToubeConversation({
 
   // ─── Áudio: grava → Whisper → preenche o campo (a pessoa revisa e envia) ───
   async function startRecording() {
-    if (busy || recording) return;
+    if (busy || recording || startingRec) return;
+    setStartingRec(true); // trava síncrona: 2 cliques rápidos não abrem 2 streams
     setError(undefined);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -309,6 +318,8 @@ export function ToubeConversation({
     } catch {
       setMicOk(false);
       setError("Não consegui acessar o microfone (permissão?).");
+    } finally {
+      setStartingRec(false);
     }
   }
 
@@ -411,7 +422,7 @@ export function ToubeConversation({
         <button
           type="button"
           onClick={recording ? stopRecording : startRecording}
-          disabled={busy}
+          disabled={busy || startingRec}
           title={recording ? "Parar gravação" : "Falar com o Toube"}
           className="rounded-lg p-2 disabled:opacity-40"
           style={{ color: recording ? "var(--color-danger)" : "var(--color-fg-muted)" }}
