@@ -15,10 +15,29 @@ export default async function ToubePage() {
   } = await supabase.auth.getUser();
   const userId = user!.id;
 
+  // Sessão ativa: a mais recente, ou cria uma se o usuário não tem nenhuma.
+  let { data: sess } = await supabase
+    .from("toube_sessions")
+    .select("id")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!sess) {
+    const { data: created } = await supabase
+      .from("toube_sessions")
+      .insert({ user_id: userId })
+      .select("id")
+      .single();
+    sess = created;
+  }
+  const sessionId = sess?.id ?? "";
+
   const { data: rows } = await supabase
     .from("toube_messages")
     .select("id, role, content")
     .eq("user_id", userId)
+    .eq("session_id", sessionId)
     .order("created_at", { ascending: true });
 
   const initial = (rows ?? []) as Message[];
@@ -60,7 +79,7 @@ export default async function ToubePage() {
         </span>
       </Link>
 
-      <ToubeChat initial={initial} />
+      <ToubeChat initial={initial} sessionId={sessionId} />
     </>
   );
 }

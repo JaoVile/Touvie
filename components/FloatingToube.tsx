@@ -17,6 +17,7 @@ export function FloatingToube() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[] | null>(null);
+  const [sessionId, setSessionId] = useState("");
   const [loadError, setLoadError] = useState(false);
 
   // Oculta em /toube, /toube/* e /diario (não em rotas futuras tipo /toubeXYZ).
@@ -35,6 +36,7 @@ export function FloatingToube() {
     try {
       const res = await fetch("/api/toube");
       const data = await res.json();
+      setSessionId(typeof data.sessionId === "string" ? data.sessionId : "");
       setMessages(Array.isArray(data.messages) ? data.messages : []);
     } catch {
       setLoadError(true);
@@ -109,7 +111,7 @@ export function FloatingToube() {
                     Não carreguei o histórico, mas pode conversar normal.
                   </p>
                 ) : null}
-                <ToubeConversation initial={messages} variant="panel" />
+                <ToubeConversation initial={messages} variant="panel" sessionId={sessionId} />
               </>
             )}
           </div>

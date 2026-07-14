@@ -6,6 +6,6 @@ import { type Message, ToubeConversation } from "./ToubeConversation";
 
 export type { Message };
 
-export function ToubeChat({ initial }: { initial: Message[] }) {
-  return <ToubeConversation initial={initial} variant="page" />;
+export function ToubeChat({ initial, sessionId }: { initial: Message[]; sessionId: string }) {
+  return <ToubeConversation initial={initial} variant="page" sessionId={sessionId} />;
 }

@@ -4,7 +4,7 @@ import { EMPTY_PLAN, type Plan } from "@/lib/planos-draft";
 import { DESTRUCTIVE_ACTIONS, type ToubeAction } from "@/lib/toube";
 import { Dumbbell, Mic, Paperclip, Square, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { KeyboardEvent } from "react";
+import type { ClipboardEvent, KeyboardEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { executeToubeAction } from "./actions";
 import { PlanPreview } from "./planos/PlanPreview";
@@ -91,9 +91,11 @@ function doneModule(action: ToubeAction): string {
 export function ToubeConversation({
   initial,
   variant,
+  sessionId,
 }: {
   initial: Message[];
   variant: "page" | "panel";
+  sessionId: string;
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(initial);
@@ -228,7 +230,7 @@ export function ToubeConversation({
       const res = await fetch("/api/toube", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, session_id: sessionId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro ao falar com o Toube.");
@@ -359,6 +361,17 @@ export function ToubeConversation({
     }
   }
 
+  // Colar imagem (Ctrl+V depois de um print) → vai pelo mesmo fluxo de anexo
+  // (Scout descreve). Sem imagem no clipboard, deixa colar texto normal.
+  function onPaste(e: ClipboardEvent<HTMLTextAreaElement>) {
+    const img = Array.from(e.clipboardData.items).find((it) => it.type.startsWith("image/"));
+    if (!img) return;
+    const file = img.getAsFile();
+    if (!file) return;
+    e.preventDefault();
+    attachFile(file);
+  }
+
   const bubbleBase =
     "max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed";
   const isPanel = variant === "panel";
@@ -403,6 +416,7 @@ export function ToubeConversation({
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={onKeyDown}
+        onPaste={onPaste}
         rows={1}
         placeholder={
           recording
