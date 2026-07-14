@@ -425,7 +425,11 @@ function proposalText(p: ToubeProposal): string {
 
 // Mensagem "de fio" da API (inclui os formatos de tool-calling OpenAI que não
 // cabem no ChatMessage público: assistant com tool_calls e o resultado role:"tool").
-type RawToolCall = { id?: string; function?: { name?: string; arguments?: string } };
+type RawToolCall = {
+  id?: string;
+  type?: "function";
+  function?: { name?: string; arguments?: string };
+};
 type WireMessage =
   | ChatMessage
   | { role: "assistant"; content: string; tool_calls: RawToolCall[] }
@@ -471,36 +475,15 @@ export async function toubeReply(
   let messages: WireMessage[] = [{ role: "system", content: system }, ...history];
 
   // Até 2 chamadas: se a 1ª pedir CONSULTA, executamos e devolvemos o resultado
-  // pro modelo responder com os números reais. Ações viram proposta em qualquer
-  // uma das rodadas; consulta pedida na 2ª rodada é ignorada (teto de custo).
+  // pro modelo responder com os números reais. Ações pedidas JUNTO da consulta na
+  // rodada 0 são guardadas (não podem sumir); consulta pedida na 2ª rodada é ignorada.
+  const stashedProposals: ToubeProposal[] = [];
+
   for (let round = 0; round < 2; round++) {
     const msg = await zaiChat(messages);
     const calls = msg?.tool_calls ?? [];
     const readCalls = calls.filter((c) => READ_NAMES.has(c.function?.name ?? ""));
-
-    if (round === 0 && readTool && readCalls.length) {
-      const toolMsgs: WireMessage[] = [];
-      for (const [i, c] of readCalls.entries()) {
-        let args: Record<string, unknown> = {};
-        try {
-          args = JSON.parse(c.function?.arguments || "{}");
-        } catch {
-          /* args inválidos — a consulta usa os padrões */
-        }
-        const content = await readTool(c.function?.name ?? "", args);
-        toolMsgs.push({ role: "tool", tool_call_id: c.id ?? `call_${i}`, content });
-      }
-      messages = [
-        ...messages,
-        { role: "assistant", content: msg?.content ?? "", tool_calls: readCalls },
-        ...toolMsgs,
-      ];
-      continue;
-    }
-
-    // Se o modelo decidiu agir, vira uma ou mais PROPOSTAS (não executa aqui). Aceita
-    // várias tool_calls no mesmo turno ("cria a meta X e 3 tarefas").
-    const proposals: ToubeProposal[] = calls
+    const actionProposals: ToubeProposal[] = calls
       .filter((t) => ACTION_NAMES.includes(t.function?.name as ToubeAction))
       .map((tc) => {
         let args: Record<string, unknown> = {};
@@ -512,6 +495,44 @@ export async function toubeReply(
         return { action: tc.function?.name as ToubeAction, args };
       });
 
+    if (round === 0 && readTool && readCalls.length) {
+      // Guarda ações que vieram junto ("vê quanto gastei E lança 50") pra não perder.
+      stashedProposals.push(...actionProposals);
+      const assistantCalls: RawToolCall[] = [];
+      const toolMsgs: WireMessage[] = [];
+      for (const [i, c] of readCalls.entries()) {
+        // MESMO id no tool_call do assistant e no resultado — senão a API rejeita.
+        const id = c.id ?? `call_${i}`;
+        let args: Record<string, unknown> = {};
+        try {
+          args = JSON.parse(c.function?.arguments || "{}");
+        } catch {
+          /* args inválidos — a consulta usa os padrões */
+        }
+        const content = await readTool(c.function?.name ?? "", args);
+        // Preserva o objeto original (mantém `type:"function"` que a Z.ai exige) e
+        // garante o mesmo id do resultado.
+        assistantCalls.push({ ...c, id, type: "function" });
+        toolMsgs.push({ role: "tool", tool_call_id: id, content });
+      }
+      messages = [
+        ...messages,
+        { role: "assistant", content: msg?.content ?? "", tool_calls: assistantCalls },
+        ...toolMsgs,
+      ];
+      continue;
+    }
+
+    // Ações guardadas da rodada 0 + as desta rodada (dedup por action+args — o modelo
+    // pode reemitir a mesma ação depois de ver o resultado da consulta).
+    const merged = [...stashedProposals, ...actionProposals];
+    const proposals = merged.filter(
+      (p, i) =>
+        merged.findIndex(
+          (q) => q.action === p.action && JSON.stringify(q.args) === JSON.stringify(p.args),
+        ) === i,
+    );
+
     if (proposals.length) {
       const text =
         msg?.content?.trim() ||
@@ -520,8 +541,10 @@ export async function toubeReply(
     }
 
     const text = msg?.content?.trim();
-    if (!text) throw new Error("Resposta vazia do modelo");
-    return { kind: "text", text };
+    if (text) return { kind: "text", text };
+    // Sem texto e sem proposta (ex.: modelo repetiu uma consulta na rodada 1):
+    // resposta amigável em vez de estourar 502.
+    return { kind: "text", text: "Não consegui responder isso agora — pode reformular?" };
   }
-  throw new Error("Resposta vazia do modelo");
+  return { kind: "text", text: "Não consegui responder isso agora — pode reformular?" };
 }
