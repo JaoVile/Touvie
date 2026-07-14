@@ -1,10 +1,13 @@
 "use client";
 
 import { type Message, ToubeConversation } from "@/app/(app)/toube/ToubeConversation";
-import { Dumbbell, Sparkles, X } from "lucide-react";
+import { createSession, deleteSession } from "@/app/(app)/toube/sessions-actions";
+import { Dumbbell, MessageSquarePlus, MessagesSquare, Sparkles, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+
+type SessionLite = { id: string; title: string | null };
 
 /**
  * O Toube em toda parte: bolha fixa → painel lateral com a MESMA conversa da
@@ -19,6 +22,8 @@ export function FloatingToube() {
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [sessionId, setSessionId] = useState("");
   const [loadError, setLoadError] = useState(false);
+  const [view, setView] = useState<"chat" | "list">("chat");
+  const [sessions, setSessions] = useState<SessionLite[]>([]);
 
   // Oculta em /toube, /toube/* e /diario (não em rotas futuras tipo /toubeXYZ).
   if (
@@ -50,6 +55,44 @@ export function FloatingToube() {
     setOpen(false);
     setMessages(null);
     setLoadError(false);
+    setView("chat");
+  }
+
+  async function openList() {
+    setView("list");
+    try {
+      const res = await fetch("/api/toube/sessions");
+      const data = await res.json();
+      setSessions(Array.isArray(data.sessions) ? data.sessions : []);
+    } catch {
+      setSessions([]);
+    }
+  }
+
+  async function loadSession(id?: string) {
+    try {
+      const res = await fetch(id ? `/api/toube?session=${id}` : "/api/toube");
+      const data = await res.json();
+      setSessionId(typeof data.sessionId === "string" ? data.sessionId : (id ?? ""));
+      setMessages(Array.isArray(data.messages) ? data.messages : []);
+    } catch {
+      setMessages([]);
+    }
+    setView("chat");
+  }
+
+  async function novaConversa() {
+    const { id } = await createSession();
+    setSessionId(id);
+    setMessages([]);
+    setView("chat");
+  }
+
+  async function removeSession(id: string) {
+    if (!confirm("Apagar essa conversa? Não dá pra desfazer.")) return;
+    await deleteSession(id);
+    setSessions((s) => s.filter((x) => x.id !== id));
+    if (id === sessionId) await loadSession(); // caiu a ativa → recarrega a atual
   }
 
   return (
@@ -79,6 +122,16 @@ export function FloatingToube() {
             <span className="text-sm font-semibold" style={{ color: "var(--color-fg)" }}>
               Toube
             </span>
+            <button
+              type="button"
+              onClick={view === "list" ? () => setView("chat") : openList}
+              title="Conversas"
+              className="flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium"
+              style={{ borderColor: "var(--color-border)", color: "var(--color-fg-muted)" }}
+            >
+              <MessagesSquare className="size-3" />
+              Conversas
+            </button>
             <Link
               href="/toube/planos"
               onClick={closePanel}
@@ -100,7 +153,48 @@ export function FloatingToube() {
           </header>
 
           <div className="min-h-0 flex-1 px-2 pb-2">
-            {messages === null ? (
+            {view === "list" ? (
+              <div className="flex flex-col gap-1 overflow-y-auto py-2">
+                <button
+                  type="button"
+                  onClick={novaConversa}
+                  className="mb-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-white"
+                  style={{ background: "var(--gradient-brand)" }}
+                >
+                  <MessageSquarePlus className="size-4" />
+                  Nova conversa
+                </button>
+                {sessions.map((s) => (
+                  <div key={s.id} className="group flex items-center gap-1 rounded-lg px-2 py-1.5">
+                    <button
+                      type="button"
+                      onClick={() => loadSession(s.id)}
+                      className="min-w-0 flex-1 truncate text-left text-sm"
+                      style={{ color: "var(--color-fg-muted)" }}
+                    >
+                      {s.title || "Nova conversa"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeSession(s.id)}
+                      title="Apagar conversa"
+                      className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                      style={{ color: "var(--color-fg-subtle)" }}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {sessions.length === 0 ? (
+                  <p
+                    className="px-2 py-4 text-center text-xs"
+                    style={{ color: "var(--color-fg-muted)" }}
+                  >
+                    Nenhuma conversa ainda.
+                  </p>
+                ) : null}
+              </div>
+            ) : messages === null ? (
               <p className="py-10 text-center text-sm" style={{ color: "var(--color-fg-muted)" }}>
                 Carregando a conversa…
               </p>
