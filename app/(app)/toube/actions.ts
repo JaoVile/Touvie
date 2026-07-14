@@ -65,10 +65,15 @@ export async function executeToubeAction(
       // Busca a meta atual (RLS garante que é do usuário) pra mesclar os campos que
       // NÃO mudaram — saveGoal exige título, então não dá pra mandar parcial.
       const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return { error: "Sessão expirada." };
       const { data: cur } = await supabase
         .from("goals")
         .select("title, description, target_date")
         .eq("id", id)
+        .eq("user_id", user.id) // defesa em profundidade além do RLS (regra do projeto)
         .single();
       if (!cur) return { error: "meta não encontrada." };
       const fd = new FormData();

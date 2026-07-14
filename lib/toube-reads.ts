@@ -145,6 +145,7 @@ async function programaAtivo(supabase: Client, userId: string): Promise<string> 
     .select("id, name")
     .eq("user_id", userId)
     .eq("active", true)
+    .limit(1) // se por inconsistência houver 2 ativos, pega 1 em vez de o maybeSingle dar erro
     .maybeSingle();
   if (!prog) return "";
   const { data: days } = await supabase

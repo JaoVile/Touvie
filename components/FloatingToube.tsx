@@ -19,7 +19,15 @@ export function FloatingToube() {
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [loadError, setLoadError] = useState(false);
 
-  if (pathname.startsWith("/toube") || pathname.startsWith("/diario")) return null;
+  // Oculta em /toube, /toube/* e /diario (não em rotas futuras tipo /toubeXYZ).
+  if (
+    pathname === "/toube" ||
+    pathname.startsWith("/toube/") ||
+    pathname === "/diario" ||
+    pathname.startsWith("/diario/")
+  ) {
+    return null;
+  }
 
   async function openPanel() {
     setOpen(true);
