@@ -30,7 +30,20 @@ export async function getOrCreateDraft(): Promise<{ id: string; plan: Plan }> {
     .insert({ user_id: userId, plan: EMPTY_PLAN })
     .select("id, plan")
     .single();
-  if (error || !created) throw new Error(error?.message ?? "Erro ao criar rascunho");
+  if (error || !created) {
+    // Corrida (2 requisições inserindo): o índice único parcial barrou uma —
+    // pega o rascunho que a outra criou em vez de estourar.
+    const { data: raced } = await supabase
+      .from("workout_program_drafts")
+      .select("id, plan")
+      .eq("user_id", userId)
+      .eq("status", "building")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (raced) return { id: raced.id, plan: (raced.plan as Plan) ?? EMPTY_PLAN };
+    throw new Error(error?.message ?? "Erro ao criar rascunho");
+  }
   return { id: created.id, plan: created.plan as Plan };
 }
 
