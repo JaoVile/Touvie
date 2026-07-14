@@ -16,6 +16,21 @@ export type GroqResponse = {
   }[];
 };
 
+// Fetch com retry pros transitórios do Groq (429 rate limit / 5xx). Erro
+// permanente (400/401) não repete. A FormData/JSON é reusável entre tentativas.
+async function groqFetchRetry(url: string, init: RequestInit, label: string): Promise<Response> {
+  let lastStatus = 0;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await fetch(url, init);
+    if (res.ok) return res;
+    lastStatus = res.status;
+    if (res.status === 429 || res.status >= 500) continue; // transitório → tenta de novo
+    const detail = await res.text().catch(() => "");
+    throw new Error(`${label} ${res.status}: ${detail.slice(0, 200)}`);
+  }
+  throw new Error(`${label} ${lastStatus}: sem sucesso após 3 tentativas`);
+}
+
 /** Transcreve um áudio (webm/opus, mp4/aac, mp3…) em PT-BR via Whisper. */
 export async function groqTranscribe(file: Blob, filename: string): Promise<string> {
   const key = process.env.GROQ_API_KEY;
@@ -24,15 +39,11 @@ export async function groqTranscribe(file: Blob, filename: string): Promise<stri
   fd.set("file", file, filename);
   fd.set("model", WHISPER_MODEL);
   fd.set("language", "pt");
-  const res = await fetch(GROQ_TRANSCRIBE_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}` },
-    body: fd,
-  });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`Groq transcribe ${res.status}: ${detail.slice(0, 200)}`);
-  }
+  const res = await groqFetchRetry(
+    GROQ_TRANSCRIBE_URL,
+    { method: "POST", headers: { Authorization: `Bearer ${key}` }, body: fd },
+    "Groq transcribe",
+  );
   const data = (await res.json()) as { text?: string };
   return (data.text ?? "").trim();
 }
@@ -41,30 +52,30 @@ export async function groqTranscribe(file: Blob, filename: string): Promise<stri
 export async function groqVision(dataUrl: string): Promise<string> {
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("GROQ_API_KEY não configurada");
-  const res = await fetch(GROQ_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: VISION_MODEL,
-      max_tokens: 500,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Descreva objetivamente em português o que há nesta imagem. Transcreva TODOS os textos, números e valores visíveis (recibos, listas, telas). Sem opinião, só o conteúdo.",
-            },
-            { type: "image_url", image_url: { url: dataUrl } },
-          ],
-        },
-      ],
-    }),
-  });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`Groq vision ${res.status}: ${detail.slice(0, 200)}`);
-  }
+  const res = await groqFetchRetry(
+    GROQ_URL,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: VISION_MODEL,
+        max_tokens: 500,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Descreva objetivamente em português o que há nesta imagem. Transcreva TODOS os textos, números e valores visíveis (recibos, listas, telas). Sem opinião, só o conteúdo.",
+              },
+              { type: "image_url", image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+      }),
+    },
+    "Groq vision",
+  );
   const data = (await res.json()) as GroqResponse;
   const text = data.choices?.[0]?.message?.content?.trim();
   if (!text) throw new Error("Visão não devolveu descrição");
