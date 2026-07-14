@@ -4,7 +4,8 @@ import { GradientHeader } from "@/components/glass/GradientHeader";
 import { createClient } from "@/lib/supabase/server";
 import { Dumbbell, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { type Message, ToubeChat } from "./ToubeChat";
+import type { Message } from "./ToubeConversation";
+import { ToubeSessions } from "./ToubeSessions";
 
 export const dynamic = "force-dynamic";
 
@@ -33,12 +34,20 @@ export default async function ToubePage() {
   }
   const sessionId = sess?.id ?? "";
 
-  const { data: rows } = await supabase
-    .from("toube_messages")
-    .select("id, role, content")
-    .eq("user_id", userId)
-    .eq("session_id", sessionId)
-    .order("created_at", { ascending: true });
+  const [{ data: rows }, { data: sessions }] = await Promise.all([
+    supabase
+      .from("toube_messages")
+      .select("id, role, content")
+      .eq("user_id", userId)
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("toube_sessions")
+      .select("id, title, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(100),
+  ]);
 
   const initial = (rows ?? []) as Message[];
 
@@ -79,7 +88,7 @@ export default async function ToubePage() {
         </span>
       </Link>
 
-      <ToubeChat initial={initial} sessionId={sessionId} />
+      <ToubeSessions sessions={sessions ?? []} activeId={sessionId} initial={initial} />
     </>
   );
 }
