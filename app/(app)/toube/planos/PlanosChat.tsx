@@ -30,7 +30,7 @@ export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
       const res = await fetch("/api/toube/planos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, history: messages.slice(-24) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro.");

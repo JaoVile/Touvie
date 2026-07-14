@@ -111,6 +111,11 @@ export function ToubeConversation({
   const [plan, setPlan] = useState<Plan | null>(null);
   const [committing, setCommitting] = useState(false);
   const [planDone, setPlanDone] = useState<string>();
+  // Histórico SÓ do diálogo do modo Plano (separado da conversa normal do Toube),
+  // pra o construtor lembrar as perguntas/respostas — "quantos dias?" → "4".
+  const [planHistory, setPlanHistory] = useState<{ role: "user" | "assistant"; content: string }[]>(
+    [],
+  );
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
@@ -123,6 +128,7 @@ export function ToubeConversation({
     if (busy || recording) return;
     const next = !planMode;
     setPlanMode(next);
+    if (next) setPlanHistory([]); // sessão de plano nova começa sem histórico
     if (next && plan === null) {
       try {
         const res = await fetch("/api/toube/planos");
@@ -143,6 +149,7 @@ export function ToubeConversation({
       if (res.error) throw new Error(res.error);
       setPlanDone("✓ Programa criado! Já está no módulo Treino.");
       setPlan(EMPTY_PLAN); // o rascunho fechou; o próximo começa do zero
+      setPlanHistory([]);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao criar o programa.");
@@ -194,13 +201,20 @@ export function ToubeConversation({
         const res = await fetch(isUrl ? "/api/toube/planos/fonte" : "/api/toube/planos", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(isUrl ? { url: typed } : { message: text }),
+          body: JSON.stringify(
+            isUrl ? { url: typed } : { message: text, history: planHistory.slice(-24) },
+          ),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Erro no modo Plano.");
         setPlan(data.plan);
         setPlanDone(undefined);
         setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
+        setPlanHistory((h) => [
+          ...h,
+          { role: "user", content: text },
+          { role: "assistant", content: data.reply },
+        ]);
         return;
       }
       const res = await fetch("/api/toube", {
