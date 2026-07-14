@@ -34,6 +34,14 @@ export function FloatingToube() {
     }
   }
 
+  // Fechar INVALIDA o cache: a conversa do painel é salva em toube_messages, então
+  // reabrir refaz o fetch e mostra as mensagens novas (senão o painel remonta stale).
+  function closePanel() {
+    setOpen(false);
+    setMessages(null);
+    setLoadError(false);
+  }
+
   return (
     <>
       {!open ? (
@@ -63,7 +71,7 @@ export function FloatingToube() {
             </span>
             <Link
               href="/toube/planos"
-              onClick={() => setOpen(false)}
+              onClick={closePanel}
               className="ml-auto flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium"
               style={{ borderColor: "var(--color-border)", color: "var(--color-accent)" }}
             >
@@ -72,7 +80,7 @@ export function FloatingToube() {
             </Link>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={closePanel}
               title="Fechar"
               className="rounded-lg p-1.5"
               style={{ color: "var(--color-fg-muted)" }}
