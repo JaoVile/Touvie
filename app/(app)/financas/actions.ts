@@ -182,6 +182,29 @@ export async function deleteTransaction(id: string) {
 }
 
 /**
+ * Apaga VÁRIOS lançamentos de uma vez (seleção em lote na aba Lançamentos —
+ * limpar lixo de import). Valida os ids, limita o lote e escopa por user_id
+ * (além do RLS). Deletar mexe no saldo (a view soma as transações).
+ */
+export async function deleteTransactions(
+  ids: string[],
+): Promise<{ ok?: boolean; error?: string; deleted?: number }> {
+  const valid = [...new Set(ids)].filter((id) => z.string().uuid().safeParse(id).success);
+  if (!valid.length) return { error: "Nada selecionado." };
+  if (valid.length > 200) return { error: "Muitos de uma vez (máx 200)." };
+  const { supabase, userId } = await requireUser();
+  const { error } = await supabase
+    .from("transactions")
+    .delete()
+    .in("id", valid)
+    .eq("user_id", userId);
+  if (error) return { error: error.message };
+  revalidatePath("/financas");
+  revalidatePath("/");
+  return { ok: true, deleted: valid.length };
+}
+
+/**
  * Ajusta o saldo TOTAL pela realidade: o usuário digita quanto tem de fato e
  * geramos um lançamento de ajuste (receita ou despesa) do tamanho da diferença
  * entre o real e o total calculado. Sem categoria; entra no total como qualquer

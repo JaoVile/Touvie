@@ -13,7 +13,17 @@ export interface LedgerItem {
   category: { name: string; emoji: string | null; color: string | null } | null;
 }
 
-export function TransactionRow({ item }: { item: LedgerItem }) {
+export function TransactionRow({
+  item,
+  selectable = false,
+  selected = false,
+  onToggle,
+}: {
+  item: LedgerItem;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggle?: () => void;
+}) {
   const [pending, start] = useTransition();
 
   function remove() {
@@ -40,9 +50,24 @@ export function TransactionRow({ item }: { item: LedgerItem }) {
   return (
     <li
       className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm"
-      style={{ background: "var(--color-card)" }}
+      style={{
+        background: "var(--color-card)",
+        outline: selected ? "2px solid var(--color-accent)" : undefined,
+        cursor: selectable ? "pointer" : undefined,
+      }}
+      onClick={selectable ? onToggle : undefined}
     >
       <div className="flex min-w-0 items-center gap-2">
+        {selectable ? (
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onToggle}
+            onClick={(e) => e.stopPropagation()}
+            className="size-4 shrink-0 accent-[var(--color-accent)]"
+            aria-label="Selecionar lançamento"
+          />
+        ) : null}
         <span
           aria-hidden
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm"
@@ -61,16 +86,18 @@ export function TransactionRow({ item }: { item: LedgerItem }) {
         <span className="font-mono text-sm" style={{ color }}>
           {sign} {formatBRL(item.amount_cents)}
         </span>
-        <button
-          type="button"
-          onClick={remove}
-          disabled={pending}
-          className="rounded px-1.5 py-1 text-xs hover:opacity-80 disabled:opacity-40"
-          style={{ color: "var(--color-fg-subtle)" }}
-          aria-label="Apagar lançamento"
-        >
-          ×
-        </button>
+        {selectable ? null : (
+          <button
+            type="button"
+            onClick={remove}
+            disabled={pending}
+            className="rounded px-1.5 py-1 text-xs hover:opacity-80 disabled:opacity-40"
+            style={{ color: "var(--color-fg-subtle)" }}
+            aria-label="Apagar lançamento"
+          >
+            ×
+          </button>
+        )}
       </div>
     </li>
   );
