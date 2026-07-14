@@ -49,9 +49,17 @@ export type Database = {
       toube_messages: Table<{
         id: string;
         user_id: string;
+        session_id: string;
         role: "user" | "assistant";
         content: string;
         created_at: Timestamptz;
+      }>;
+      toube_sessions: Table<{
+        id: string;
+        user_id: string;
+        title: string | null;
+        created_at: Timestamptz;
+        updated_at: Timestamptz;
       }>;
       focus_quests: Table<{
         id: string;
