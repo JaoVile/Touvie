@@ -183,6 +183,8 @@ export function SoundscapePicker() {
       textures: sc.textures,
       freqVolume: sc.freqVolume ?? 0.5,
       textureVolume: sc.textureVolume ?? 0.5,
+      // Cena não define volume por som — começa tudo no default (1).
+      textureVolumes: {},
     });
   };
 
@@ -202,6 +204,8 @@ export function SoundscapePicker() {
   // utilitários (rosa/marrom) descem pro Avançado — são mais "ferramenta".
   const naturalAmbient = ambient.filter((t) => !t.key.startsWith("ruido"));
   const noises = ambient.filter((t) => t.key.startsWith("ruido"));
+  // Texturas ligadas (na ordem do catálogo) — pra os sliders de volume por som.
+  const activeTextures = TEXTURES.filter((t) => state.textures.includes(t.key));
 
   const activeJourney = JOURNEYS.find((j) => j.key === state.journey);
   const journeyElapsed =
@@ -294,10 +298,28 @@ export function SoundscapePicker() {
         </h5>
         {renderChips(instruments)}
         <VolumeSlider
-          label="Volume"
+          label="Geral"
           value={state.textureVolume}
           onChange={(v) => update({ textureVolume: v })}
         />
+        {/* Volume por som: um slider por textura ATIVA, multiplica o master "Geral". */}
+        {activeTextures.length > 0 ? (
+          <div className="mt-4">
+            <h5 className={subLabel} style={{ color: "var(--color-fg-subtle)" }}>
+              Volume por som
+            </h5>
+            {activeTextures.map((t) => (
+              <VolumeSlider
+                key={t.key}
+                label={t.name}
+                value={state.textureVolumes?.[t.key] ?? 1}
+                onChange={(v) =>
+                  update({ textureVolumes: { ...state.textureVolumes, [t.key]: v } })
+                }
+              />
+            ))}
+          </div>
+        ) : null}
       </section>
 
       {/* ── Frequência, jornadas, ruídos, modo profundo ── */}

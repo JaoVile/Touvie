@@ -50,8 +50,12 @@ const variantsOf = (key: TextureKey): number => TEXTURES.find((t) => t.key === k
 const loudnessOf = (key: TextureKey, variant: number): number =>
   LOUDNESS_GAIN[variantsOf(key) > 1 ? `${key}-${variant}` : key] ?? 1;
 
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+
 type WebkitWindow = Window & { webkitAudioContext?: typeof AudioContext };
-type Voice = { gain: GainNode; nodes: AudioNode[] };
+// `userGain` só existe nas vozes de textura: nó de volume individual do usuário,
+// em série entre `gain` (fade) e o `texBus`. Ausente na voz de frequência.
+type Voice = { gain: GainNode; nodes: AudioNode[]; userGain?: GainNode };
 
 export class SoundEngine {
   private ctx: AudioContext | null = null;
@@ -72,6 +76,8 @@ export class SoundEngine {
 
   private freqVolume = 0.5;
   private texVolume = 0.5;
+  // Volume individual por textura (0–1); ausente = 1. Multiplica o master (texBus).
+  private texUserVolumes: Partial<Record<TextureKey, number>> = {};
 
   private bufferCache = new Map<string, AudioBuffer | null>();
   private desired = new Set<TextureKey>();
@@ -126,12 +132,14 @@ export class SoundEngine {
     freqVolume: number;
     textures: TextureKey[];
     textureVolume: number;
+    textureVolumes?: Partial<Record<TextureKey, number>>;
     journey: JourneyKey | null;
     journeyStartedAt: number | null;
     deepMode: boolean;
   }): void {
     this.freqVolume = s.freqVolume;
     this.texVolume = s.textureVolume;
+    this.texUserVolumes = s.textureVolumes ?? {};
     // Sem nada pra tocar e sem contexto ainda → não cria AudioContext (evita o
     // warning de autoplay). Guarda só os volumes pra quando algo ligar.
     if (!s.freqMode && !s.journey && s.textures.length === 0 && !this.ctx) return;
@@ -139,6 +147,11 @@ export class SoundEngine {
     this.ensure();
     this.rampBus(this.freqBus, this.freqVolume);
     this.rampBus(this.texBus, this.texVolume);
+    // Ajusta o volume individual das texturas já tocando (as novas nascem no valor
+    // certo em addTexture). Textura ausente do mapa = volume 1.
+    for (const [key, voice] of this.texVoices) {
+      if (voice.userGain) this.rampBus(voice.userGain, clamp01(this.texUserVolumes[key] ?? 1));
+    }
     // Modo profundo mudou → força reconstruir a frequência (zera o tracking pra
     // que setJourney/setFrequency não façam curto-circuito por "mesmo modo").
     if (this.deep !== s.deepMode) {
@@ -429,6 +442,8 @@ export class SoundEngine {
       if (!buf || !this.master) return;
       this.stopPreview(); // interrompe um preview anterior
       const t = ctx.currentTime;
+      // Preview é pra julgar o TAKE (página de créditos/curadoria), não a mistura:
+      // ignora o volume individual do usuário — senão uma textura em 0% previa muda.
       const level = (TEXTURE_GAIN[key] ?? 0.8) * loudnessOf(key, v);
       const g = ctx.createGain();
       g.gain.setValueAtTime(level, t);
@@ -466,7 +481,14 @@ export class SoundEngine {
     this.loading.delete(key);
     // Pode ter sido desligada enquanto carregava.
     if (!buf || !this.desired.has(key) || this.texVoices.has(key) || !this.texBus) return;
-    const voice = this.startVoice(this.texBus);
+    // Nó de volume individual do usuário, ESTÁVEL por toda a vida da textura, em
+    // série entre a voz (fade) e o texBus: voice.gain → userGain → texBus.
+    const userGain = this.ctx!.createGain();
+    userGain.gain.value = clamp01(this.texUserVolumes[key] ?? 1);
+    userGain.connect(this.texBus);
+    const voice = this.startVoice(userGain);
+    voice.userGain = userGain;
+    voice.nodes.push(userGain); // stopVoice desconecta junto (sem vazar nó)
     this.texVoices.set(key, voice);
     this.playClip(key, voice, first, buf);
     this.fadeIn(voice);

@@ -476,8 +476,13 @@ export type SoundState = {
   freqVolume: number;
   /** Texturas ativas (mistura livre). */
   textures: TextureKey[];
-  /** Volume das texturas, 0–1 perceptual. */
+  /** Volume das texturas, 0–1 perceptual — MASTER que rege todas as texturas. */
   textureVolume: number;
+  /**
+   * Volume individual por textura (0–1), multiplica o master acima. Ausente/omitido
+   * = 1 (não altera nada). Só as texturas que o usuário ajustou aparecem aqui.
+   */
+  textureVolumes?: Partial<Record<TextureKey, number>>;
   /** Jornada guiada ativa (conduz a frequência), ou null. */
   journey: JourneyKey | null;
   /** Epoch (ms) em que a jornada começou — pra retomar no estágio certo. */
@@ -495,6 +500,7 @@ export const DEFAULT_SOUND: SoundState = {
   freqVolume: 0.5,
   textures: [],
   textureVolume: 0.5,
+  textureVolumes: {},
   journey: null,
   journeyStartedAt: null,
   deepMode: false,
@@ -525,6 +531,18 @@ export function readSoundState(): SoundState {
         typeof p.textureVolume === "number"
           ? clamp01(p.textureVolume)
           : DEFAULT_SOUND.textureVolume,
+      // Só chaves de textura válidas com valor numérico; clampa a [0,1], descarta lixo.
+      textureVolumes:
+        p.textureVolumes && typeof p.textureVolumes === "object"
+          ? Object.fromEntries(
+              Object.entries(p.textureVolumes)
+                .filter(
+                  (e): e is [TextureKey, number] =>
+                    TEXTURES.some((x) => x.key === e[0]) && typeof e[1] === "number",
+                )
+                .map(([k, v]) => [k, clamp01(v)]),
+            )
+          : {},
       journey,
       // Só vale com jornada ativa; sem timestamp, assume "começou agora".
       journeyStartedAt:
