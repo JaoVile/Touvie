@@ -73,7 +73,9 @@ async function financas(
     .gte("occurred_on", first)
     .lt("occurred_on", next)
     .order("occurred_on", { ascending: false })
-    .limit(200)
+    // Alto o bastante pra somar o MÊS INTEIRO (200 antes truncava e o "quanto
+    // gastei" mentia). Só os "últimos" abaixo são fatiados pra exibição.
+    .limit(5000)
     .returns<Row[]>();
   const txs = data ?? [];
   if (!txs.length) return `FINANÇAS ${mes}: nenhum lançamento registrado nesse mês.`;
