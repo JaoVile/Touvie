@@ -1,9 +1,10 @@
 # Touvie — Roadmap
 
-> Estado (06/jul/2026): os **3 bloqueadores do MVP estão prontos e no `main`**
-> (cadastro, diário zero-knowledge, contagem/analytics), mais o **assistente
-> Toube** (chat com GLM-4.7-Flash — ver `Toube.md`). O que resta antes do vídeo é
-> pequeno; o resto é pós-launch.
+> Estado (15/jul/2026): os **3 bloqueadores do MVP estão prontos e no `main`**
+> (cadastro, diário zero-knowledge, contagem/analytics), e o **assistente Toube**
+> evoluiu bem além do MVP — hoje age nos módulos, lê os dados, monta planos de
+> treino, tem painel flutuante, voz e visão (ver `README.md` e `CLAUDE.md`). O que
+> resta antes do vídeo é pequeno; o resto é pós-launch.
 
 Prioridade: **P0** = trava o launch · **P1** = logo depois · **P2** = quando der.
 
@@ -34,9 +35,8 @@ Prioridade: **P0** = trava o launch · **P1** = logo depois · **P2** = quando d
   futuro). ~meio dia.
 - **PDF "retomar página"** no `/leitura` — a coluna `current_page` existe mas não
   é usada; salvar e voltar de onde parou. ~2h.
-- ~~**Quests de foco do dia**~~ → **construída** como "Foco do dia" (ver `Quests.md`
-  e `docs/superpowers/specs/2026-07-06-foco-do-dia-design.md`). Falta só aplicar a
-  migração `0025` no Supabase + QA no navegador.
+- ~~**Quests de foco do dia**~~ → **construída** e em prod como "Foco do dia"
+  (ver seção 4 e `docs/superpowers/specs/2026-07-06-foco-do-dia-design.md`).
 - **Ver/regerar o código de recuperação** depois da ativação — hoje só aparece
   1x. Um "gerar novo código" dentro de Gerenciar.
 - **Onboarding do cadastro** — deixar claro no `/signup` o peso da palavra-chave
@@ -63,9 +63,11 @@ Prioridade: **P0** = trava o launch · **P1** = logo depois · **P2** = quando d
   com duração). Tabela `focus_quests` (RLS own-row) + `focus_quest_enabled` em
   `profiles`, toggle no `/config`, conteúdo i18n pt+en. Migração `0025` roda à mão.
   Spec/plano em `docs/superpowers/`.
-- **Toube** — assistente de IA (chat, GLM-4.7-Flash grátis via Z.ai). MVP: chat
-  puro em `/toube`, histórico com RLS, sem contexto dos dados ainda. Ver `Toube.md`
-  (falta operacional: `ZAI_API_KEY` na Vercel + migração 0024 no SQL Editor).
+- **Toube** — assistente de IA muito além do MVP: chat em `/toube` + painel
+  flutuante, histórico por sessão (RLS), **age** nos módulos (finanças, rotina,
+  lembretes, notas, dieta, treino), **lê** os dados, monta **planos de treino**,
+  transcreve voz (Whisper) e lê imagens (visão). GLM-4.7-Flash (Z.ai) no chat,
+  llama-3.3 (Groq) nos planos. **Diário é intocável pelo Toube.**
 - Cadastro `/signup` (email+senha+nome+palavra-chave, sem confirmação de email).
 - Diário **zero-knowledge**: cifra client-side (AES-GCM), DEK trancada por 3
   portas (PIN, palavra-chave, código). Ativar / destrancar / trocar PIN /
