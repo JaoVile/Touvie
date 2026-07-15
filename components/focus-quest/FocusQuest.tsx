@@ -9,7 +9,7 @@ import {
 import { playNotification } from "@/lib/notification-sound";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** Sorteia um item estável (só muda quando `seed` muda). */
 function pick<T>(arr: T[], seed: number): T {
@@ -23,8 +23,15 @@ export function FocusQuest({ initial }: { initial: QuestRow | null }) {
   const [busy, setBusy] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
-  // Sorteio estável por montagem (Math.random é aceitável no client).
-  const seed = useMemo(() => Math.floor(Math.random() * 1000), []);
+  // Sorteio por montagem. Precisa rodar SÓ no cliente, DEPOIS de hidratar: este
+  // é um client component mas o Next também o renderiza no servidor (SSR), e
+  // Math.random() no SSR divergiria do cliente → hydration mismatch. Então o SSR
+  // e a 1ª render do cliente usam seed 0 (determinístico, casam), e o sorteio
+  // real entra logo após montar.
+  const [seed, setSeed] = useState(0);
+  useEffect(() => {
+    setSeed(Math.floor(Math.random() * 1000));
+  }, []);
   const affirmations = t.raw("affirmations") as string[];
   const questions = t.raw("questions") as string[];
   const congrats = t.raw("congrats") as string[];
