@@ -2,7 +2,8 @@
 
 import { EMPTY_PLAN, type Plan } from "@/lib/planos-draft";
 import { DESTRUCTIVE_ACTIONS, type ToubeAction } from "@/lib/toube";
-import { Dumbbell, Mic, Paperclip, Square, X } from "lucide-react";
+import { toubeVoice } from "@/lib/toube-voice";
+import { Dumbbell, Mic, Paperclip, Sparkles, Square, Volume2, VolumeX, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ClipboardEvent, KeyboardEvent } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -122,11 +123,43 @@ export function ToubeConversation({
   const [startingRec, setStartingRec] = useState(false); // trava síncrona do mic
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const stopTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const busy = sending || transcribing || attaching || committing || loadingPlan;
+
+  // Auto-grow do textarea do composer: 1 linha em repouso, cresce com o texto
+  // até o teto de 160px (= max-h-40). Overflow fica escondido abaixo do teto —
+  // com rows fixo o browser renderiza scrollbar interna (setinhas) e corta o texto.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: input é o gatilho — o efeito só lê o DOM, mas precisa rodar a cada mudança de texto (inclusive setInput programático da transcrição)
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+    el.style.overflowY = el.scrollHeight > 160 ? "auto" : "hidden";
+  }, [input]);
+
+  // Voz do Toube (TTS do navegador). Sincroniza suporte/estado só no cliente
+  // (evita mismatch de hydration) e corta a fala ao desmontar (fechar painel /
+  // trocar de rota) — senão ele continua falando sozinho.
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  useEffect(() => {
+    setVoiceSupported(toubeVoice.supported);
+    setVoiceOn(toubeVoice.enabled);
+    return () => toubeVoice.stop();
+  }, []);
+
+  function toggleVoice() {
+    const next = !voiceOn;
+    toubeVoice.setEnabled(next);
+    setVoiceOn(next);
+    // Feedback imediato ao ligar (e destrava o autoplay dentro do gesto do clique).
+    if (next) void toubeVoice.speak("Pronto! A voz do Toube está ativada.");
+  }
 
   async function togglePlanMode() {
     if (busy || recording) return;
@@ -220,6 +253,7 @@ export function ToubeConversation({
         setPlan(data.plan);
         setPlanDone(undefined);
         setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
+        toubeVoice.speak(data.reply);
         setPlanHistory((h) => [
           ...h,
           { role: "user", content: text },
@@ -242,6 +276,7 @@ export function ToubeConversation({
           }))
         : undefined;
       setMessages((m) => [...m, { role: "assistant", content: data.reply, proposals }]);
+      toubeVoice.speak(data.reply);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro inesperado.");
     } finally {
@@ -372,21 +407,25 @@ export function ToubeConversation({
     attachFile(file);
   }
 
+  // Balões estilo mensageiro: estreitos, bem arredondados, com UM canto fechado
+  // (o de baixo, do lado de quem falou) fazendo o "rabinho". Sombra sutil pra chique.
   const bubbleBase =
-    "max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed";
+    "max-w-[78%] whitespace-pre-wrap rounded-3xl px-4 py-2.5 text-sm leading-relaxed shadow-sm";
   const isPanel = variant === "panel";
 
   const inputBar = (
     <div
-      className={`flex items-end gap-1.5 rounded-2xl p-2 ${isPanel ? "" : "sticky bottom-4"}`}
-      style={{ background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
+      className={`toube-composer flex items-end gap-1 rounded-3xl border p-2 transition-colors ${
+        isPanel ? "" : "sticky bottom-4"
+      }`}
+      style={{ background: "var(--color-bg-elevated)" }}
     >
       <button
         type="button"
         onClick={() => fileRef.current?.click()}
         disabled={busy || recording}
         title="Anexar imagem, PDF ou texto"
-        className="rounded-lg p-2 disabled:opacity-40"
+        className="rounded-full p-2 transition-colors hover:bg-[var(--color-card)] disabled:opacity-40"
         style={{ color: "var(--color-fg-muted)" }}
       >
         <Paperclip className="size-4" />
@@ -396,7 +435,7 @@ export function ToubeConversation({
         onClick={togglePlanMode}
         disabled={busy || recording}
         title={planMode ? "Sair do modo Plano" : "Modo Plano de treino"}
-        className="rounded-lg p-2 disabled:opacity-40"
+        className="rounded-full p-2 transition-colors hover:bg-[var(--color-card)] disabled:opacity-40"
         style={
           planMode
             ? { color: "#fff", background: "var(--gradient-brand)" }
@@ -413,6 +452,7 @@ export function ToubeConversation({
         onChange={(e) => e.target.files?.[0] && attachFile(e.target.files[0])}
       />
       <textarea
+        ref={inputRef}
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={onKeyDown}
@@ -427,9 +467,11 @@ export function ToubeConversation({
                 ? "Lendo o anexo…"
                 : planMode
                   ? "Modo Plano — descreve teu treino ou cola um link do YouTube…"
-                  : "Escreva ou fale com o Toube…"
+                  : isPanel
+                    ? "Fala com o Toube…"
+                    : "Escreva ou fale com o Toube…"
         }
-        className="max-h-40 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none"
+        className="max-h-40 flex-1 resize-none overflow-y-hidden bg-transparent px-2 py-1.5 text-sm outline-none"
         style={{ color: "var(--color-fg)" }}
       />
       {micOk ? (
@@ -438,17 +480,29 @@ export function ToubeConversation({
           onClick={recording ? stopRecording : startRecording}
           disabled={busy || startingRec}
           title={recording ? "Parar gravação" : "Falar com o Toube"}
-          className="rounded-lg p-2 disabled:opacity-40"
+          className="rounded-full p-2 transition-colors hover:bg-[var(--color-card)] disabled:opacity-40"
           style={{ color: recording ? "var(--color-danger)" : "var(--color-fg-muted)" }}
         >
           {recording ? <Square className="size-4" /> : <Mic className="size-4" />}
+        </button>
+      ) : null}
+      {voiceSupported ? (
+        <button
+          type="button"
+          onClick={toggleVoice}
+          title={voiceOn ? "Desligar a voz do Toube" : "Ligar a voz do Toube (lê as respostas)"}
+          aria-pressed={voiceOn}
+          className="rounded-full p-2 transition-colors hover:bg-[var(--color-card)]"
+          style={{ color: voiceOn ? "var(--color-accent)" : "var(--color-fg-muted)" }}
+        >
+          {voiceOn ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
         </button>
       ) : null}
       <button
         type="button"
         onClick={send}
         disabled={busy || recording || (!input.trim() && !attachment)}
-        className="rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+        className="rounded-full px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform hover:enabled:scale-[1.03] active:enabled:scale-95 disabled:opacity-40"
         style={{ background: "var(--gradient-brand)" }}
       >
         Enviar
@@ -472,23 +526,34 @@ export function ToubeConversation({
         }
       >
         {messages.length === 0 ? (
-          <p className="py-10 text-center text-sm" style={{ color: "var(--color-fg-muted)" }}>
-            Manda a primeira mensagem — tô aqui pra ajudar no que precisar.
-          </p>
+          <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+            <span
+              className="flex size-12 items-center justify-center rounded-2xl text-white shadow-sm"
+              style={{ background: "var(--gradient-brand)" }}
+            >
+              <Sparkles className="size-5" />
+            </span>
+            <p className="gradient-text text-base font-semibold">Oi, eu sou o Toube</p>
+            <p className="max-w-xs text-sm" style={{ color: "var(--color-fg-muted)" }}>
+              Manda a primeira mensagem — tô aqui pra conversar, pensar junto e dar um empurrão no
+              que precisar.
+            </p>
+          </div>
         ) : null}
 
         {messages.map((m, i) => (
           <div key={m.id ?? i} className="flex flex-col gap-2" style={{ alignItems: "stretch" }}>
             <div
-              className={bubbleBase}
+              className={`${bubbleBase} ${
+                m.role === "user" ? "self-end rounded-br-md" : "self-start rounded-bl-md"
+              }`}
               style={
                 m.role === "user"
-                  ? { alignSelf: "flex-end", background: "var(--gradient-brand)", color: "#fff" }
+                  ? { background: "var(--gradient-brand)", color: "#fff" }
                   : {
-                      alignSelf: "flex-start",
                       background: "var(--color-card)",
                       color: "var(--color-fg)",
-                      border: "1px solid var(--color-border)",
+                      border: "1px solid color-mix(in srgb, var(--color-border) 55%, transparent)",
                     }
               }
             >
@@ -566,14 +631,18 @@ export function ToubeConversation({
 
         {sending ? (
           <div
-            className={`${bubbleBase} self-start`}
+            className={`${bubbleBase} self-start rounded-bl-md`}
             style={{
               background: "var(--color-card)",
               color: "var(--color-fg-muted)",
-              border: "1px solid var(--color-border)",
+              border: "1px solid color-mix(in srgb, var(--color-border) 55%, transparent)",
             }}
           >
-            Toube está digitando…
+            <span className="toube-typing" aria-label="Toube está digitando">
+              <span />
+              <span />
+              <span />
+            </span>
           </div>
         ) : null}
 

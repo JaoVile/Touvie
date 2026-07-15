@@ -110,24 +110,22 @@ export function FloatingToube() {
       ) : null}
 
       {open ? (
-        <aside
-          className="fixed inset-x-0 bottom-0 z-50 flex h-[92dvh] flex-col rounded-t-2xl border shadow-2xl md:inset-x-auto md:top-0 md:right-0 md:h-dvh md:w-[400px] md:rounded-none md:border-y-0 md:border-r-0"
-          style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-border)" }}
-        >
+        <aside className="toube-panel fixed right-0 bottom-0 left-0 z-50 flex h-[92dvh] flex-col overflow-hidden rounded-t-2xl md:top-4 md:right-4 md:bottom-4 md:left-auto md:h-auto md:w-[400px] md:rounded-3xl">
           <header
             className="flex items-center gap-2 border-b px-3 py-2.5"
-            style={{ borderColor: "var(--color-border)" }}
+            style={{ borderColor: "color-mix(in srgb, var(--color-border) 40%, transparent)" }}
           >
             <Sparkles className="size-4" style={{ color: "var(--color-accent)" }} />
-            <span className="text-sm font-semibold" style={{ color: "var(--color-fg)" }}>
-              Toube
-            </span>
+            <span className="gradient-text text-sm font-semibold">Toube</span>
             <button
               type="button"
               onClick={view === "list" ? () => setView("chat") : openList}
               title="Conversas"
-              className="flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium"
-              style={{ borderColor: "var(--color-border)", color: "var(--color-fg-muted)" }}
+              className="flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-[var(--color-card)]"
+              style={{
+                borderColor: "color-mix(in srgb, var(--color-border) 55%, transparent)",
+                color: "var(--color-fg-muted)",
+              }}
             >
               <MessagesSquare className="size-3" />
               Conversas
@@ -135,8 +133,11 @@ export function FloatingToube() {
             <Link
               href="/toube/planos"
               onClick={closePanel}
-              className="ml-auto flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium"
-              style={{ borderColor: "var(--color-border)", color: "var(--color-accent)" }}
+              className="ml-auto flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-[var(--color-card)]"
+              style={{
+                borderColor: "color-mix(in srgb, var(--color-accent) 40%, transparent)",
+                color: "var(--color-accent)",
+              }}
             >
               <Dumbbell className="size-3" />
               Planos

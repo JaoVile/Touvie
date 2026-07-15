@@ -120,17 +120,91 @@ a,
   box-shadow: var(--glass-shadow);
 }
 
+/* ── Painel flutuante do Toube ───────────────────────────────────
+   Vidro tintado (legível, texto denso) + aura da marca + entrada. Mora aqui,
+   não no componente, pra respeitar data-quality e prefers-reduced-motion como
+   os demais efeitos. O border-radius fica no componente (bottom-sheet no mobile,
+   card no desktop). */
+.toube-panel {
+  /* Quase sólido: legível mesmo onde o backdrop-filter não pinta (o blur é só
+     um bônus se o navegador suportar). A "presença premium" vem da aura + borda,
+     não da transparência. */
+  background: color-mix(in srgb, var(--color-bg-elevated) 96%, transparent);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 18%, var(--color-border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 16%, transparent), 0 20px 60px -14px
+    color-mix(in srgb, var(--color-accent) 34%, transparent), 0 12px 40px rgb(0 0 0 / 0.45);
+  animation: toube-panel-in 0.42s var(--ease-cubic) backwards;
+}
+@keyframes toube-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* "Toube está digitando" — três pontinhos que pulsam em cascata (herda a cor
+   do texto do balão via currentColor). */
+.toube-typing {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.toube-typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: toube-dot 1.2s var(--ease-cubic) infinite;
+}
+.toube-typing span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.toube-typing span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+/* Barra de escrever do Toube: borda suave que acende no acento ao focar. */
+.toube-composer {
+  border-color: color-mix(in srgb, var(--color-border) 55%, transparent);
+}
+.toube-composer:focus-within {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+
+@keyframes toube-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
 /* ── Modo DESEMPENHO (data-quality) ──────────────────────────────
    Fonte: lib/quality.ts. Corta os efeitos mais caros mantendo o layout e a
    legibilidade. O cursor-fita e o StarField são cortados nos próprios
    componentes; aqui ficam o backdrop-filter (o maior custo) e as animações
    decorativas que rodam sem parar. */
 [data-quality="desempenho"] .glass,
+[data-quality="desempenho"] .toube-panel,
 [data-quality="desempenho"] .fold-card__body {
   /* Sem blur em tempo real: fundo sólido translúcido (legível sem o glass). */
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   background: color-mix(in srgb, var(--color-bg-elevated) 86%, transparent);
+}
+[data-quality="desempenho"] .toube-panel,
+[data-quality="desempenho"] .toube-typing span {
+  animation: none;
 }
 [data-quality="desempenho"] .te-root,
 [data-quality="desempenho"] .te-root *,
@@ -878,7 +952,9 @@ a,
   [style*="circle-text-spin"],
   .aura,
   .star,
-  .halo-ring {
+  .halo-ring,
+  .toube-panel,
+  .toube-typing span {
     animation: none !important;
   }
   .fold-card__body,
