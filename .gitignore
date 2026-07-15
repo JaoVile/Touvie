@@ -32,3 +32,4 @@ scripts/tasks/
 
 # Staging de audição de sons (temporário, não versionar)
 public/sounds/_staging/
+docs/superpowers/
