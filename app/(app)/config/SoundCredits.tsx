@@ -6,6 +6,7 @@ import { FoldCard } from "@/components/glass/FoldCard";
 import { variantId } from "@/lib/sound-disabled";
 import { TEXTURES } from "@/lib/soundscape";
 import { Disc3 } from "lucide-react";
+import { NowPlayingProbe } from "./NowPlayingProbe";
 import { SoundCreditRow } from "./SoundCreditRow";
 
 type Credit = {
@@ -72,6 +73,7 @@ export async function SoundCredits() {
             />
           ))}
         </ul>
+        <NowPlayingProbe />
       </FoldCard>
     </Reveal>
   );

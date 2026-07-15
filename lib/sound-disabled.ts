@@ -16,6 +16,11 @@ export const DISABLED_KEY = "touvie:sound-disabled";
 export const DISABLED_EVENT = "touvie:sound-disabled";
 /** Pedido de preview (créditos → SoundscapeLayer → engine.preview). */
 export const PREVIEW_EVENT = "touvie:sound-preview";
+/** Engine → UI: ids das variantes tocando AGORA (detail = string[] no formato variantId). */
+export const NOWPLAYING_EVENT = "touvie:sound-nowplaying";
+/** UI → engine: "me diga o que está tocando agora" (o engine responde reemitindo NOWPLAYING_EVENT).
+ * Necessário porque quem abre os créditos DEPOIS do som começar perdeu o último evento. */
+export const NOWPLAYING_REQUEST_EVENT = "touvie:sound-nowplaying-request";
 
 export type PreviewDetail = { key: TextureKey; variant?: number };
 

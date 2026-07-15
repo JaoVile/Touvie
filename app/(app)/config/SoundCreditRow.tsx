@@ -2,6 +2,7 @@
 
 import {
   DISABLED_EVENT,
+  NOWPLAYING_EVENT,
   PREVIEW_EVENT,
   readDisabled,
   toggleDisabled,
@@ -38,6 +39,7 @@ export function SoundCreditRow({
   const canToggle = siblingIds.length > 1;
   const [off, setOff] = useState(false);
   const [lastEnabled, setLastEnabled] = useState(false);
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     const sync = () => {
@@ -52,6 +54,18 @@ export function SoundCreditRow({
     return () => window.removeEventListener(DISABLED_EVENT, sync);
   }, [id, siblingIds]);
 
+  // Realce "tocando agora": ouve o anúncio do engine. O pedido inicial de estado
+  // (pra quem abre os créditos com o som já tocando) é feito UMA vez pelo
+  // <NowPlayingProbe> no pai — não aqui, senão N linhas pediam N vezes (O(N²)).
+  useEffect(() => {
+    const onNowPlaying = (e: Event) => {
+      const ids = (e as CustomEvent<string[]>).detail;
+      setPlaying(Array.isArray(ids) && ids.includes(id));
+    };
+    window.addEventListener(NOWPLAYING_EVENT, onNowPlaying);
+    return () => window.removeEventListener(NOWPLAYING_EVENT, onNowPlaying);
+  }, [id]);
+
   const preview = () => {
     window.dispatchEvent(
       new CustomEvent(PREVIEW_EVENT, {
@@ -62,8 +76,18 @@ export function SoundCreditRow({
 
   return (
     <li
-      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg border px-3 py-2 text-sm transition-opacity"
-      style={{ borderColor: "var(--color-border)", opacity: off ? 0.45 : 1 }}
+      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg border px-3 py-2 text-sm transition-all"
+      style={{
+        borderColor: "var(--color-border)",
+        opacity: off ? 0.45 : 1,
+        ...(playing
+          ? {
+              borderLeftColor: "var(--color-accent)",
+              borderLeftWidth: "3px",
+              background: "color-mix(in srgb, var(--color-accent) 7%, transparent)",
+            }
+          : null),
+      }}
     >
       <span className="min-w-0 break-words">
         <span className="font-medium">

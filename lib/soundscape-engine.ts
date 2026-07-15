@@ -6,6 +6,7 @@
 //  - TEXTURAS: loops de áudio REAIS carregados de /sounds/<key>.mp3 (CC0/CC-BY,
 //    baixados via scripts/fetch-sounds.mjs). Sem síntese, sem fallback.
 
+import { NOWPLAYING_EVENT, variantId } from "./sound-disabled";
 import {
   FREQUENCIES,
   JOURNEYS,
@@ -96,6 +97,8 @@ export class SoundEngine {
     gain: GainNode;
     bus: GainNode | null;
     busVol: number;
+    key: TextureKey;
+    variant: number;
   } | null = null;
 
   // ───────────────────────── infra ─────────────────────────
@@ -430,6 +433,23 @@ export class SoundEngine {
       p.bus.gain.cancelScheduledValues(t);
       p.bus.gain.linearRampToValueAtTime(p.busVol, t + 0.25);
     }
+    this.announceNowPlaying();
+  }
+
+  /**
+   * Anuncia (evento global) os ids das variantes tocando AGORA — texturas da mix +
+   * o preview isolado. A lista de créditos escuta e realça a linha correspondente.
+   * Id no mesmo formato da linha: `key` pra textura de take único, `key-variante` pro resto.
+   */
+  announceNowPlaying(): void {
+    if (typeof window === "undefined") return;
+    const ids: string[] = [];
+    for (const [key, clip] of this.texClips) {
+      ids.push(variantsOf(key) > 1 ? variantId(key, clip.variant) : variantId(key));
+    }
+    const p = this.previewClip;
+    if (p) ids.push(variantsOf(p.key) > 1 ? variantId(p.key, p.variant) : variantId(p.key));
+    window.dispatchEvent(new CustomEvent(NOWPLAYING_EVENT, { detail: ids }));
   }
 
   /** Toca um take isolado (a partir dos créditos) no loudness real, com duck na mix. */
@@ -465,7 +485,8 @@ export class SoundEngine {
       g.gain.linearRampToValueAtTime(0.0001, t + dur); // fade out no fim
       src.start(t);
       src.stop(t + dur + 0.05);
-      this.previewClip = { src, gain: g, bus: duck ? bus : null, busVol };
+      this.previewClip = { src, gain: g, bus: duck ? bus : null, busVol, key, variant: v };
+      this.announceNowPlaying();
       src.onended = () => {
         if (this.previewClip?.src === src) this.stopPreview();
       };
@@ -545,6 +566,7 @@ export class SoundEngine {
       );
     }
     this.texClips.set(key, { gain: clip, src, variant });
+    this.announceNowPlaying();
   }
 
   /** Troca pra outra variação (chamado pelo timer). */
@@ -570,6 +592,7 @@ export class SoundEngine {
     const voice = this.texVoices.get(key);
     if (voice) this.stopVoice(voice);
     this.texVoices.delete(key);
+    this.announceNowPlaying();
   }
 
   private async loadBuffer(key: TextureKey, variant?: number): Promise<AudioBuffer | null> {

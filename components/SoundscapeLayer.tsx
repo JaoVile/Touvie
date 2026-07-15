@@ -2,6 +2,7 @@
 
 import {
   DISABLED_EVENT,
+  NOWPLAYING_REQUEST_EVENT,
   PREVIEW_EVENT,
   type PreviewDetail,
   readDisabled,
@@ -55,6 +56,12 @@ export function SoundscapeLayer() {
     };
     window.addEventListener(DISABLED_EVENT, onDisabled);
     window.addEventListener(PREVIEW_EVENT, onPreview);
+
+    // Créditos abertos DEPOIS do som começar perderam o último NOWPLAYING_EVENT —
+    // ao montar eles pedem, e o engine reemite o estado atual.
+    const onNowPlayingRequest = () => engine.announceNowPlaying();
+    window.addEventListener(NOWPLAYING_REQUEST_EVENT, onNowPlayingRequest);
+
     engine.setDisabled(readDisabled());
 
     apply(readSoundState());
@@ -63,6 +70,7 @@ export function SoundscapeLayer() {
       window.removeEventListener(SOUND_EVENT, onEvent);
       window.removeEventListener(DISABLED_EVENT, onDisabled);
       window.removeEventListener(PREVIEW_EVENT, onPreview);
+      window.removeEventListener(NOWPLAYING_REQUEST_EVENT, onNowPlayingRequest);
       engine.stopAll();
     };
   }, []);
