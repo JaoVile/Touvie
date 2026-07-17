@@ -2,7 +2,7 @@
 
 import { DatePicker } from "@/components/DatePicker";
 import { Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { deleteTask, saveTask, toggleTaskDone } from "./actions";
 
 interface Task {
@@ -23,8 +23,23 @@ interface Goal {
 
 export function TasksPanel({ tasks, goals }: { tasks: Task[]; goals: Goal[] }) {
   const [adding, setAdding] = useState(false);
-  const open = tasks.filter((t) => !t.done);
-  const done = tasks.filter((t) => t.done);
+  const [, startToggle] = useTransition();
+  // Estado OTIMISTA derivado do servidor (`tasks`). Marcar/desmarcar move a tarefa
+  // entre "pendentes" e "concluídas" na hora; quando a action revalida, o React
+  // reconcilia com a verdade do servidor (e reverte se falhar). Sem travar o
+  // checkbox → dá pra marcar várias tarefas em sequência sem esperar cada ida.
+  const [optimisticTasks, toggleOptimistic] = useOptimistic(tasks, (prev, id: string) =>
+    prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
+  );
+  const open = optimisticTasks.filter((t) => !t.done);
+  const done = optimisticTasks.filter((t) => t.done);
+
+  function handleToggle(id: string, nextDone: boolean) {
+    startToggle(async () => {
+      toggleOptimistic(id); // instantâneo, ANTES do await (senão perde o efeito)
+      await toggleTaskDone(id, nextDone);
+    });
+  }
 
   return (
     <div className="space-y-3 text-sm">
@@ -48,7 +63,7 @@ export function TasksPanel({ tasks, goals }: { tasks: Task[]; goals: Goal[] }) {
           </li>
         ) : null}
         {open.map((t) => (
-          <TaskRow key={t.id} task={t} />
+          <TaskRow key={t.id} task={t} onToggle={handleToggle} />
         ))}
       </ul>
 
@@ -59,7 +74,7 @@ export function TasksPanel({ tasks, goals }: { tasks: Task[]; goals: Goal[] }) {
           </summary>
           <ul className="mt-2 space-y-1">
             {done.map((t) => (
-              <TaskRow key={t.id} task={t} />
+              <TaskRow key={t.id} task={t} onToggle={handleToggle} />
             ))}
           </ul>
         </details>
@@ -68,7 +83,13 @@ export function TasksPanel({ tasks, goals }: { tasks: Task[]; goals: Goal[] }) {
   );
 }
 
-function TaskRow({ task }: { task: Task }) {
+function TaskRow({
+  task,
+  onToggle,
+}: {
+  task: Task;
+  onToggle: (id: string, nextDone: boolean) => void;
+}) {
   const [pending, start] = useTransition();
   return (
     <li
@@ -79,7 +100,7 @@ function TaskRow({ task }: { task: Task }) {
         <input
           type="checkbox"
           checked={task.done}
-          onChange={(e) => start(() => toggleTaskDone(task.id, e.target.checked))}
+          onChange={(e) => onToggle(task.id, e.target.checked)}
           className="h-4 w-4 accent-[var(--color-accent)]"
         />
         <span

@@ -3,7 +3,7 @@
 import { DatePicker } from "@/components/DatePicker";
 import { formatBRL } from "@/lib/utils";
 import { CheckSquare, Square } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { deleteBill, saveBill, toggleBillPaid } from "./actions";
 
 interface Category {
@@ -34,6 +34,23 @@ export function ContasTab({ bills, categories, today }: Props) {
   const [editing, setEditing] = useState<Bill | null>(null);
   const [catFilter, setCatFilter] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [, startPaid] = useTransition();
+  // Estado OTIMISTA derivado do servidor (`bills`). Marcar/desmarcar como paga
+  // reflete na hora (status, ordenação, opacidade, contador); a revalidação da
+  // action reconcilia depois (e reverte se falhar). Sem travar o botão →
+  // dá pra quitar várias contas em sequência sem esperar cada ida ao servidor.
+  const [optimisticBills, togglePaidOptimistic] = useOptimistic(bills, (prev, id: string) =>
+    prev.map((b) =>
+      b.id === id ? { ...b, paid_at: b.paid_at ? null : new Date().toISOString() } : b,
+    ),
+  );
+
+  function handleTogglePaid(b: Bill) {
+    startPaid(async () => {
+      togglePaidOptimistic(b.id); // instantâneo, ANTES do await
+      await toggleBillPaid(b.id, !b.paid_at);
+    });
+  }
 
   function billStatus(b: Bill): "paga" | "vencida" | "hoje" | "pendente" {
     if (b.paid_at) return "paga";
@@ -44,16 +61,16 @@ export function ContasTab({ bills, categories, today }: Props) {
 
   // Only offer filters for categories that actually have bills (plus a bucket
   // for the uncategorised ones), keeping the chip row short and relevant.
-  const usedCatIds = new Set(bills.map((b) => b.category_id));
+  const usedCatIds = new Set(optimisticBills.map((b) => b.category_id));
   const filterCats = categories.filter((c) => usedCatIds.has(c.id));
-  const hasUncategorised = bills.some((b) => !b.category_id);
+  const hasUncategorised = optimisticBills.some((b) => !b.category_id);
 
   const filtered =
     catFilter === null
-      ? bills
+      ? optimisticBills
       : catFilter === "__none__"
-        ? bills.filter((b) => !b.category_id)
-        : bills.filter((b) => b.category_id === catFilter);
+        ? optimisticBills.filter((b) => !b.category_id)
+        : optimisticBills.filter((b) => b.category_id === catFilter);
 
   const sorted = [...filtered].sort((a, b) => {
     if (a.paid_at && !b.paid_at) return 1;
@@ -148,8 +165,7 @@ export function ContasTab({ bills, categories, today }: Props) {
               >
                 <button
                   type="button"
-                  disabled={pending}
-                  onClick={() => start(() => toggleBillPaid(b.id, !b.paid_at))}
+                  onClick={() => handleTogglePaid(b)}
                   className="shrink-0 leading-none transition-transform active:scale-90"
                   title={b.paid_at ? "Marcar como pendente" : "Marcar como pago"}
                   style={{ color: b.paid_at ? "var(--color-success)" : "var(--color-fg-subtle)" }}

@@ -2,7 +2,7 @@
 
 import { DatePicker } from "@/components/DatePicker";
 import { Check, Pencil, Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { deleteGoal, saveGoal, setGoalStatus } from "./actions";
 
 interface Goal {
@@ -17,8 +17,24 @@ interface Goal {
 export function GoalsPanel({ goals }: { goals: Goal[] }) {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
-  const active = goals.filter((g) => g.status === "active");
-  const done = goals.filter((g) => g.status === "done");
+  const [, startStatus] = useTransition();
+  // Estado OTIMISTA derivado do servidor (`goals`). Concluir/reativar move a meta
+  // entre "ativas" e "concluídas" na hora; a revalidação da action reconcilia
+  // depois (e reverte se falhar). Sem travar o botão → cliques em sequência.
+  const [optimisticGoals, setOptimisticStatus] = useOptimistic(
+    goals,
+    (prev, payload: { id: string; status: Goal["status"] }) =>
+      prev.map((g) => (g.id === payload.id ? { ...g, status: payload.status } : g)),
+  );
+  const active = optimisticGoals.filter((g) => g.status === "active");
+  const done = optimisticGoals.filter((g) => g.status === "done");
+
+  function handleStatus(id: string, status: Goal["status"]) {
+    startStatus(async () => {
+      setOptimisticStatus({ id, status }); // instantâneo, ANTES do await
+      await setGoalStatus(id, status);
+    });
+  }
 
   return (
     <div className="space-y-3 text-sm">
@@ -48,6 +64,7 @@ export function GoalsPanel({ goals }: { goals: Goal[] }) {
             isEditing={editing === g.id}
             onEdit={() => setEditing(g.id)}
             onCancelEdit={() => setEditing(null)}
+            onMarkDone={() => handleStatus(g.id, "done")}
           />
         ))}
       </ul>
@@ -67,7 +84,7 @@ export function GoalsPanel({ goals }: { goals: Goal[] }) {
                 <span>{g.title}</span>
                 <button
                   type="button"
-                  onClick={() => setGoalStatus(g.id, "active")}
+                  onClick={() => handleStatus(g.id, "active")}
                   style={{ color: "var(--color-accent)" }}
                 >
                   reativar
@@ -86,11 +103,13 @@ function GoalRow({
   isEditing,
   onEdit,
   onCancelEdit,
+  onMarkDone,
 }: {
   goal: Goal;
   isEditing: boolean;
   onEdit: () => void;
   onCancelEdit: () => void;
+  onMarkDone: () => void;
 }) {
   const [pending, start] = useTransition();
   if (isEditing) {
@@ -130,8 +149,7 @@ function GoalRow({
         <div className="flex shrink-0 items-center gap-0.5">
           <button
             type="button"
-            disabled={pending}
-            onClick={() => start(() => setGoalStatus(goal.id, "done"))}
+            onClick={onMarkDone}
             className="row-action is-done"
             aria-label="Marcar como feita"
             title="Feita"
