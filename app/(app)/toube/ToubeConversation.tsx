@@ -3,7 +3,19 @@
 import { EMPTY_PLAN, type Plan } from "@/lib/planos-draft";
 import { DESTRUCTIVE_ACTIONS, type ToubeAction } from "@/lib/toube";
 import { toubeVoice } from "@/lib/toube-voice";
-import { Dumbbell, Mic, Paperclip, Sparkles, Square, Volume2, VolumeX, X } from "lucide-react";
+import {
+  Check,
+  Dumbbell,
+  Mic,
+  Paperclip,
+  Pencil,
+  RefreshCw,
+  Sparkles,
+  Square,
+  Volume2,
+  VolumeX,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ClipboardEvent, KeyboardEvent } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -27,6 +39,17 @@ export type Message = {
 };
 
 type Attachment = { kind: string; name: string; text: string };
+
+/** Converte as propostas cruas do POST /api/toube pro shape da UI. */
+function parseProposals(data: { proposals?: unknown }): Proposal[] | undefined {
+  return Array.isArray(data.proposals)
+    ? (data.proposals as { action: ToubeAction; args: Record<string, unknown> }[]).map((p) => ({
+        action: p.action,
+        args: p.args,
+        status: "pending" as const,
+      }))
+    : undefined;
+}
 
 function proposalLabel(p: Proposal): string {
   const t = String(p.args.title ?? p.args.titulo ?? "");
@@ -147,6 +170,9 @@ export function ToubeConversation({
   // trocar de rota) — senão ele continua falando sozinho.
   const [voiceOn, setVoiceOn] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
+  // Edição de mensagem enviada (estilo Gemini): índice da msg em edição + rascunho.
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
   useEffect(() => {
     setVoiceSupported(toubeVoice.supported);
     setVoiceOn(toubeVoice.enabled);
@@ -268,14 +294,100 @@ export function ToubeConversation({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro ao falar com o Toube.");
-      const proposals: Proposal[] | undefined = Array.isArray(data.proposals)
-        ? data.proposals.map((p: { action: ToubeAction; args: Record<string, unknown> }) => ({
-            action: p.action,
-            args: p.args,
-            status: "pending" as const,
-          }))
-        : undefined;
-      setMessages((m) => [...m, { role: "assistant", content: data.reply, proposals }]);
+      const proposals = parseProposals(data);
+      setMessages((m) => {
+        const copy = [...m];
+        // Atribui o id que o servidor devolveu à msg do usuário recém-enviada —
+        // sem id não dá pra editá-la depois.
+        for (let i = copy.length - 1; i >= 0; i--) {
+          if (copy[i].role === "user" && !copy[i].id) {
+            copy[i] = { ...copy[i], id: data.user_message_id ?? undefined };
+            break;
+          }
+        }
+        copy.push({
+          id: data.assistant_message_id ?? undefined,
+          role: "assistant",
+          content: data.reply,
+          proposals,
+        });
+        return copy;
+      });
+      toubeVoice.speak(data.reply);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro inesperado.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function startEdit(i: number) {
+    if (busy || recording || planMode) return;
+    setEditingIdx(i);
+    setEditText(messages[i]?.content ?? "");
+  }
+
+  /** Salva a edição: o servidor troca o texto, poda o que veio depois e responde de novo. */
+  async function confirmEdit() {
+    if (editingIdx === null) return;
+    const kept = editingIdx;
+    const target = messages[kept];
+    const text = editText.trim();
+    if (!target?.id || !text || busy) return;
+    setError(undefined);
+    setEditingIdx(null);
+    setSending(true);
+    // Poda otimista: a conversa recomeça na mensagem editada (igual ao servidor).
+    setMessages((m) => [...m.slice(0, kept), { ...target, content: text }]);
+    try {
+      const res = await fetch("/api/toube", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, session_id: sessionId, edit_message_id: target.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erro ao editar a mensagem.");
+      setMessages((m) => [
+        ...m,
+        {
+          id: data.assistant_message_id ?? undefined,
+          role: "assistant",
+          content: data.reply,
+          proposals: parseProposals(data),
+        },
+      ]);
+      toubeVoice.speak(data.reply);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro inesperado.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  /** Regenera a última resposta: o servidor apaga a dele e gera outra no lugar. */
+  async function regenerate() {
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== "assistant" || busy || recording || planMode) return;
+    setError(undefined);
+    setSending(true);
+    setMessages((m) => m.slice(0, -1)); // remove otimista; o servidor apaga a dele
+    try {
+      const res = await fetch("/api/toube", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId, regenerate: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erro ao regenerar.");
+      setMessages((m) => [
+        ...m,
+        {
+          id: data.assistant_message_id ?? undefined,
+          role: "assistant",
+          content: data.reply,
+          proposals: parseProposals(data),
+        },
+      ]);
       toubeVoice.speak(data.reply);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro inesperado.");
@@ -407,10 +519,11 @@ export function ToubeConversation({
     attachFile(file);
   }
 
-  // Balões estilo mensageiro: estreitos, bem arredondados, com UM canto fechado
-  // (o de baixo, do lado de quem falou) fazendo o "rabinho". Sombra sutil pra chique.
+  // Balões estilo mensageiro: bem arredondados, com UM canto fechado (o de baixo,
+  // do lado de quem falou) fazendo o "rabinho". Sombra sutil pra chique. A largura
+  // máxima fica no wrapper da LINHA (que também carrega o lápis de editar).
   const bubbleBase =
-    "max-w-[78%] whitespace-pre-wrap rounded-3xl px-4 py-2.5 text-sm leading-relaxed shadow-sm";
+    "whitespace-pre-wrap rounded-3xl px-4 py-2.5 text-sm leading-relaxed shadow-sm";
   const isPanel = variant === "panel";
 
   const inputBar = (
@@ -543,22 +656,87 @@ export function ToubeConversation({
 
         {messages.map((m, i) => (
           <div key={m.id ?? i} className="flex flex-col gap-2" style={{ alignItems: "stretch" }}>
-            <div
-              className={`${bubbleBase} ${
-                m.role === "user" ? "self-end rounded-br-md" : "self-start rounded-bl-md"
-              }`}
-              style={
-                m.role === "user"
-                  ? { background: "var(--gradient-brand)", color: "#fff" }
-                  : {
-                      background: "var(--color-card)",
-                      color: "var(--color-fg)",
-                      border: "1px solid color-mix(in srgb, var(--color-border) 55%, transparent)",
-                    }
-              }
-            >
-              {m.content}
-            </div>
+            {m.role === "user" && editingIdx === i ? (
+              <div
+                className={`${bubbleBase} w-full max-w-[85%] self-end rounded-br-md`}
+                style={{ background: "var(--gradient-brand)", color: "#fff" }}
+              >
+                <textarea
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  rows={3}
+                  // biome-ignore lint/a11y/noAutofocus: a pessoa acabou de clicar em "editar" — o foco imediato no texto é o esperado
+                  autoFocus
+                  className="w-full resize-none bg-transparent text-sm leading-relaxed text-white outline-none"
+                />
+                <div className="mt-1 flex items-center justify-end gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setEditingIdx(null)}
+                    title="Cancelar edição"
+                    className="rounded-full p-1.5 transition-colors hover:bg-white/15"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmEdit}
+                    disabled={!editText.trim() || busy}
+                    title="Salvar e reenviar"
+                    className="rounded-full p-1.5 transition-colors hover:bg-white/15 disabled:opacity-40"
+                  >
+                    <Check className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                className={`group flex max-w-[78%] items-end gap-1.5 ${
+                  m.role === "user" ? "self-end" : "self-start"
+                }`}
+              >
+                {m.role === "user" && m.id && !planMode ? (
+                  <button
+                    type="button"
+                    onClick={() => startEdit(i)}
+                    disabled={busy || recording}
+                    title="Editar e reenviar"
+                    className="shrink-0 rounded-full p-1.5 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-0"
+                    style={{ color: "var(--color-fg-subtle)" }}
+                  >
+                    <Pencil className="size-3.5" />
+                  </button>
+                ) : null}
+                <div
+                  className={`${bubbleBase} min-w-0 ${
+                    m.role === "user" ? "rounded-br-md" : "rounded-bl-md"
+                  }`}
+                  style={
+                    m.role === "user"
+                      ? { background: "var(--gradient-brand)", color: "#fff" }
+                      : {
+                          background: "var(--color-card)",
+                          color: "var(--color-fg)",
+                          border:
+                            "1px solid color-mix(in srgb, var(--color-border) 55%, transparent)",
+                        }
+                  }
+                >
+                  {m.content}
+                </div>
+                {m.role === "assistant" ? (
+                  <button
+                    type="button"
+                    onClick={() => void toubeVoice.speak(m.content, { force: true })}
+                    title="Ouvir esta resposta"
+                    className="shrink-0 rounded-full p-1.5 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+                    style={{ color: "var(--color-fg-subtle)" }}
+                  >
+                    <Volume2 className="size-3.5" />
+                  </button>
+                ) : null}
+              </div>
+            )}
 
             {m.proposals?.map((p, j) => {
               const danger = DESTRUCTIVE_ACTIONS.includes(p.action);
@@ -626,6 +804,20 @@ export function ToubeConversation({
                 </div>
               );
             })}
+
+            {i === messages.length - 1 && m.role === "assistant" && !sending && !planMode ? (
+              <button
+                type="button"
+                onClick={regenerate}
+                disabled={busy || recording}
+                title="Gerar outra resposta no lugar desta"
+                className="flex items-center gap-1 self-start rounded-full px-2 py-1 text-xs transition-colors hover:bg-[var(--color-card)] disabled:opacity-40"
+                style={{ color: "var(--color-fg-subtle)" }}
+              >
+                <RefreshCw className="size-3" />
+                Regenerar
+              </button>
+            ) : null}
           </div>
         ))}
 

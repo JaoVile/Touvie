@@ -8,8 +8,13 @@ import { z } from "zod";
 const HISTORY_WINDOW = 20;
 
 const bodySchema = z.object({
-  message: z.string().trim().min(1).max(4000),
+  message: z.string().trim().min(1).max(4000).optional(),
   session_id: z.string().uuid(),
+  // Editar mensagem JÁ enviada (estilo Gemini): troca o texto dela, PODA tudo que
+  // veio depois na sessão e o modelo responde de novo a partir dali.
+  edit_message_id: z.string().uuid().optional(),
+  // Regenerar: apaga a ÚLTIMA resposta do assistente e gera outra no lugar.
+  regenerate: z.boolean().optional(),
 });
 
 // Resolve a sessão ativa: a pedida (se for do usuário), senão a mais recente,
@@ -75,20 +80,69 @@ export async function POST(req: Request) {
 
   let message: string;
   let sessionId: string;
+  let editMessageId: string | undefined;
+  let regenerate = false;
   try {
     const body = bodySchema.parse(await req.json());
-    message = body.message;
+    message = body.message ?? "";
+    editMessageId = body.edit_message_id;
+    regenerate = body.regenerate === true;
+    if (!regenerate && !message) throw new Error("mensagem obrigatória");
     // Confirma que a sessão é do usuário (senão resolve a ativa).
     sessionId = await activeSession(supabase, user.id, body.session_id);
   } catch {
     return NextResponse.json({ error: "Mensagem inválida." }, { status: 400 });
   }
 
-  // Grava a mensagem do usuário NA SESSÃO.
-  const { error: insErr } = await supabase
-    .from("toube_messages")
-    .insert({ user_id: user.id, session_id: sessionId, role: "user", content: message });
-  if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
+  // Prepara a sessão conforme o modo: normal GRAVA a mensagem nova; editar TROCA o
+  // texto e poda o que veio depois; regenerar APAGA a última resposta do assistente.
+  let userMessageId: string | null = null;
+  if (regenerate) {
+    const { data: last } = await supabase
+      .from("toube_messages")
+      .select("id, role")
+      .eq("user_id", user.id)
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!last || last.role !== "assistant") {
+      return NextResponse.json({ error: "Não há resposta pra regenerar." }, { status: 400 });
+    }
+    await supabase.from("toube_messages").delete().eq("id", last.id).eq("user_id", user.id);
+  } else if (editMessageId) {
+    const { data: target } = await supabase
+      .from("toube_messages")
+      .select("id, role, created_at")
+      .eq("id", editMessageId)
+      .eq("user_id", user.id)
+      .eq("session_id", sessionId)
+      .maybeSingle();
+    if (!target || target.role !== "user") {
+      return NextResponse.json({ error: "Mensagem não encontrada." }, { status: 404 });
+    }
+    await supabase
+      .from("toube_messages")
+      .update({ content: message })
+      .eq("id", target.id)
+      .eq("user_id", user.id);
+    // Poda tudo que veio depois — a conversa recomeça deste ponto (estilo Gemini).
+    await supabase
+      .from("toube_messages")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("session_id", sessionId)
+      .gt("created_at", target.created_at);
+    userMessageId = target.id;
+  } else {
+    const { data: ins, error: insErr } = await supabase
+      .from("toube_messages")
+      .insert({ user_id: user.id, session_id: sessionId, role: "user", content: message })
+      .select("id")
+      .single();
+    if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
+    userMessageId = ins?.id ?? null;
+  }
 
   // Auto-título no 1º recado da sessão + bump do updated_at (pra ordenar a lista).
   const { data: sess } = await supabase
@@ -97,7 +151,7 @@ export async function POST(req: Request) {
     .eq("id", sessionId)
     .single();
   const patch: { updated_at: string; title?: string } = { updated_at: new Date().toISOString() };
-  if (!sess?.title) patch.title = message.slice(0, 60);
+  if (!sess?.title && message) patch.title = message.slice(0, 60);
   await supabase.from("toube_sessions").update(patch).eq("id", sessionId).eq("user_id", user.id);
 
   // Histórico recente DESSA SESSÃO (o modelo só vê a conversa atual — anti-alucinação).
@@ -206,13 +260,18 @@ export async function POST(req: Request) {
   }
 
   // Grava o texto da resposta (a proposta em si é efêmera — a pessoa confirma no ato).
-  await supabase
+  const { data: saved } = await supabase
     .from("toube_messages")
-    .insert({ user_id: user.id, session_id: sessionId, role: "assistant", content: result.text });
+    .insert({ user_id: user.id, session_id: sessionId, role: "assistant", content: result.text })
+    .select("id")
+    .single();
 
+  // Os ids voltam pro cliente: sem eles não dá pra editar/regenerar o que acabou
+  // de ser enviado (só as mensagens carregadas do banco tinham id).
+  const ids = { user_message_id: userMessageId, assistant_message_id: saved?.id ?? null };
   return NextResponse.json(
     result.kind === "proposals"
-      ? { reply: result.text, proposals: result.proposals }
-      : { reply: result.text },
+      ? { reply: result.text, proposals: result.proposals, ...ids }
+      : { reply: result.text, ...ids },
   );
 }
