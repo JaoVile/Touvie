@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { DailyForm } from "./DailyForm";
 import { deleteDailyBlock, toggleCompletion } from "./actions";
 
@@ -21,15 +21,24 @@ interface Props {
 
 export function DailyList({ blocks, completedToday, streaks, todayISO }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
-  const [localDone, setLocalDone] = useState(() => new Set(completedToday));
   const [pending, start] = useTransition();
+  // Estado OTIMISTA derivado do servidor (`completedToday`) + toggles pendentes.
+  // A marcação aparece na hora; quando a action revalida, o React reconcilia com
+  // a verdade do servidor sozinho (e reverte se falhar). Sem travar o botão →
+  // dá pra marcar vários hábitos em sequência sem esperar cada ida ao servidor.
+  const [optimisticDone, toggleOptimistic] = useOptimistic(
+    new Set(completedToday),
+    (prev, id: string) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    },
+  );
 
   function handleToggle(id: string) {
-    const next = new Set(localDone);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setLocalDone(next);
     start(async () => {
+      toggleOptimistic(id); // instantâneo, ANTES do await (senão perde o efeito)
       await toggleCompletion(id, todayISO);
     });
   }
@@ -45,7 +54,7 @@ export function DailyList({ blocks, completedToday, streaks, todayISO }: Props) 
   return (
     <ul className="space-y-2">
       {blocks.map((b) => {
-        const done = localDone.has(b.id);
+        const done = optimisticDone.has(b.id);
         const streak = streaks[b.id] ?? 0;
 
         return (
@@ -73,7 +82,6 @@ export function DailyList({ blocks, completedToday, streaks, todayISO }: Props) 
               >
                 <button
                   type="button"
-                  disabled={pending}
                   onClick={() => handleToggle(b.id)}
                   className="shrink-0 text-lg leading-none transition-transform active:scale-90"
                   aria-label={done ? "Desmarcar" : "Marcar como feito"}
