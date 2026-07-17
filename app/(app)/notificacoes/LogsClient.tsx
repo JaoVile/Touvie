@@ -2,9 +2,20 @@
 
 import { GlassCard } from "@/components/glass/GlassCard";
 import { EVENT_COLORS, EVENT_LABELS, STATUS_COLORS, fmtRelative, fmtSource } from "@/lib/log-fmt";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { AppLog, LogPeriod } from "./actions";
+
+// Gráfico (recharts) carregado sob demanda — fora do bundle inicial de /notificacoes.
+const LogsChart = dynamic(() => import("./LogsChartCanvas"), {
+  ssr: false,
+  loading: () => (
+    <div
+      className="h-[200px] w-full animate-pulse rounded-lg"
+      style={{ background: "var(--color-card)" }}
+    />
+  ),
+});
 
 const TAB_LABELS: Record<LogPeriod, string> = {
   hoje: "Hoje",
@@ -108,27 +119,7 @@ export function LogsClient({ logs, activeTab }: { logs: AppLog[]; activeTab: Log
           Disparos por {activeTab === "hoje" ? "hora (BRT)" : "dia"}
         </h3>
         {logs.length > 0 ? (
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 10 }}
-                interval={activeTab === "hoje" ? 3 : "preserveStartEnd"}
-              />
-              <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-              <Tooltip />
-              <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
-              {(["cron", "webhook", "api", "system"] as const).map((type) => (
-                <Bar
-                  key={type}
-                  dataKey={type}
-                  name={EVENT_LABELS[type]}
-                  stackId="a"
-                  fill={EVENT_COLORS[type]}
-                />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
+          <LogsChart data={chartData} activeTab={activeTab} />
         ) : (
           <p className="py-8 text-center text-sm opacity-40">Nenhum evento neste período.</p>
         )}
