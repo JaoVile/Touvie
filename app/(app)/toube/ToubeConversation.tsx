@@ -262,6 +262,7 @@ export function ToubeConversation({
     setAttachment(undefined);
     setMessages((m) => [...m, { role: "user", content: text }]);
     setSending(true);
+    toubeVoice.prime(); // acorda o áudio já no envio — a fala entra sem engasgo
     try {
       if (planMode) {
         // URL sozinha vira FONTE (YouTube/link → transcript/texto); o resto vai
@@ -337,6 +338,7 @@ export function ToubeConversation({
     setError(undefined);
     setEditingIdx(null);
     setSending(true);
+    toubeVoice.prime();
     // Poda otimista: a conversa recomeça na mensagem editada (igual ao servidor).
     setMessages((m) => [...m.slice(0, kept), { ...target, content: text }]);
     try {
@@ -370,6 +372,7 @@ export function ToubeConversation({
     if (!last || last.role !== "assistant" || busy || recording || planMode) return;
     setError(undefined);
     setSending(true);
+    toubeVoice.prime();
     setMessages((m) => m.slice(0, -1)); // remove otimista; o servidor apaga a dele
     try {
       const res = await fetch("/api/toube", {

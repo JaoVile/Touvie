@@ -54,14 +54,36 @@ function sanitize(text: string): string {
   return out;
 }
 
+/**
+ * Quebra o texto em pedaços curtos por frase (junta até ~180 chars). Pedaços
+ * pequenos = a 1ª fala sai bem antes de a resposta inteira ser sintetizada;
+ * juntar evita processos de síntese demais.
+ */
+function splitForSpeech(text: string): string[] {
+  const parts = text.match(/[^.!?…]+[.!?…]*\s*/g) ?? [text];
+  const chunks: string[] = [];
+  let cur = "";
+  for (const p of parts) {
+    if (cur && (cur + p).length > 180) {
+      chunks.push(cur.trim());
+      cur = p;
+    } else {
+      cur += p;
+    }
+  }
+  if (cur.trim()) chunks.push(cur.trim());
+  return chunks.filter(Boolean);
+}
+
 class ToubeVoice {
   private _enabled = false;
   private _voice: string = TOUBE_VOICES[0].id;
-  // Playback via Web Audio (não <audio>): agendar o início com uma folga corrige
-  // o corte do comecinho das falas — a saída de som (PipeWire/Bluetooth) acorda
-  // durante a folga em vez de engolir as primeiras sílabas.
+  // Playback via Web Audio. Um "keep-alive" inaudível mantém a saída de som
+  // (PipeWire/Bluetooth) SEMPRE acordada entre as falas — assim o comecinho das
+  // frases não é engolido e não precisa de uma folga longa antes de cada fala.
   private ctx: AudioContext | null = null;
-  private node: AudioBufferSourceNode | null = null;
+  private keepAlive = false;
+  private nodes: AudioBufferSourceNode[] = []; // pedaços tocando/agendados
   private seq = 0; // invalida respostas fora de ordem (stop no meio de um fetch)
 
   constructor() {
@@ -109,11 +131,60 @@ class ToubeVoice {
     }
   }
 
+  /** Garante o AudioContext ligado + o keep-alive tocando (saída acordada). */
+  private ensureCtx(): AudioContext | null {
+    if (typeof window === "undefined") return null;
+    if (!this.ctx) {
+      const Ctx =
+        window.AudioContext ??
+        (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctx) return null;
+      this.ctx = new Ctx();
+    }
+    if (this.ctx.state === "suspended") void this.ctx.resume();
+    if (!this.keepAlive) {
+      try {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        gain.gain.value = 0; // inaudível — só mantém a stream de áudio aberta
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        this.keepAlive = true;
+      } catch {
+        /* ignora */
+      }
+    }
+    return this.ctx;
+  }
+
   /**
-   * Sintetiza (via Piper no servidor) e toca. No-op se desligado / texto vazio.
-   * `force` fala mesmo com o toggle desligado — é o "ouvir esta resposta" que a
-   * pessoa pede explicitamente clicando no botão da mensagem. `voice` sobrepõe a
-   * voz escolhida (o provador usa pra auditar cada uma).
+   * Abre o áudio DENTRO de um gesto (envio/clique) pra 1ª fala não engasgar e a
+   * saída já ficar acordada durante a síntese. Chamar no send/edit/regenerate.
+   */
+  prime(): void {
+    if (!this._enabled) return;
+    this.ensureCtx();
+  }
+
+  private async synthChunk(text: string, voice: string): Promise<ArrayBuffer | null> {
+    try {
+      const res = await fetch("/api/toube/voz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, voice }),
+      });
+      return res.ok ? await res.arrayBuffer() : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Fala o texto. No-op se desligado / vazio. `force` fala mesmo com o toggle
+   * off (é o "ouvir esta resposta"); `voice` sobrepõe a voz (o provador audita).
+   * Quebra em frases e sintetiza em PARALELO, tocando em ordem — a 1ª frase
+   * entra assim que fica pronta, sem esperar a resposta inteira.
    */
   async speak(text: string, opts?: { force?: boolean; voice?: string }): Promise<void> {
     if (typeof window === "undefined" || (!this._enabled && !opts?.force)) return;
@@ -121,54 +192,52 @@ class ToubeVoice {
     if (!clean) return;
     this.stop();
     const mine = ++this.seq;
-    try {
-      const res = await fetch("/api/toube/voz", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: clean, voice: opts?.voice ?? this._voice }),
-      });
-      if (!res.ok || mine !== this.seq) return; // falhou ou foi interrompido no meio
-      const data = await res.arrayBuffer();
-      if (mine !== this.seq) return;
+    const ctx = this.ensureCtx();
+    if (!ctx) return;
+    const voice = opts?.voice ?? this._voice;
 
-      if (!this.ctx) {
-        const Ctx =
-          window.AudioContext ??
-          (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-        if (!Ctx) return;
-        this.ctx = new Ctx();
+    const jobs = splitForSpeech(clean).map((c) => this.synthChunk(c, voice));
+    let playhead = 0;
+    for (const job of jobs) {
+      const data = await job;
+      if (mine !== this.seq) return; // interrompido por um novo speak/stop
+      if (!data) continue;
+      let buffer: AudioBuffer;
+      try {
+        buffer = await ctx.decodeAudioData(data);
+      } catch {
+        continue; // pedaço corrompido — pula
       }
-      if (this.ctx.state === "suspended") await this.ctx.resume();
-      const buffer = await this.ctx.decodeAudioData(data);
       if (mine !== this.seq) return;
-
-      const node = this.ctx.createBufferSource();
+      const node = ctx.createBufferSource();
       node.buffer = buffer;
-      node.connect(this.ctx.destination);
+      node.connect(ctx.destination);
       node.onended = () => {
-        if (this.node === node) this.node = null;
+        node.disconnect();
+        this.nodes = this.nodes.filter((n) => n !== node);
       };
-      this.node = node;
-      // A folga de 250ms é o conserto do corte: a fala só começa depois que a
-      // saída de áudio já está acordada.
-      node.start(this.ctx.currentTime + 0.25);
-    } catch {
-      /* voz indisponível (sem internet) ou áudio bloqueado — silêncio */
+      // Emenda na linha do tempo do áudio (gapless). Folga mínima (50ms) só se o
+      // pedaço anterior já acabou — com o keep-alive a saída já está acordada.
+      const now = ctx.currentTime;
+      if (playhead < now + 0.02) playhead = now + 0.05;
+      node.start(playhead);
+      playhead += buffer.duration;
+      this.nodes.push(node);
     }
   }
 
   /** Corta a fala imediatamente e invalida qualquer síntese em andamento. */
   stop(): void {
     this.seq++;
-    if (this.node) {
+    for (const n of this.nodes) {
       try {
-        this.node.stop();
+        n.stop();
       } catch {
         /* ainda não tinha começado */
       }
-      this.node.disconnect();
-      this.node = null;
+      n.disconnect();
     }
+    this.nodes = [];
   }
 }
 
