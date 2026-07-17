@@ -1,6 +1,7 @@
 import { PageGlyphs } from "@/components/PageGlyphs";
 import { Reveal } from "@/components/Reveal";
 import { GradientHeader } from "@/components/glass/GradientHeader";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Dumbbell, Sparkles } from "lucide-react";
 import Link from "next/link";
@@ -11,10 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ToubePage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const userId = user!.id;
+  const userId = (await getUserClaims())!.sub;
 
   // Sessão ativa: a mais recente, ou cria uma se o usuário não tem nenhuma.
   let { data: sess } = await supabase

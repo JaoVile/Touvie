@@ -2,6 +2,7 @@ import { PageGlyphs } from "@/components/PageGlyphs";
 import { Reveal } from "@/components/Reveal";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { todayBRTISO } from "@/lib/datetime";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Salad } from "lucide-react";
 import { AlimentosTab } from "./AlimentosTab";
@@ -26,10 +27,7 @@ export default async function DietaPage({ searchParams }: { searchParams: SP }) 
   const dateParam = sp?.d && /^\d{4}-\d{2}-\d{2}$/.test(sp.d) ? sp.d : todayBRTISO();
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const userId = user!.id;
+  const userId = (await getUserClaims())!.sub;
 
   const subtitleByTab: Record<DietTab, string> = {
     hoje: "Refeições e macros do dia.",

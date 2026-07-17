@@ -2,6 +2,7 @@ import { PageGlyphs } from "@/components/PageGlyphs";
 import { Reveal } from "@/components/Reveal";
 import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { BookOpen } from "lucide-react";
 import Link from "next/link";
@@ -20,10 +21,7 @@ function fmtSize(bytes: number): string {
 
 export default async function LeituraPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const userId = user!.id;
+  const userId = (await getUserClaims())!.sub;
 
   const { data: books } = await supabase
     .from("reading_books")

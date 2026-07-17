@@ -4,6 +4,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { CardHead } from "@/components/glass/CardHead";
 import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatBRL } from "@/lib/utils";
 import { Lock, NotebookPen, Search, Wallet } from "lucide-react";
@@ -63,10 +64,9 @@ export default async function BuscaPage({ searchParams }: { searchParams: SP }) 
 
 async function Results({ query }: { query: string }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const claims = await getUserClaims();
+  if (!claims) return null;
+  const userId = claims.sub;
 
   const term = `%${query}%`;
 
@@ -74,7 +74,7 @@ async function Results({ query }: { query: string }) {
     supabase
       .from("transactions")
       .select("id, description, amount_cents, kind, occurred_on, finance_categories(name, emoji)")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .ilike("description", term)
       .order("occurred_on", { ascending: false })
       .limit(10)
@@ -93,14 +93,14 @@ async function Results({ query }: { query: string }) {
     supabase
       .from("journal_entries")
       .select("week_start, content, mood_emoji")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .ilike("content", term)
       .order("week_start", { ascending: false })
       .limit(10),
     supabase
       .from("notes")
       .select("id, title, content, tags, updated_at")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .or(`title.ilike.${term},content.ilike.${term}`)
       .order("updated_at", { ascending: false })
       .limit(10),

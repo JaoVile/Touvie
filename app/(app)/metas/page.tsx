@@ -4,6 +4,7 @@ import { CardHead } from "@/components/glass/CardHead";
 import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { Col, Grid } from "@/components/grid/Grid";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ListChecks, Target } from "lucide-react";
 import { GoalsPanel } from "./GoalsPanel";
@@ -13,10 +14,7 @@ export const dynamic = "force-dynamic";
 
 export default async function MetasPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const userId = user!.id;
+  const userId = (await getUserClaims())!.sub;
 
   const [goalsRes, tasksRes] = await Promise.all([
     supabase

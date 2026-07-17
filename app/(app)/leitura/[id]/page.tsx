@@ -1,6 +1,7 @@
 import { Reveal } from "@/components/Reveal";
 import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { BookOpen } from "lucide-react";
 import Link from "next/link";
@@ -14,10 +15,7 @@ type Params = Promise<{ id: string }>;
 export default async function LeituraReaderPage({ params }: { params: Params }) {
   const { id } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const userId = user!.id;
+  const userId = (await getUserClaims())!.sub;
 
   const { data: book } = await supabase
     .from("reading_books")

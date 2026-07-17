@@ -3,6 +3,7 @@ import { PageGlyphs } from "@/components/PageGlyphs";
 import { Reveal } from "@/components/Reveal";
 import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { NotebookPen, Pin } from "lucide-react";
 import Link from "next/link";
@@ -16,10 +17,7 @@ const STAGGER_CAP = 6;
 
 export default async function NotasPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const userId = user!.id;
+  const userId = (await getUserClaims())!.sub;
 
   const { data: notes } = await supabase
     .from("notes")

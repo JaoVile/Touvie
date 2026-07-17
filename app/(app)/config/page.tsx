@@ -4,6 +4,7 @@ import { CardHead } from "@/components/glass/CardHead";
 import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { TRUSTED_COOKIE, verifyTrustedDevice } from "@/lib/device";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_THEME } from "@/lib/themes";
 import {
@@ -53,32 +54,31 @@ export default async function ConfigPage(props: {
   const currentTab = resolvedParams.tab || "geral";
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const claims = await getUserClaims();
+  const userId = claims!.sub;
   const [profile, names, writePin, focusPref, locale, t] = await Promise.all([
     supabase
       .from("profiles")
       .select("theme, telegram_chat_id, locale")
-      .eq("id", user!.id)
+      .eq("id", userId)
       .maybeSingle()
       .then((r) => r.data),
     supabase
       .from("profiles")
       .select("full_name, display_name")
-      .eq("id", user!.id)
+      .eq("id", userId)
       .maybeSingle()
       .then((r) => r.data),
     supabase
       .from("profiles")
       .select("write_pin_hash")
-      .eq("id", user!.id)
+      .eq("id", userId)
       .maybeSingle()
       .then((r) => r.data),
     supabase
       .from("profiles")
       .select("focus_quest_enabled")
-      .eq("id", user!.id)
+      .eq("id", userId)
       .maybeSingle()
       .then((r) => r.data),
     getLocale(),
@@ -89,7 +89,7 @@ export default async function ConfigPage(props: {
   const hasWriteCode = !!writePin?.write_pin_hash;
   const focusEnabled = focusPref?.focus_quest_enabled ?? false;
   const cookieStore = await cookies();
-  const trustedDevice = await verifyTrustedDevice(cookieStore.get(TRUSTED_COOKIE)?.value, user!.id);
+  const trustedDevice = await verifyTrustedDevice(cookieStore.get(TRUSTED_COOKIE)?.value, userId);
 
   let i = 0;
   const idx = () => ++i;
@@ -151,7 +151,7 @@ export default async function ConfigPage(props: {
                     <ProfileSection
                       fullName={names?.full_name ?? ""}
                       displayName={names?.display_name ?? ""}
-                      email={user?.email ?? ""}
+                      email={claims?.email ?? ""}
                     />
                   </FoldCard>
                 </Reveal>
@@ -306,7 +306,7 @@ export default async function ConfigPage(props: {
                   <FoldCard index={idx()} className="min-w-0">
                     <CardHead icon={ShieldCheck} title="Conta" />
                     <p className="text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                      Logado como <strong>{user?.email}</strong>
+                      Logado como <strong>{claims?.email}</strong>
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <form action={signOutAction}>

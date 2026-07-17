@@ -1,5 +1,6 @@
 import { GlassCard } from "@/components/glass/GlassCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -12,10 +13,7 @@ type Params = Promise<{ id: string }>;
 export default async function NotePage({ params }: { params: Params }) {
   const { id } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const userId = user!.id;
+  const userId = (await getUserClaims())!.sub;
 
   const { data: note } = await supabase
     .from("notes")

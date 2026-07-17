@@ -1,6 +1,7 @@
 import { PageGlyphs } from "@/components/PageGlyphs";
 import { Reveal } from "@/components/Reveal";
 import { GradientHeader } from "@/components/glass/GradientHeader";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Dumbbell } from "lucide-react";
 import { HistoricoTab } from "./HistoricoTab";
@@ -24,10 +25,7 @@ export default async function TreinoPage({ searchParams }: { searchParams: SP })
   const tab: WorkoutTab = isTab(sp?.t) ? sp.t : "hoje";
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const userId = user!.id;
+  const userId = (await getUserClaims())!.sub;
 
   const subtitleByTab: Record<WorkoutTab, string> = {
     hoje: "O treino de hoje + logger de séries.",

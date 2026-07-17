@@ -3,6 +3,7 @@ import { Reveal } from "@/components/Reveal";
 import { GlassCard } from "@/components/glass/GlassCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { todayBRTISO } from "@/lib/datetime";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Wallet } from "lucide-react";
 import { CaixinhasTab } from "./CaixinhasTab";
@@ -34,10 +35,7 @@ export default async function FinancasPage({ searchParams }: { searchParams: SP 
   const tab: FinanceTab = isTab(sp?.t) ? sp.t : "lancamentos";
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const userId = user!.id;
+  const userId = (await getUserClaims())!.sub;
 
   const today = todayBRTISO();
   const currentMonth = today.slice(0, 7); // YYYY-MM

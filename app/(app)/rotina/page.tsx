@@ -4,6 +4,7 @@ import { CardHead } from "@/components/glass/CardHead";
 import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { addDaysISO, todayBRTISO } from "@/lib/datetime";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
   CalendarDays,
@@ -25,10 +26,7 @@ type SearchParams = Promise<{ tab?: "diaria" | "semanal" }>;
 export default async function RotinaPage({ searchParams }: { searchParams: SearchParams }) {
   const { tab = "diaria" } = await searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const userId = user!.id;
+  const userId = (await getUserClaims())!.sub;
   const today = todayBRTISO();
   const since90 = addDaysISO(today, -90);
 

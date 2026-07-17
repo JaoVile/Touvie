@@ -5,6 +5,7 @@ import { QualityBoot } from "@/components/QualityBoot";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { StarField } from "@/components/StarField";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_THEME } from "@/lib/themes";
 import { Analytics } from "@vercel/analytics/next";
@@ -97,16 +98,11 @@ export const viewport: Viewport = {
 
 async function loadUserTheme(): Promise<string> {
   try {
+    const claims = await getUserClaims();
+    if (!claims) return DEFAULT_THEME;
+    const userId = claims.sub;
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return DEFAULT_THEME;
-    const { data } = await supabase
-      .from("profiles")
-      .select("theme")
-      .eq("id", user.id)
-      .maybeSingle();
+    const { data } = await supabase.from("profiles").select("theme").eq("id", userId).maybeSingle();
     let theme = data?.theme;
     // One-time migration to the new visual identity (Royal Navy + Gold):
     // any profile still pinned to the prior default (glass-purple) gets
@@ -115,13 +111,13 @@ async function loadUserTheme(): Promise<string> {
     // intended trade-off until/unless we re-enable glass-purple as a
     // first-class option.
     if (theme === "glass-purple" || theme === "gemini-stellar") {
-      await supabase.from("profiles").update({ theme: "royal" }).eq("id", user.id);
+      await supabase.from("profiles").update({ theme: "royal" }).eq("id", userId);
       theme = "royal";
     }
     // The light "notion-clean" preset was retired (its slot became the
     // "Personalizar" theme). Anyone still pinned to it falls back to royal.
     if (theme === "notion-clean") {
-      await supabase.from("profiles").update({ theme: "royal" }).eq("id", user.id);
+      await supabase.from("profiles").update({ theme: "royal" }).eq("id", userId);
       theme = "royal";
     }
     return theme ?? DEFAULT_THEME;

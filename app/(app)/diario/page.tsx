@@ -4,6 +4,7 @@ import { FoldCard } from "@/components/glass/FoldCard";
 import { GradientHeader } from "@/components/glass/GradientHeader";
 import { weekStartISO } from "@/lib/datetime";
 import { TRUSTED_COOKIE, verifyTrustedDevice } from "@/lib/device";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { NotebookPen, ShieldCheck } from "lucide-react";
 import { cookies } from "next/headers";
@@ -21,10 +22,7 @@ export default async function DiarioPage({ searchParams }: { searchParams: SP })
   const weekStart = sp?.w && /^\d{4}-\d{2}-\d{2}$/.test(sp.w) ? sp.w : weekStartISO();
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const userId = user!.id;
+  const userId = (await getUserClaims())!.sub;
 
   const cookieStore = await cookies();
   const trusted = await verifyTrustedDevice(cookieStore.get(TRUSTED_COOKIE)?.value, userId);

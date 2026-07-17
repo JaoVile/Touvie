@@ -1,6 +1,7 @@
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { Col, Grid } from "@/components/grid/Grid";
 import { addDaysISO, todayBRTISO } from "@/lib/datetime";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { ReactNode } from "react";
 import { FinanceCard } from "./_dashboard/FinanceCard";
@@ -15,10 +16,8 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const userId = user!.id;
+  const claims = await getUserClaims();
+  const userId = claims!.sub;
 
   const today = todayBRTISO();
   const now = new Date();
@@ -71,7 +70,7 @@ export default async function DashboardPage() {
 
   // Hero name: nickname > full name > email handle.
   const heroName =
-    profile?.display_name?.trim() || profile?.full_name?.trim() || displayName(user?.email ?? "");
+    profile?.display_name?.trim() || profile?.full_name?.trim() || displayName(claims?.email ?? "");
 
   const monthIncome = txs.reduce((s, t) => (t.kind === "income" ? s + t.amount_cents : s), 0);
   const monthExpense = txs.reduce((s, t) => (t.kind === "expense" ? s + t.amount_cents : s), 0);
