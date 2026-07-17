@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Target,
   User,
+  Volume2,
 } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
@@ -36,6 +37,7 @@ import { SoundscapePicker } from "./SoundscapePicker";
 import { StarsToggle } from "./StarsToggle";
 import { TelegramSection } from "./TelegramSection";
 import { ThemePicker } from "./ThemePicker";
+import { ToubeVoicePicker } from "./ToubeVoicePicker";
 import { TrailColorPicker } from "./TrailColorPicker";
 import { TrailSizePicker } from "./TrailSizePicker";
 
@@ -256,6 +258,16 @@ export default async function ConfigPage(props: {
                       Atmosferas sonoras para guiar seu foco.
                     </p>
                     <SoundscapePicker />
+                  </FoldCard>
+                </Reveal>
+
+                <Reveal className="min-w-0" delay={1 * STAGGER_MS}>
+                  <FoldCard index={idx()} className="min-w-0">
+                    <CardHead icon={Volume2} title="Voz do Toube" />
+                    <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                      A voz que lê as respostas do assistente — toca a amostra e escolhe.
+                    </p>
+                    <ToubeVoicePicker />
                   </FoldCard>
                 </Reveal>
 

@@ -6,6 +6,29 @@
 // Liga/desliga persistido em localStorage; default DESLIGADO.
 
 const STORAGE_KEY = "toube-voice";
+const VOICE_KEY = "toube-voice-model";
+
+export type ToubeVoiceOption = {
+  id: string;
+  label: string;
+  lang: "pt" | "en" | "multi";
+  engine: "piper" | "kokoro" | "edge";
+  /** Crédito da voz-base (a identidade exibida pode ser própria, ex.: "Toube"). */
+  credit?: string;
+};
+
+/**
+ * Vozes do provador em /config. Hoje só existe UMA: a voz oficial do Toube.
+ * A whitelist do servidor espelha esta lista. Futuro: novas vozes entram por
+ * aqui (inclusive "Minha voz" — clone/treino da voz do próprio usuário).
+ */
+export const TOUBE_VOICES: readonly ToubeVoiceOption[] = [
+  // A VOZ DO TOUBE (default e única): identidade própria "Toube" — por baixo é
+  // o Hyunsu (Edge) afinado em +8Hz; masculina, jovem, suave, multilíngue
+  // (mesma identidade em pt e en pro launch bilíngue). Escolhida em 17/jul.
+  { id: "hyunsu8", label: "Toube", lang: "multi", engine: "edge", credit: "Hyunsu" },
+];
+export type ToubeVoiceId = ToubeVoiceOption["id"];
 
 // Correções de PRONÚNCIA só pra fala (o espeak lê nomes inventados ao pé da
 // letra). O texto na tela não muda — isto vale apenas dentro do sanitize da voz.
@@ -33,14 +56,20 @@ function sanitize(text: string): string {
 
 class ToubeVoice {
   private _enabled = false;
-  private audio: HTMLAudioElement | null = null;
-  private url: string | null = null;
+  private _voice: string = TOUBE_VOICES[0].id;
+  // Playback via Web Audio (não <audio>): agendar o início com uma folga corrige
+  // o corte do comecinho das falas — a saída de som (PipeWire/Bluetooth) acorda
+  // durante a folga em vez de engolir as primeiras sílabas.
+  private ctx: AudioContext | null = null;
+  private node: AudioBufferSourceNode | null = null;
   private seq = 0; // invalida respostas fora de ordem (stop no meio de um fetch)
 
   constructor() {
     if (typeof window === "undefined") return;
     try {
       this._enabled = localStorage.getItem(STORAGE_KEY) === "1";
+      const v = localStorage.getItem(VOICE_KEY);
+      if (v && TOUBE_VOICES.some((t) => t.id === v)) this._voice = v;
     } catch {
       /* localStorage bloqueado */
     }
@@ -65,9 +94,29 @@ class ToubeVoice {
     if (!on) this.stop();
   }
 
-  /** Sintetiza (via Piper no servidor) e toca. No-op se desligado / texto vazio. */
-  async speak(text: string): Promise<void> {
-    if (typeof window === "undefined" || !this._enabled) return;
+  /** Voz escolhida no provador (/config → Voz do Toube). */
+  get voice(): string {
+    return this._voice;
+  }
+
+  setVoice(id: string): void {
+    if (!TOUBE_VOICES.some((t) => t.id === id)) return;
+    this._voice = id;
+    try {
+      localStorage.setItem(VOICE_KEY, id);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /**
+   * Sintetiza (via Piper no servidor) e toca. No-op se desligado / texto vazio.
+   * `force` fala mesmo com o toggle desligado — é o "ouvir esta resposta" que a
+   * pessoa pede explicitamente clicando no botão da mensagem. `voice` sobrepõe a
+   * voz escolhida (o provador usa pra auditar cada uma).
+   */
+  async speak(text: string, opts?: { force?: boolean; voice?: string }): Promise<void> {
+    if (typeof window === "undefined" || (!this._enabled && !opts?.force)) return;
     const clean = sanitize(text);
     if (!clean) return;
     this.stop();
@@ -76,35 +125,50 @@ class ToubeVoice {
       const res = await fetch("/api/toube/voz", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: clean }),
+        body: JSON.stringify({ text: clean, voice: opts?.voice ?? this._voice }),
       });
       if (!res.ok || mine !== this.seq) return; // falhou ou foi interrompido no meio
-      const blob = await res.blob();
+      const data = await res.arrayBuffer();
       if (mine !== this.seq) return;
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      this.audio = audio;
-      this.url = url;
-      audio.addEventListener("ended", () => this.release(url));
-      await audio.play();
+
+      if (!this.ctx) {
+        const Ctx =
+          window.AudioContext ??
+          (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!Ctx) return;
+        this.ctx = new Ctx();
+      }
+      if (this.ctx.state === "suspended") await this.ctx.resume();
+      const buffer = await this.ctx.decodeAudioData(data);
+      if (mine !== this.seq) return;
+
+      const node = this.ctx.createBufferSource();
+      node.buffer = buffer;
+      node.connect(this.ctx.destination);
+      node.onended = () => {
+        if (this.node === node) this.node = null;
+      };
+      this.node = node;
+      // A folga de 250ms é o conserto do corte: a fala só começa depois que a
+      // saída de áudio já está acordada.
+      node.start(this.ctx.currentTime + 0.25);
     } catch {
-      /* voz indisponível (piper fora) ou autoplay bloqueado — silêncio */
+      /* voz indisponível (sem internet) ou áudio bloqueado — silêncio */
     }
   }
 
   /** Corta a fala imediatamente e invalida qualquer síntese em andamento. */
   stop(): void {
     this.seq++;
-    if (this.audio) {
-      this.audio.pause();
-      this.audio = null;
+    if (this.node) {
+      try {
+        this.node.stop();
+      } catch {
+        /* ainda não tinha começado */
+      }
+      this.node.disconnect();
+      this.node = null;
     }
-    this.release(this.url);
-    this.url = null;
-  }
-
-  private release(url: string | null): void {
-    if (url) URL.revokeObjectURL(url);
   }
 }
 

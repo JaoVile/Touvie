@@ -4,52 +4,75 @@ import { readFile, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-// Voz do Toube via Piper (TTS neural LOCAL). Este handler roda o binário do piper
-// no servidor Node e devolve o WAV pro cliente tocar. Só funciona onde o piper
-// está instalado (a máquina local) — NÃO na Vercel. Caminhos via env, com default
-// pro venv que o setup criou (~/.local/share/piper-tts/...).
+// Voz do Toube — vozes neurais do Edge (Microsoft) via edge-tts: qualidade de
+// estúdio, grátis, sem chave. PRECISA de internet (o cérebro do Toube também
+// precisa, então na prática não muda nada) e o binário vem do venv local
+// (~/.local/share/piper-tts) — NÃO roda na Vercel.
+//
+// Histórico: já houve motores locais aqui (Piper spawn + Kokoro via daemon,
+// script guardado em ~/.local/share/piper-tts/kokoro-server.py) — removidos
+// quando o usuário fechou a voz única. Voltam quando "Minha voz" (clone/treino
+// próprio) entrar no provador.
 export const runtime = "nodejs";
 
 const HOME = process.env.HOME ?? "";
-const PIPER_BIN = process.env.PIPER_BIN ?? `${HOME}/.local/share/piper-tts/venv/bin/piper`;
-const PIPER_MODEL =
-  process.env.PIPER_MODEL ?? `${HOME}/.local/share/piper-tts/voices/pt_BR-faber-medium.onnx`;
+const EDGE_TTS_BIN = process.env.EDGE_TTS_BIN ?? `${HOME}/.local/share/piper-tts/venv/bin/edge-tts`;
 
-/** Gera o WAV chamando o piper (texto via stdin, saída num arquivo temporário). */
-function synth(text: string, outPath: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(PIPER_BIN, ["-m", PIPER_MODEL, "-f", outPath]);
-    proc.on("error", reject); // piper ausente / caminho errado
-    proc.stderr.on("data", () => {}); // piper loga progresso no stderr — ignora
-    proc.on("close", (code) =>
-      code === 0 ? resolve() : reject(new Error(`piper saiu com código ${code}`)),
-    );
-    proc.stdin.write(text);
-    proc.stdin.end();
-  });
+// Whitelist (o provador em /config lista as mesmas) — nunca montar parâmetro
+// com input cru do cliente. pitch/rate = ajuste fino de prosódia.
+type VoiceSpec = { voice: string; pitch?: string; rate?: string };
+const VOICES: Record<string, VoiceSpec> = {
+  // A VOZ DO TOUBE: Hyunsu (multilíngue pt+en) afinado em +8Hz — masculina,
+  // jovem, suave; escolhida no provador em 17/jul. Identidade exibida: "Toube".
+  hyunsu8: { voice: "ko-KR-HyunsuMultilingualNeural", pitch: "+8Hz" },
+};
+
+/** Sintetiza no edge-tts (MP3 num arquivo temporário). */
+async function edgeSynth(text: string, spec: VoiceSpec): Promise<ArrayBuffer | null> {
+  const out = join(tmpdir(), `toube-voz-${randomUUID()}.mp3`);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const args = ["--voice", spec.voice, "--text", text, "--write-media", out];
+      if (spec.pitch) args.push(`--pitch=${spec.pitch}`);
+      if (spec.rate) args.push(`--rate=${spec.rate}`);
+      const proc = spawn(EDGE_TTS_BIN, args);
+      proc.on("error", reject);
+      proc.stderr.on("data", () => {});
+      proc.on("close", (code) =>
+        code === 0 ? resolve() : reject(new Error(`edge-tts saiu com código ${code}`)),
+      );
+    });
+    const buf = await readFile(out);
+    // Cópia pra ArrayBuffer "puro" — o BodyInit do TS não aceita o Uint8Array
+    // genérico (ArrayBufferLike) que o readFile devolve.
+    const ab = new ArrayBuffer(buf.byteLength);
+    new Uint8Array(ab).set(buf);
+    return ab;
+  } catch {
+    return null; // sem internet / endpoint mudou — o cliente silencia (503)
+  } finally {
+    unlink(out).catch(() => {});
+  }
 }
 
 export async function POST(req: Request) {
   let text = "";
+  let voice = "";
   try {
-    text = String(((await req.json()) as { text?: unknown }).text ?? "");
+    const body = (await req.json()) as { text?: unknown; voice?: unknown };
+    text = String(body.text ?? "");
+    voice = String(body.voice ?? "");
   } catch {
     return new Response("json inválido", { status: 400 });
   }
   text = text.trim().slice(0, 2000); // teto pra não gerar áudios gigantes
   if (!text) return new Response("texto vazio", { status: 400 });
+  const spec = VOICES[voice] ?? VOICES.hyunsu8; // fallback = a voz oficial
 
-  const out = join(tmpdir(), `toube-voz-${randomUUID()}.wav`);
-  try {
-    await synth(text, out);
-    const buf = await readFile(out);
-    return new Response(new Uint8Array(buf), {
-      headers: { "Content-Type": "audio/wav", "Cache-Control": "no-store" },
-    });
-  } catch {
-    // piper não instalado / falhou — o cliente trata como "voz indisponível".
-    return new Response("falha na síntese de voz", { status: 503 });
-  } finally {
-    unlink(out).catch(() => {});
-  }
+  const audio = await edgeSynth(text, spec);
+  if (!audio) return new Response("falha na síntese de voz", { status: 503 });
+
+  return new Response(audio, {
+    headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" },
+  });
 }
