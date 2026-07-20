@@ -82,4 +82,9 @@ essas regras de domínio — sem elas, os testes ficam rasos ou erram.
   manhã" adiciona item (select + gramas → "+") → confere item (`N g · N kcal`) e a
   soma de macros no header → persiste após reload → remove item. Limpa respeitando
   a FK: apaga a refeição (cascata nos itens) ANTES do alimento (food_id é RESTRICT).
-- ⏳ Falta: rotina Semanal.
+- ✅ `crud/rotina-semanal.spec.ts` — grade Semanal (`routine_weekly`): no card de um
+  dia (ex.: Segunda), "Adicionar" abre o WeeklyForm (TimePicker default 07:00 + título)
+  → "Salvar" cria o bloco → aparece no dia com o horário → persiste após reload →
+  apaga (× confirm "Apagar?"). NÃO há editar in-place na Semanal (só criar+apagar).
+- ✅ **CRUD dos módulos + cadeias fundas coberto.** Próximos alvos (não-gate):
+  regressão visual (screenshots) e Web Vitals reais por rota.
