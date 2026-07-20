@@ -11,6 +11,14 @@ out/
 .env.local
 .env.*.local
 .env.production
+.env.test
+
+# E2E (Playwright)
+/e2e/.auth/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
 
 # vercel
 .vercel/

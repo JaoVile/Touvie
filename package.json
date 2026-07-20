@@ -10,7 +10,10 @@
     "format": "biome format --write .",
     "check": "biome check --write .",
     "check:i18n": "node scripts/check-i18n.mjs",
-    "fetch:sounds": "node scripts/fetch-sounds.mjs"
+    "fetch:sounds": "node scripts/fetch-sounds.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@fontsource/pinyon-script": "^5.2.8",
@@ -35,7 +38,9 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@biomejs/biome": "^1.9.4",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22",
