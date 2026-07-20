@@ -34,11 +34,22 @@ essas regras de domínio — sem elas, os testes ficam rasos ou erram.
   bloqueados (403 `read_only_device`). Em **dev/localhost o notebook é confiável
   implicitamente** — então CRUD em `localhost:3007` funciona sem lidar com isso.
 
-## Cobertura atual (v1) e o que falta
+## Rodar sem flake (importante)
+- Máquina tem ~14Gi RAM. **NÃO deixe dois `pnpm dev` competirem** — o Playwright
+  tenta subir um se não achar (config `reuseExistingServer: true`); garanta UM
+  server no ar em `:3007` ANTES de rodar, senão dá OOM (exit 137).
+- O server é COMPARTILHADO; rodar com muitos workers satura e dá timeout nos
+  fluxos de vários passos (CRUD). Rode com **`--workers=1`** (ou 2) pra suíte
+  estável: `pnpm exec playwright test --workers=1`.
+
+## Cobertura atual e o que falta
 - ✅ `smoke.spec.ts` — cada módulo abre sem erro pra usuário logado.
 - ✅ `security/rls-anon.spec.ts` — anônimo é redirecionado pro /login.
 - ✅ `a11y/a11y.spec.ts` — axe (WCAG) em telas-chave, falha só em crítico/sério.
-- ⏳ **A GERAR (CRUD por módulo):** criar→editar→apagar 1 fluxo feliz em cada
-  módulo (notas, finanças, metas, rotina, treino, dieta), cada teste limpando o
-  que criou. É o próximo alvo do generator.
+- ✅ `crud/notas.spec.ts` — criar→editar(autosave)→apagar, com limpeza.
+- ✅ `crud/metas.spec.ts` — meta e tarefa: criar→editar→concluir→reativar→apagar.
+- ✅ `crud/financas.spec.ts` — lançamento: criar→(valor em R$)→apagar (editar é
+  `test.fixme` — a UI não tem botão de editar lançamento; back-end já suporta).
+- ⏳ CRUD faltando: rotina, treino, dieta; + em finanças: contas a pagar, caixinhas.
 - ⏳ RLS cross-user (user≠dono → deve negar) — precisa de 2º usuário de teste.
+- ⏳ Gate de PIN do /diario (só comportamento/lockout, conteúdo intocável).
