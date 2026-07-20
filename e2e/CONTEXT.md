@@ -28,8 +28,8 @@ essas regras de domínio — sem elas, os testes ficam rasos ou erram.
   do gate de PIN** (pede PIN, lockout após erros — `pin_attempts`/`pin_locked_until`),
   nunca o conteúdo. Sem PIN real hardcoded.
 - **Segurança/RLS é o foco central:** todo dado é escopado por `user_id` com RLS.
-  Vale testar que anônimo é barrado (feito em `security/rls-anon.spec.ts`) e, no
-  futuro, que um usuário não vê dado de outro.
+  Testado em dois níveis: anônimo é barrado (`security/rls-anon.spec.ts`) e um
+  usuário logado não vê dado de outro (`security/rls-cross-user.spec.ts`).
 - **Device confiável:** em produção, POST/PUT/DELETE de device não-confiável são
   bloqueados (403 `read_only_device`). Em **dev/localhost o notebook é confiável
   implicitamente** — então CRUD em `localhost:3007` funciona sem lidar com isso.
@@ -49,6 +49,11 @@ essas regras de domínio — sem elas, os testes ficam rasos ou erram.
 ## Cobertura atual e o que falta
 - ✅ `smoke.spec.ts` — cada módulo abre sem erro pra usuário logado.
 - ✅ `security/rls-anon.spec.ts` — anônimo é redirecionado pro /login.
+- ✅ `security/rls-cross-user.spec.ts` — dois usuários LOGADOS (A e B): B cria dado
+  (nota/meta/lançamento) e A NÃO o enxerga (na lista e, em notas, nem indo direto na
+  URL pelo id). Usa 2 contextos de browser (um storageState por user). **Precisa do
+  2º usuário** (`TEST_USER2_*` no `.env.test`); sem `e2e/.auth/user2.json` o grupo se
+  pula sozinho.
 - ✅ `a11y/a11y.spec.ts` — axe (WCAG) em telas-chave, falha só em crítico/sério.
 - ✅ `crud/notas.spec.ts` — criar→editar(autosave)→apagar.
 - ✅ `crud/metas.spec.ts` — meta e tarefa: criar→editar→concluir→reativar→apagar.
@@ -61,5 +66,4 @@ essas regras de domínio — sem elas, os testes ficam rasos ou erram.
 - ✅ `crud/dieta.spec.ts` — medida do corpo: criar→editar(inline)→apagar.
 - ✅ `crud/treino.spec.ts` — exercício e programa: criar→editar(inline)→apagar.
 - ⏳ Falta: rotina Semanal, dieta foods/refeições, treino log-de-série (cadeia funda).
-- ⏳ RLS cross-user (user≠dono → deve negar) — precisa de 2º usuário de teste.
 - ⏳ Gate de PIN do /diario (só comportamento/lockout, conteúdo intocável).
