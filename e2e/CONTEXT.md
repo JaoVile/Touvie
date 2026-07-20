@@ -71,4 +71,10 @@ essas regras de domínio — sem elas, os testes ficam rasos ou erram.
 - ✅ `crud/rotina.spec.ts` — bloco diário: criar→editar(horário via TimePicker)→apagar.
 - ✅ `crud/dieta.spec.ts` — medida do corpo: criar→editar(inline)→apagar.
 - ✅ `crud/treino.spec.ts` — exercício e programa: criar→editar(inline)→apagar.
-- ⏳ Falta: rotina Semanal, dieta foods/refeições, treino log-de-série (cadeia funda).
+- ✅ `crud/treino-log.spec.ts` — log de série (cadeia funda `exercise_logs`): cria
+  exercício → abre a sessão de hoje (StartSessionButton) → adiciona exercício ad-hoc
+  no SessionLogger → registra série (peso/reps/RPE) → aparece na lista → apaga a
+  série (× "Apagar série"). Limpa no afterEach (apaga a sessão do dia — cascata nos
+  logs — e depois o exercício). ⚠️ gap: NÃO há UI de editar-in-place um set (só
+  apagar+re-registrar), embora `saveLog` suporte update por id.
+- ⏳ Falta: rotina Semanal, dieta foods/refeições.
