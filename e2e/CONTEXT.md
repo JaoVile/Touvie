@@ -77,4 +77,9 @@ essas regras de domínio — sem elas, os testes ficam rasos ou erram.
   série (× "Apagar série"). Limpa no afterEach (apaga a sessão do dia — cascata nos
   logs — e depois o exercício). ⚠️ gap: NÃO há UI de editar-in-place um set (só
   apagar+re-registrar), embora `saveLog` suporte update por id.
-- ⏳ Falta: rotina Semanal, dieta foods/refeições.
+- ✅ `crud/dieta-refeicoes.spec.ts` — refeições do dia (cadeia funda foods→meals→
+  meal_items): cria alimento no catálogo (/dieta?t=alimentos) → no card "Café da
+  manhã" adiciona item (select + gramas → "+") → confere item (`N g · N kcal`) e a
+  soma de macros no header → persiste após reload → remove item. Limpa respeitando
+  a FK: apaga a refeição (cascata nos itens) ANTES do alimento (food_id é RESTRICT).
+- ⏳ Falta: rotina Semanal.
