@@ -54,6 +54,12 @@ essas regras de domínio — sem elas, os testes ficam rasos ou erram.
   URL pelo id). Usa 2 contextos de browser (um storageState por user). **Precisa do
   2º usuário** (`TEST_USER2_*` no `.env.test`); sem `e2e/.auth/user2.json` o grupo se
   pula sozinho.
+- ✅ `security/diario-pin-gate.spec.ts` — gate ZK do Diário (só COMPORTAMENTO,
+  conteúdo INTOCÁVEL): PIN errado → "PIN incorreto." e segue trancado; PIN certo →
+  destranca (aparece o editor). Cobaia = teste2, com PIN de TESTE conhecido setado
+  pelo próprio spec (beforeAll ativa o modo privado 1x, idempotente). ⚠️ o gate VIVO
+  é client-side (unwrapDEK) e NÃO tem lockout/`pin_attempts` — isso é da rota legada
+  `/api/diary/unlock`, hoje órfã da UI (PinGate/PinSetupForm não são renderizados).
 - ✅ `a11y/a11y.spec.ts` — axe (WCAG) em telas-chave, falha só em crítico/sério.
 - ✅ `crud/notas.spec.ts` — criar→editar(autosave)→apagar.
 - ✅ `crud/metas.spec.ts` — meta e tarefa: criar→editar→concluir→reativar→apagar.
@@ -66,4 +72,3 @@ essas regras de domínio — sem elas, os testes ficam rasos ou erram.
 - ✅ `crud/dieta.spec.ts` — medida do corpo: criar→editar(inline)→apagar.
 - ✅ `crud/treino.spec.ts` — exercício e programa: criar→editar(inline)→apagar.
 - ⏳ Falta: rotina Semanal, dieta foods/refeições, treino log-de-série (cadeia funda).
-- ⏳ Gate de PIN do /diario (só comportamento/lockout, conteúdo intocável).
