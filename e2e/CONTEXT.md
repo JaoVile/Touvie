@@ -50,10 +50,12 @@ essas regras de domínio — sem elas, os testes ficam rasos ou erram.
 - ✅ `smoke.spec.ts` — cada módulo abre sem erro pra usuário logado.
 - ✅ `security/rls-anon.spec.ts` — anônimo é redirecionado pro /login.
 - ✅ `security/rls-cross-user.spec.ts` — dois usuários LOGADOS (A e B): B cria dado
-  (nota/meta/lançamento) e A NÃO o enxerga (na lista e, em notas, nem indo direto na
-  URL pelo id). Usa 2 contextos de browser (um storageState por user). **Precisa do
-  2º usuário** (`TEST_USER2_*` no `.env.test`); sem `e2e/.auth/user2.json` o grupo se
-  pula sozinho.
+  (nota/meta/lançamento/**alimento+refeição de dieta**) e A NÃO o enxerga (na lista e,
+  em notas, nem indo direto na URL pelo id; em dieta, nem no catálogo nem na aba Hoje —
+  A semeia 1 alimento pra a Hoje dele renderizar). Cobre tabelas notes/goals/
+  transactions/**foods/meals/meal_items**. Usa 2 contextos de browser (um storageState
+  por user). **Precisa do 2º usuário** (`TEST_USER2_*` no `.env.test`); sem
+  `e2e/.auth/user2.json` o grupo se pula sozinho.
 - ✅ `security/diario-pin-gate.spec.ts` — gate ZK do Diário (só COMPORTAMENTO,
   conteúdo INTOCÁVEL): PIN errado → "PIN incorreto." e segue trancado; PIN certo →
   destranca (aparece o editor). Cobaia = teste2, com PIN de TESTE conhecido setado

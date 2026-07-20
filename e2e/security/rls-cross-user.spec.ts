@@ -226,4 +226,100 @@ test.describe("segurança — RLS cross-user (A não vê os dados de B)", () => 
       }
     }
   });
+
+  test("dieta: A não vê o alimento nem a refeição de B", async () => {
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const foodB = `E2E RLS food ${stamp}`; // alimento de B
+    const foodA = `E2E RLS seed A ${stamp}`; // alimento de A (só pra a aba Hoje de A renderizar)
+
+    // Card "Café da manhã" na sessão de B (GlassCard = div.glass com o heading).
+    const cafeB = pageB
+      .locator(".glass")
+      .filter({ has: pageB.getByRole("heading", { name: "Café da manhã" }) });
+
+    try {
+      // ── B: cria um alimento e o adiciona a uma refeição ────────────────────
+      await pageB.goto("/dieta?t=alimentos", { waitUntil: "domcontentloaded" });
+      await pageB.locator('input[name="name"]').fill(foodB);
+      await pageB.locator('input[name="kcal_per_100g"]').fill("100");
+      await pageB.getByRole("button", { name: "Adicionar" }).click();
+      await expect(
+        pageB.locator("li").filter({ hasText: foodB }),
+        "o alimento de B deveria ser criado",
+      ).toBeVisible({ timeout: 10_000 });
+
+      await pageB.goto("/dieta?t=hoje", { waitUntil: "domcontentloaded" });
+      await clickUntil(
+        cafeB.getByRole("button", { name: "+ adicionar item" }),
+        cafeB.locator("select"),
+      );
+      await cafeB.locator("select").selectOption({ label: foodB });
+      await cafeB.locator('input[placeholder="g"]').fill("50");
+      await cafeB.getByRole("button", { name: "+", exact: true }).click();
+      await expect(
+        pageB.locator("li").filter({ hasText: foodB }),
+        "a refeição de B deveria ter o item",
+      ).toBeVisible({ timeout: 10_000 });
+
+      // ── A: semeia o próprio alimento (senão a aba Hoje de A é só o estado vazio) ─
+      await pageA.goto("/dieta?t=alimentos", { waitUntil: "domcontentloaded" });
+      await pageA.locator('input[name="name"]').fill(foodA);
+      await pageA.locator('input[name="kcal_per_100g"]').fill("100");
+      await pageA.getByRole("button", { name: "Adicionar" }).click();
+      await expect(
+        pageA.locator("li").filter({ hasText: foodA }),
+        "o alimento seed de A deveria ser criado",
+      ).toBeVisible({ timeout: 10_000 });
+
+      // ── A NÃO pode ver nada de B ───────────────────────────────────────────
+      // Catálogo (tabela `foods`): o alimento de B não aparece pra A.
+      await expect(
+        pageA.getByText(foodB, { exact: false }),
+        "o alimento de B não pode aparecer no catálogo de A",
+      ).toHaveCount(0);
+      // Aba Hoje (tabelas `meals`/`meal_items`): renderiza os cards de A (tem o seed);
+      // o nome do alimento/refeição de B NÃO pode vazar.
+      await pageA.goto("/dieta?t=hoje", { waitUntil: "domcontentloaded" });
+      await expect(
+        pageA.getByRole("heading", { name: "Café da manhã" }),
+        "a aba Hoje de A deve renderizar (A tem 1 alimento)",
+      ).toBeVisible({ timeout: 10_000 });
+      await expect(
+        pageA.getByText(foodB, { exact: false }),
+        "a refeição/alimento de B não pode aparecer pra A",
+      ).toHaveCount(0);
+    } finally {
+      // ── B limpa: apaga a refeição (cascata no item) e o alimento ───────────
+      try {
+        await pageB.goto("/dieta?t=hoje", { waitUntil: "domcontentloaded" });
+        const apagarRef = cafeB.getByRole("button", { name: "apagar refeição" });
+        if (await apagarRef.isVisible().catch(() => false)) {
+          await apagarRef.click();
+          await expect(apagarRef)
+            .toHaveCount(0, { timeout: 7_000 })
+            .catch(() => {});
+        }
+      } catch {
+        // best-effort
+      }
+      // Apaga os alimentos de B e de A (cada um na própria sessão).
+      for (const [pg, name] of [
+        [pageB, foodB],
+        [pageA, foodA],
+      ] as const) {
+        try {
+          await pg.goto("/dieta?t=alimentos", { waitUntil: "domcontentloaded" });
+          const row = pg.locator("li").filter({ hasText: name });
+          for (let i = 0; i < 3 && (await row.count().catch(() => 0)) > 0; i++) {
+            await row.first().getByRole("button", { name: "Apagar" }).click();
+            await expect(row)
+              .toHaveCount(0, { timeout: 7_000 })
+              .catch(() => {});
+          }
+        } catch {
+          // best-effort
+        }
+      }
+    }
+  });
 });
