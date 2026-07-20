@@ -1,9 +1,7 @@
 "use server";
 
 import { TRUSTED_COOKIE, verifyTrustedDevice } from "@/lib/device";
-import { DIARY_COOKIE, diaryCookieOptions, hashPin, signDiaryToken } from "@/lib/pin";
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { z } from "zod";
 
@@ -24,28 +22,6 @@ async function requireUser() {
 async function isTrustedDevice(userId: string): Promise<boolean> {
   const cookieStore = await cookies();
   return verifyTrustedDevice(cookieStore.get(TRUSTED_COOKIE)?.value, userId);
-}
-
-const pinSchema = z.string().regex(/^\d{4,8}$/, "PIN deve ter 4 a 8 dígitos");
-
-export async function setupPin(fd: FormData): Promise<{ error?: string; ok?: boolean }> {
-  const pin = fd.get("pin")?.toString() ?? "";
-  const confirm = fd.get("confirm")?.toString() ?? "";
-  const parsed = pinSchema.safeParse(pin);
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message };
-  if (pin !== confirm) return { error: "PINs não conferem" };
-
-  const { supabase, userId } = await requireUser();
-  const hash = await hashPin(pin);
-  const { error } = await supabase.from("profiles").update({ pin_hash: hash }).eq("id", userId);
-  if (error) return { error: error.message };
-
-  // Auto-unlock para evitar que o user tenha que digitar logo após cadastrar
-  const cookieStore = await cookies();
-  cookieStore.set(DIARY_COOKIE, await signDiaryToken(userId), diaryCookieOptions());
-
-  revalidatePath("/diario");
-  return { ok: true };
 }
 
 const entrySchema = z.object({

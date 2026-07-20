@@ -946,9 +946,6 @@ a,
   .gradient-text-anim,
   .rise-in,
   .marquee__track,
-  .padlock.is-open .padlock__shackle,
-  .padlock.is-open .padlock__svg,
-  .padlock.is-open .padlock__glow,
   [style*="circle-text-spin"],
   .aura,
   .star,
@@ -1255,80 +1252,6 @@ input[type="week"]:hover::-webkit-calendar-picker-indicator {
 .btn-pill-ghost:hover {
   background: color-mix(in srgb, var(--color-accent) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent) 70%, transparent);
-}
-
-/* ── Diary padlock — unlock animation (PinGate) ──────────────────────
-   The shackle lifts and swings open, the body gives a little pop, and a
-   gold glow blooms behind. Triggered by adding `.is-open`. */
-.padlock {
-  position: relative;
-  display: grid;
-  place-items: center;
-}
-.padlock__glow {
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  opacity: 0;
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--color-accent) 60%, transparent),
-    transparent 70%
-  );
-}
-.padlock__shackle {
-  transform-box: fill-box;
-  /* pivot on the right leg's base — the captive leg that stays in the body */
-  transform-origin: 90% 82%;
-}
-.padlock.is-open .padlock__shackle {
-  animation: padlock-shackle 0.75s var(--ease-cubic) forwards;
-}
-.padlock.is-open .padlock__svg {
-  animation: padlock-pop 0.75s var(--ease-cubic);
-}
-.padlock.is-open .padlock__glow {
-  animation: padlock-glow 0.9s var(--ease-cubic) forwards;
-}
-@keyframes padlock-shackle {
-  /* lift the shackle clear of the body, then hinge it open clockwise about
-     the right leg — the free (left) leg swings up and out. */
-  0% {
-    transform: translateY(0) rotate(0deg);
-  }
-  40% {
-    transform: translateY(-9px) rotate(0deg);
-  }
-  100% {
-    transform: translateY(-8px) rotate(42deg);
-  }
-}
-@keyframes padlock-pop {
-  0% {
-    transform: scale(1);
-  }
-  30% {
-    transform: scale(1.1);
-  }
-  55% {
-    transform: scale(0.96);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-@keyframes padlock-glow {
-  0% {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  35% {
-    opacity: 0.55;
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.9);
-  }
 }
 
 /* ── Row action icon buttons (goal/task indicators) ──────────────────
