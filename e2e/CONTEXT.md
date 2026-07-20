@@ -50,10 +50,16 @@ essas regras de domínio — sem elas, os testes ficam rasos ou erram.
 - ✅ `smoke.spec.ts` — cada módulo abre sem erro pra usuário logado.
 - ✅ `security/rls-anon.spec.ts` — anônimo é redirecionado pro /login.
 - ✅ `a11y/a11y.spec.ts` — axe (WCAG) em telas-chave, falha só em crítico/sério.
-- ✅ `crud/notas.spec.ts` — criar→editar(autosave)→apagar, com limpeza.
+- ✅ `crud/notas.spec.ts` — criar→editar(autosave)→apagar.
 - ✅ `crud/metas.spec.ts` — meta e tarefa: criar→editar→concluir→reativar→apagar.
-- ✅ `crud/financas.spec.ts` — lançamento: criar→(valor em R$)→apagar (editar é
-  `test.fixme` — a UI não tem botão de editar lançamento; back-end já suporta).
-- ⏳ CRUD faltando: rotina, treino, dieta; + em finanças: contas a pagar, caixinhas.
+- ✅ `crud/financas.spec.ts` — lançamento: criar→editar(inline)→apagar (a UI de
+  editar foi adicionada — antes era gap).
+- ✅ `crud/contas.spec.ts` — conta a pagar: criar→editar→apagar + marcar paga
+  (gera lançamento linkado por bill_id) → desmarcar → apagar.
+- ✅ `crud/caixinhas.spec.ts` — orçamento: criar→editar→apagar (UNIQUE por cat+mês).
+- ✅ `crud/rotina.spec.ts` — bloco diário: criar→editar(horário via TimePicker)→apagar.
+- ✅ `crud/dieta.spec.ts` — medida do corpo: criar→editar(inline)→apagar.
+- ✅ `crud/treino.spec.ts` — exercício e programa: criar→editar(inline)→apagar.
+- ⏳ Falta: rotina Semanal, dieta foods/refeições, treino log-de-série (cadeia funda).
 - ⏳ RLS cross-user (user≠dono → deve negar) — precisa de 2º usuário de teste.
 - ⏳ Gate de PIN do /diario (só comportamento/lockout, conteúdo intocável).
