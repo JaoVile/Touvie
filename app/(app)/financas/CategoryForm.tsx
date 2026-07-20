@@ -37,7 +37,13 @@ export function CategoryForm() {
           className={inputCls}
           style={inputStyle}
         />
-        <select name="kind" defaultValue="expense" className={inputCls} style={inputStyle}>
+        <select
+          aria-label="Tipo da categoria"
+          name="kind"
+          defaultValue="expense"
+          className={inputCls}
+          style={inputStyle}
+        >
           <option value="expense">Despesa</option>
           <option value="income">Receita</option>
         </select>

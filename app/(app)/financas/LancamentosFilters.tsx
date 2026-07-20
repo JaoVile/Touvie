@@ -88,6 +88,7 @@ export function LancamentosFilters({
       <div className="h-5 w-px" style={{ background: "var(--color-border)" }} />
 
       <select
+        aria-label="Filtrar por tipo"
         value={filters.kind ?? ""}
         onChange={(e) => update({ kind: e.target.value || null })}
         className={selCls}
@@ -99,6 +100,7 @@ export function LancamentosFilters({
       </select>
 
       <select
+        aria-label="Filtrar por categoria"
         value={filters.categoryId ?? ""}
         onChange={(e) => update({ cat: e.target.value || null })}
         className={selCls}

@@ -303,6 +303,7 @@ function EnvelopeForm({
             Categoria
           </label>
           <select
+            aria-label="Categoria da caixinha"
             id="envelope-category"
             name="category_id"
             defaultValue={envelope?.category_id ?? ""}

@@ -384,6 +384,7 @@ function BillForm({
             Categoria
           </label>
           <select
+            aria-label="Categoria da conta"
             id="bill-category"
             name="category_id"
             defaultValue={bill?.category_id ?? ""}
@@ -407,6 +408,7 @@ function BillForm({
             Recorrência
           </label>
           <select
+            aria-label="Recorrência"
             id="bill-recurrence"
             name="recurrence_rule"
             defaultValue={bill?.recurrence_rule ?? ""}

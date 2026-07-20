@@ -102,6 +102,7 @@ export function TransactionForm({ categories, defaultValues, onDone }: Props) {
       </div>
 
       <select
+        aria-label="Categoria"
         name="category_id"
         defaultValue={defaultValues?.category_id ?? ""}
         className={inputCls}
