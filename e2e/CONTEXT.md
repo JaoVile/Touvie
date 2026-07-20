@@ -79,9 +79,13 @@ essas regras de domínio — sem elas, os testes ficam rasos ou erram.
   apagar+re-registrar), embora `saveLog` suporte update por id.
 - ✅ `crud/dieta-refeicoes.spec.ts` — refeições do dia (cadeia funda foods→meals→
   meal_items): cria alimento no catálogo (/dieta?t=alimentos) → no card "Café da
-  manhã" adiciona item (select + gramas → "+") → confere item (`N g · N kcal`) e a
-  soma de macros no header → persiste após reload → remove item. Limpa respeitando
-  a FK: apaga a refeição (cascata nos itens) ANTES do alimento (food_id é RESTRICT).
+  manhã" adiciona item (select + gramas → "+") → confere item (`100 g · 217 kcal`) e a
+  soma de macros no header ("P 30 · C 10 · G 5") → persiste após reload → remove item.
+  Limpa respeitando a FK: apaga a refeição (cascata nos itens) ANTES do alimento
+  (food_id é RESTRICT). 🛡️ Este spec CAÇOU um bug real de RSC: `HojeTab` (Server)
+  passava um componente lucide como prop `icon` pro `MealCard` (Client) → não
+  serializa → a aba Hoje crashava pra quem tinha ≥1 alimento. CORRIGIDO (MealCard
+  escolhe o ícone por `mealType`); o spec agora é guarda de regressão verde.
 - ✅ `crud/rotina-semanal.spec.ts` — grade Semanal (`routine_weekly`): no card de um
   dia (ex.: Segunda), "Adicionar" abre o WeeklyForm (TimePicker default 07:00 + título)
   → "Salvar" cria o bloco → aparece no dia com o horário → persiste após reload →

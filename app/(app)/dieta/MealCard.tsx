@@ -2,9 +2,31 @@
 
 import { GlassCard } from "@/components/glass/GlassCard";
 import { type Macros, ZERO_MACROS, formatGrams, sumMacros } from "@/lib/diet";
-import type { LucideIcon } from "lucide-react";
+import {
+  Apple,
+  Coffee,
+  Croissant,
+  Dumbbell,
+  GlassWater,
+  type LucideIcon,
+  Utensils,
+  UtensilsCrossed,
+} from "lucide-react";
 import { useState, useTransition } from "react";
 import { addMealItem, deleteMeal, deleteMealItem, updateMealNotes } from "./actions";
+
+// Ícone por tipo de refeição — escolhido AQUI (client) a partir do `mealType`, não
+// recebido como prop. Passar um componente lucide de Server → Client Component quebra
+// a serialização RSC ("Functions cannot be passed directly to Client Components").
+const MEAL_TYPE_ICONS: Record<string, LucideIcon> = {
+  breakfast: Croissant,
+  snack: Apple,
+  lunch: UtensilsCrossed,
+  pre: Dumbbell,
+  post: GlassWater,
+  dinner: Utensils,
+  other: Coffee,
+};
 
 interface Food {
   id: string;
@@ -23,7 +45,6 @@ interface Item {
 interface Props {
   mealType: string;
   label: string;
-  icon: LucideIcon;
   mealId: string | null;
   mealNotes: string;
   items: Item[];
@@ -31,16 +52,8 @@ interface Props {
   foods: Food[];
 }
 
-export function MealCard({
-  mealType,
-  label,
-  icon: Icon,
-  mealId,
-  mealNotes,
-  items,
-  occurredOn,
-  foods,
-}: Props) {
+export function MealCard({ mealType, label, mealId, mealNotes, items, occurredOn, foods }: Props) {
+  const Icon = MEAL_TYPE_ICONS[mealType] ?? Coffee;
   const [pending, start] = useTransition();
   const [adding, setAdding] = useState(false);
   const [foodId, setFoodId] = useState("");

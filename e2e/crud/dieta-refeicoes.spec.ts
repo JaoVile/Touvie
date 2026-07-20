@@ -28,19 +28,11 @@ import { type Locator, type Page, expect, test } from "@playwright/test";
  *    POST do server action (waitForResponse). A essa altura o card já provou estar
  *    hidratado (o toggle e o <select> funcionaram).
  *
- * ⚠️ BLOQUEADO POR BUG DO APP (marcado `test.fail()`):
- *   `HojeTab.tsx:200` passa `icon={MEAL_TYPE_ICONS[mt]}` (um componente lucide) como
- *   prop de um Server Component pra um Client Component (`MealCard`). RSC NÃO
- *   serializa função/componente → a aba **Hoje** joga o error boundary ("Algo
- *   quebrou") pra QUALQUER usuário com ≥1 alimento (foods.length > 0). Só renderiza
- *   o estado vazio "sem alimentos". Erro exato:
- *     "Functions cannot be passed directly to Client Components…
- *      {$$typeof: …, render: function Croissant}"
- *   Introduzido no commit 33f8185 (emojis→lucide). Fix: o Client `MealCard` deve
- *   ESCOLHER o ícone por `mealType` (já recebido) em vez de recebê-lo como prop.
- *   Este spec foi VALIDADO verde (2/2, --repeat-each) com esse fix aplicado local e
- *   depois REVERTIDO. Enquanto o app não corrige, `test.fail()` mantém a suíte verde
- *   e AVISA (vira falha) no dia em que o bug for consertado → aí remove o marcador.
+ * Histórico: este spec revelou um bug RSC — `HojeTab` (Server) passava um componente
+ * lucide como prop `icon` pro `MealCard` (Client), o que NÃO serializa e derrubava a
+ * aba Hoje ("Functions cannot be passed directly to Client Components") pra qualquer
+ * usuário com ≥1 alimento. CORRIGIDO: o `MealCard` (client) agora escolhe o ícone por
+ * `mealType`. O spec voltou a ser um guarda de regressão verde de verdade.
  */
 
 const HOJE_URL = "/dieta?t=hoje";
@@ -132,10 +124,6 @@ test.describe("CRUD — dieta (refeições do dia)", () => {
   test("adiciona um alimento à refeição, confere macros e apaga (com limpeza)", async ({
     page,
   }) => {
-    // Esperado FALHAR hoje: a aba Hoje crasha (error boundary) quando há alimentos —
-    // ver o bug do `icon` no cabeçalho. Remove este marcador quando HojeTab:200 for
-    // corrigido (o fluxo abaixo já foi validado verde com o fix aplicado).
-    test.fail();
     const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
     const foodName = `E2E refeicao ${stamp}`;
     createdFoodName = foodName;
