@@ -41,6 +41,10 @@ essas regras de domínio — sem elas, os testes ficam rasos ou erram.
 - O server é COMPARTILHADO; rodar com muitos workers satura e dá timeout nos
   fluxos de vários passos (CRUD). Rode com **`--workers=1`** (ou 2) pra suíte
   estável: `pnpm exec playwright test --workers=1`.
+- ⚠️ **Rode em LOTES nesta máquina (14Gi).** A suíte INTEIRA de uma vez (~3min+)
+  acumula memória e pode DERRUBAR o dev server (OOM) no fim — os testes finais
+  falham por "server fora", não por bug. Rode por pasta:
+  `pnpm exec playwright test e2e/smoke.spec.ts --workers=1` (e assim os demais).
 
 ## Cobertura atual e o que falta
 - ✅ `smoke.spec.ts` — cada módulo abre sem erro pra usuário logado.

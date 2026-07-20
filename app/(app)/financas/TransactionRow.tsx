@@ -1,8 +1,9 @@
 "use client";
 
 import { formatBRL } from "@/lib/utils";
-import { TrendingDown, TrendingUp } from "lucide-react";
-import { useTransition } from "react";
+import { Pencil, TrendingDown, TrendingUp } from "lucide-react";
+import { useState, useTransition } from "react";
+import { TransactionForm } from "./TransactionForm";
 import { deleteTransaction } from "./actions";
 
 export interface LedgerItem {
@@ -10,27 +11,63 @@ export interface LedgerItem {
   amount_cents: number;
   kind: "income" | "expense";
   description: string | null;
+  occurred_on: string;
+  category_id: string | null;
   category: { name: string; emoji: string | null; color: string | null } | null;
 }
 
+type FormCategory = { id: string; name: string; kind: "income" | "expense"; emoji: string | null };
+
 export function TransactionRow({
   item,
+  categories = [],
   selectable = false,
   selected = false,
   onToggle,
 }: {
   item: LedgerItem;
+  categories?: FormCategory[];
   selectable?: boolean;
   selected?: boolean;
   onToggle?: () => void;
 }) {
   const [pending, start] = useTransition();
+  const [editing, setEditing] = useState(false);
 
   function remove() {
     if (!confirm("Apagar este lançamento?")) return;
     start(async () => {
       await deleteTransaction(item.id);
     });
+  }
+
+  // Edição inline: abre o TransactionForm no lugar da linha, já preenchido; ao
+  // salvar (a action revalida) fecha e a lista reflete o novo valor.
+  if (editing && !selectable) {
+    return (
+      <li className="rounded-lg p-3" style={{ background: "var(--color-card)" }}>
+        <TransactionForm
+          categories={categories}
+          defaultValues={{
+            id: item.id,
+            category_id: item.category_id,
+            amount_cents: item.amount_cents,
+            kind: item.kind,
+            occurred_on: item.occurred_on,
+            description: item.description,
+          }}
+          onDone={() => setEditing(false)}
+        />
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          className="mt-2 w-full text-xs"
+          style={{ color: "var(--color-fg-muted)" }}
+        >
+          cancelar
+        </button>
+      </li>
+    );
   }
 
   const sign = item.kind === "income" ? "+" : "−";
@@ -82,21 +119,32 @@ export function TransactionRow({
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         <span className="font-mono text-sm" style={{ color }}>
           {sign} {formatBRL(item.amount_cents)}
         </span>
         {selectable ? null : (
-          <button
-            type="button"
-            onClick={remove}
-            disabled={pending}
-            className="rounded px-1.5 py-1 text-xs hover:opacity-80 disabled:opacity-40"
-            style={{ color: "var(--color-fg-subtle)" }}
-            aria-label="Apagar lançamento"
-          >
-            ×
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="rounded p-1 hover:opacity-80"
+              style={{ color: "var(--color-fg-subtle)" }}
+              aria-label="Editar lançamento"
+            >
+              <Pencil size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={remove}
+              disabled={pending}
+              className="rounded px-1.5 py-1 text-xs hover:opacity-80 disabled:opacity-40"
+              style={{ color: "var(--color-fg-subtle)" }}
+              aria-label="Apagar lançamento"
+            >
+              ×
+            </button>
+          </>
         )}
       </div>
     </li>

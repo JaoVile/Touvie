@@ -6,6 +6,7 @@ import { type LedgerItem, TransactionRow } from "./TransactionRow";
 import { deleteTransactions } from "./actions";
 
 type Group = { date: string; items: LedgerItem[] };
+type FormCategory = { id: string; name: string; kind: "income" | "expense"; emoji: string | null };
 
 function formatDateHeader(iso: string): string {
   const d = new Date(`${iso}T12:00:00`);
@@ -16,7 +17,13 @@ function formatDateHeader(iso: string): string {
  * Lista de lançamentos com MODO SELEÇÃO pra excluir em lote (limpar lixo de
  * import). Fora do modo, cada linha mantém o excluir-1 de sempre.
  */
-export function SelectableLedger({ groups }: { groups: Group[] }) {
+export function SelectableLedger({
+  groups,
+  categories = [],
+}: {
+  groups: Group[];
+  categories?: FormCategory[];
+}) {
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, start] = useTransition();
@@ -113,6 +120,7 @@ export function SelectableLedger({ groups }: { groups: Group[] }) {
                 <TransactionRow
                   key={it.id}
                   item={it}
+                  categories={categories}
                   selectable={selecting}
                   selected={selected.has(it.id)}
                   onToggle={() => toggle(it.id)}

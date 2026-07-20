@@ -70,6 +70,8 @@ export async function LancamentosTab({ userId, categories, month, filters }: Pro
       amount_cents: t.amount_cents,
       kind: t.kind as "income" | "expense",
       description: t.description,
+      occurred_on: t.occurred_on,
+      category_id: t.category_id,
       category: cat ? { name: cat.name, emoji: cat.emoji, color: cat.color } : null,
     });
     byDate.set(t.occurred_on, arr);
@@ -102,7 +104,7 @@ export async function LancamentosTab({ userId, categories, month, filters }: Pro
                 : "Nenhum lançamento neste mês. Use o formulário ao lado pra adicionar."}
             </p>
           ) : (
-            <SelectableLedger groups={groups} />
+            <SelectableLedger groups={groups} categories={categories} />
           )}
         </GlassCard>
       </div>
