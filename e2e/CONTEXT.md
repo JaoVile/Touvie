@@ -64,7 +64,14 @@ essas regras de domínio — sem elas, os testes ficam rasos ou erram.
   `/api/diary/unlock`, hoje órfã da UI (PinGate/PinSetupForm não são renderizados).
 - ✅ `a11y/a11y.spec.ts` — axe (WCAG) em telas-chave, falha só em crítico/sério.
 - ✅ `crud/notas.spec.ts` — criar→editar(autosave)→apagar.
+- ✅ `crud/notas-pin-tags.spec.ts` — extras da nota: tags (input #note-tags, autosave) +
+  fixar (botão title="Fixar nota"↔"Desafixar", togglePin) — ambos persistem após reload
+  e a tag aparece na lista. ⚠️ togglePin é otimista+async → esperar o POST antes de
+  recarregar (senão o reload lê pinned=false).
 - ✅ `crud/metas.spec.ts` — meta e tarefa: criar→editar→concluir→reativar→apagar.
+  ⚠️ Gap: **sub-metas (`parent_goal_id`) e prioridade (`priority`) NÃO têm UI** — o
+  GoalForm só expõe title/description/target_date; o back-end (saveGoal) aceita os
+  campos mas nenhum componente os seta. Não há o que testar via E2E até existir UI.
 - ✅ `crud/financas.spec.ts` — lançamento: criar→editar(inline)→apagar (a UI de
   editar foi adicionada — antes era gap).
 - ✅ `crud/contas.spec.ts` — conta a pagar: criar→editar→apagar + marcar paga
