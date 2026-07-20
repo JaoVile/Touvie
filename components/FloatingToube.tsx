@@ -1,11 +1,20 @@
 "use client";
 
-import { type Message, ToubeConversation } from "@/app/(app)/toube/ToubeConversation";
+import type { Message } from "@/app/(app)/toube/ToubeConversation";
 import { createSession, deleteSession } from "@/app/(app)/toube/sessions-actions";
 import { Dumbbell, MessageSquarePlus, MessagesSquare, Sparkles, Trash2, X } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+
+// O miolo do chat (ToubeConversation, ~918 linhas + libs do Toube) só monta quando
+// o painel abre no clique — que já dispara fetch. Carregar sob demanda tira todo
+// esse JS do first-load de TODA página logada (o FloatingToube vive no layout).
+const ToubeConversation = dynamic(
+  () => import("@/app/(app)/toube/ToubeConversation").then((m) => m.ToubeConversation),
+  { ssr: false },
+);
 
 type SessionLite = { id: string; title: string | null };
 

@@ -5,21 +5,23 @@ import { SideLabel } from "@/components/SideLabel";
 import { SoundscapeLayer } from "@/components/SoundscapeLayer";
 import { FocusQuest } from "@/components/focus-quest/FocusQuest";
 import { startOfTodayBRTUTC } from "@/lib/datetime";
+import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  // getClaims (JWT verificado localmente, cacheado) em vez de getUser (RT de rede):
+  // o middleware já revalidou a sessão neste request, então aqui é só o guard.
+  const claims = await getUserClaims();
+  if (!claims) redirect("/login");
+  const userId = claims.sub;
 
   // Foco do dia (opt-in). Query isolada: se a coluna/tabela não existir
   // (migração 0025 pendente), a feature simplesmente não aparece.
   const focusEnabled = await Promise.resolve(
-    supabase.from("profiles").select("focus_quest_enabled").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("focus_quest_enabled").eq("id", userId).maybeSingle(),
   )
     .then((r) => r.data?.focus_quest_enabled ?? false)
     .catch(() => false);
@@ -30,7 +32,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       supabase
         .from("focus_quests")
         .select("id, text, prompt, started_at, completed_at")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .gte("started_at", startOfTodayBRTUTC())
         .order("started_at", { ascending: false })
         .limit(1)

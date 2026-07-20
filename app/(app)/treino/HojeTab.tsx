@@ -31,24 +31,27 @@ export async function HojeTab({ userId }: Props) {
   const today = todayBRTISO();
   const weekday = todayBRT().getUTCDay();
 
-  // 1) Sessão de hoje (se existe)
-  const { data: session } = await supabase
-    .from("workout_sessions")
-    .select("id, program_day_id, occurred_on, notes")
-    .eq("user_id", userId)
-    .eq("occurred_on", today)
-    .maybeSingle();
+  // 1-3) Independentes entre si → uma onda só: sessão de hoje, programa ativo e
+  // catálogo de exercícios (antes eram 3 awaits em série).
+  const [{ data: session }, { data: program }, { data: exercisesRaw }] = await Promise.all([
+    supabase
+      .from("workout_sessions")
+      .select("id, program_day_id, occurred_on, notes")
+      .eq("user_id", userId)
+      .eq("occurred_on", today)
+      .maybeSingle(),
+    supabase
+      .from("workout_programs")
+      .select("id, name")
+      .eq("user_id", userId)
+      .eq("active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("exercises").select("id, name, muscle_group").eq("user_id", userId).order("name"),
+  ]);
 
-  // 2) Programa ativo + dia para weekday atual
-  const { data: program } = await supabase
-    .from("workout_programs")
-    .select("id, name")
-    .eq("user_id", userId)
-    .eq("active", true)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
+  // O dia do programa p/ hoje depende do programa ativo → segunda onda.
   const programDayQ = program
     ? await supabase
         .from("workout_days")
@@ -60,12 +63,6 @@ export async function HojeTab({ userId }: Props) {
     : null;
   const programDay = programDayQ?.data ?? null;
 
-  // 3) Catálogo de exercícios (resolve nomes + ad-hoc no logger)
-  const { data: exercisesRaw } = await supabase
-    .from("exercises")
-    .select("id, name, muscle_group")
-    .eq("user_id", userId)
-    .order("name");
   const exercises = (exercisesRaw ?? []) as Exercise[];
   const exMap = new Map(exercises.map((e) => [e.id, e]));
 

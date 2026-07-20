@@ -27,20 +27,22 @@ export async function GraficosTab({ userId, categories }: Props) {
   // 6 meses: linha de receita/despesa
   const sixStart = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-  const { data: monthRows } = await supabase
-    .from("transactions")
-    .select("amount_cents, kind, category_id")
-    .eq("user_id", userId)
-    .eq("is_recurring", false)
-    .gte("occurred_on", monthStart.toISOString().slice(0, 10))
-    .lte("occurred_on", monthEnd.toISOString().slice(0, 10));
-
-  const { data: sixRows } = await supabase
-    .from("transactions")
-    .select("amount_cents, kind, occurred_on")
-    .eq("user_id", userId)
-    .eq("is_recurring", false)
-    .gte("occurred_on", sixStart.toISOString().slice(0, 10));
+  // As duas consultas são independentes → uma onda só (antes eram em série).
+  const [{ data: monthRows }, { data: sixRows }] = await Promise.all([
+    supabase
+      .from("transactions")
+      .select("amount_cents, kind, category_id")
+      .eq("user_id", userId)
+      .eq("is_recurring", false)
+      .gte("occurred_on", monthStart.toISOString().slice(0, 10))
+      .lte("occurred_on", monthEnd.toISOString().slice(0, 10)),
+    supabase
+      .from("transactions")
+      .select("amount_cents, kind, occurred_on")
+      .eq("user_id", userId)
+      .eq("is_recurring", false)
+      .gte("occurred_on", sixStart.toISOString().slice(0, 10)),
+  ]);
 
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
 
