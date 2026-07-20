@@ -1,7 +1,9 @@
 "use client";
 
 import { MUSCLE_GROUPS } from "@/lib/workout";
+import { Pencil } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
+import { ExerciseForm } from "./ExerciseForm";
 import { deleteExercise, saveExercise } from "./actions";
 
 interface Exercise {
@@ -65,23 +67,12 @@ export function ExerciseCatalog({ exercises }: Props) {
               </h3>
               <ul className="space-y-1">
                 {items.map((e) => (
-                  <li
+                  <ExerciseRow
                     key={e.id}
-                    className="flex items-center justify-between gap-2 rounded px-2 py-1 text-xs"
-                    style={{ background: "var(--color-card)" }}
-                  >
-                    <span className="truncate">{e.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => remove(e.id, e.name)}
-                      disabled={pending}
-                      className="rounded px-1 hover:opacity-80 disabled:opacity-40"
-                      style={{ color: "var(--color-fg-subtle)" }}
-                      aria-label="Apagar"
-                    >
-                      ×
-                    </button>
-                  </li>
+                    exercise={e}
+                    onRemove={() => remove(e.id, e.name)}
+                    pending={pending}
+                  />
                 ))}
               </ul>
             </div>
@@ -126,6 +117,74 @@ export function ExerciseCatalog({ exercises }: Props) {
         </p>
       ) : null}
     </div>
+  );
+}
+
+// Linha do catálogo: mostra o nome + lápis (editar inline) e × (apagar). Ao
+// editar, troca a linha pelo ExerciseForm preenchido; ao salvar/cancelar, volta.
+function ExerciseRow({
+  exercise,
+  onRemove,
+  pending,
+}: {
+  exercise: Exercise;
+  onRemove: () => void;
+  pending: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+
+  if (editing) {
+    return (
+      <li className="rounded px-2 py-2 text-xs" style={{ background: "var(--color-card)" }}>
+        <ExerciseForm
+          defaultValues={{
+            id: exercise.id,
+            name: exercise.name,
+            muscle_group: exercise.muscle_group,
+            notes: exercise.notes,
+          }}
+          onDone={() => setEditing(false)}
+        />
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          className="mt-1.5 w-full text-[10px]"
+          style={{ color: "var(--color-fg-muted)" }}
+        >
+          cancelar
+        </button>
+      </li>
+    );
+  }
+
+  return (
+    <li
+      className="flex items-center justify-between gap-2 rounded px-2 py-1 text-xs"
+      style={{ background: "var(--color-card)" }}
+    >
+      <span className="truncate">{exercise.name}</span>
+      <div className="flex shrink-0 items-center gap-0.5">
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="rounded p-1 hover:opacity-80"
+          style={{ color: "var(--color-fg-subtle)" }}
+          aria-label="Editar exercício"
+        >
+          <Pencil size={12} />
+        </button>
+        <button
+          type="button"
+          onClick={onRemove}
+          disabled={pending}
+          className="rounded px-1 hover:opacity-80 disabled:opacity-40"
+          style={{ color: "var(--color-fg-subtle)" }}
+          aria-label="Apagar"
+        >
+          ×
+        </button>
+      </div>
+    </li>
   );
 }
 

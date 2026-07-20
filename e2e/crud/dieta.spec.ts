@@ -16,9 +16,9 @@ import { expect, test } from "@playwright/test";
  * DatePicker (hoje, via hidden input) — não há constraint unique em
  * (user_id, measured_on), então não há risco de colisão por data.
  *
- * EDITAR: não há UI de edição (nem botão de editar na linha, nem `id` no form),
- * embora `saveMeasurement` já suporte `id` no back-end. Gap reportado como
- * `test.fixme` abaixo — mesmo caso que finanças apontou na v1.
+ * EDITAR: o `MeasurementRow` tem botão "Editar medida" (lápis) que abre o
+ * `MeasurementForm` inline, preenchido, com `id` escondido — o botão vira
+ * "Atualizar" e `saveMeasurement` faz UPDATE por `id`. Testado abaixo.
  */
 
 // Marcador único pra localizar/limpar sem colidir com paralelas.
@@ -72,20 +72,42 @@ test.describe("CRUD dieta — medidas corporais", () => {
     await expect(row).toContainText("cintura 82");
     await expect(row).toContainText("18.5%");
 
-    // --- EDITAR: sem UI — ver test.fixme abaixo e o relatório. --------------
-
     // --- APAGAR -------------------------------------------------------------
     await row.getByRole("button", { name: "Apagar" }).click();
     await expect(row, "medida deve sumir após apagar").toHaveCount(0, { timeout: 10_000 });
   });
 
-  // GAP DE UI: não existe como EDITAR uma medida pela interface — o
-  // `MeasurementForm` é sempre INSERT (não renderiza input `id`) e o
-  // `MeasurementRow` só oferece apagar. O back-end (`saveMeasurement`) já aceita
-  // `id` pra fazer UPDATE, então o gap é só de UI (mesmo padrão que finanças
-  // apontou). Quando a linha ganhar um botão "Editar" que abra o form preenchido,
-  // trocar este `fixme` pelo fluxo real: criar → editar peso → conferir → apagar.
-  test.fixme("cria → edita o peso → apaga uma medida (sem UI de edição)", async () => {
-    // intencionalmente vazio: aguardando affordance de edição no MeasurementRow.
+  test("cria → edita o peso inline → apaga uma medida", async ({ page }) => {
+    await page.goto("/dieta?t=medidas", { waitUntil: "domcontentloaded" });
+
+    // --- CRIAR --------------------------------------------------------------
+    const weightInput = page.locator('input[name="weight_kg"]');
+    await expect(weightInput, "form de nova medida deveria estar visível").toBeVisible();
+    await weightInput.fill(weight);
+    await page.locator('textarea[name="notes"]').fill(marker);
+    await page.getByRole("button", { name: "Registrar" }).click();
+
+    const row = page.locator("li").filter({ hasText: marker });
+    await expect(row, "medida criada deve aparecer no histórico").toBeVisible({ timeout: 10_000 });
+    await expect(row).toContainText("77.7kg");
+
+    // --- EDITAR inline ------------------------------------------------------
+    await row.getByRole("button", { name: "Editar medida" }).click();
+    // Form inline preenchido: muda só o peso. O input de peso do form de edição
+    // vive DENTRO do próprio <li> (o form da sidebar fica fora dele).
+    const editWeight = row.locator('input[name="weight_kg"]');
+    await expect(editWeight, "form de edição deveria abrir preenchido").toHaveValue("77.7");
+    await editWeight.fill("80");
+    await row.getByRole("button", { name: "Atualizar" }).click();
+
+    // --- VERIFICAR novo peso na lista --------------------------------------
+    await expect(row, "peso editado deve refletir no histórico").toContainText("80.0kg", {
+      timeout: 10_000,
+    });
+    await expect(row).not.toContainText("77.7kg");
+
+    // --- APAGAR -------------------------------------------------------------
+    await row.getByRole("button", { name: "Apagar" }).click();
+    await expect(row, "medida deve sumir após apagar").toHaveCount(0, { timeout: 10_000 });
   });
 });

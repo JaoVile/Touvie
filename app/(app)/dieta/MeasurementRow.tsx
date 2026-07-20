@@ -1,7 +1,8 @@
 "use client";
 
-import { Scale } from "lucide-react";
-import { useTransition } from "react";
+import { Pencil, Scale } from "lucide-react";
+import { useState, useTransition } from "react";
+import { MeasurementForm } from "./MeasurementForm";
 import { deleteMeasurement } from "./actions";
 
 interface Measurement {
@@ -18,12 +19,44 @@ interface Measurement {
 
 export function MeasurementRow({ m }: { m: Measurement }) {
   const [pending, start] = useTransition();
+  const [editing, setEditing] = useState(false);
 
   function remove() {
     if (!confirm("Apagar este registro?")) return;
     start(async () => {
       await deleteMeasurement(m.id);
     });
+  }
+
+  // Edição inline: abre o MeasurementForm no lugar da linha, já preenchido; ao
+  // salvar (a action revalida) fecha e a lista reflete o novo valor.
+  if (editing) {
+    return (
+      <li className="rounded p-2 text-xs" style={{ background: "var(--color-card)" }}>
+        <MeasurementForm
+          defaultValues={{
+            id: m.id,
+            measured_on: m.measured_on,
+            weight_kg: m.weight_kg,
+            waist_cm: m.waist_cm,
+            chest_cm: m.chest_cm,
+            arm_cm: m.arm_cm,
+            thigh_cm: m.thigh_cm,
+            bodyfat_pct: m.bodyfat_pct,
+            notes: m.notes,
+          }}
+          onDone={() => setEditing(false)}
+        />
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          className="mt-2 w-full text-[10px]"
+          style={{ color: "var(--color-fg-muted)" }}
+        >
+          cancelar
+        </button>
+      </li>
+    );
   }
 
   return (
@@ -49,9 +82,18 @@ export function MeasurementRow({ m }: { m: Measurement }) {
           {m.bodyfat_pct != null ? <span>{m.bodyfat_pct}%</span> : null}
           <button
             type="button"
+            onClick={() => setEditing(true)}
+            className="ml-2 rounded p-1 hover:opacity-80"
+            style={{ color: "var(--color-fg-subtle)" }}
+            aria-label="Editar medida"
+          >
+            <Pencil size={12} />
+          </button>
+          <button
+            type="button"
             onClick={remove}
             disabled={pending}
-            className="ml-2 rounded px-1 hover:opacity-80 disabled:opacity-40"
+            className="rounded px-1 hover:opacity-80 disabled:opacity-40"
             style={{ color: "var(--color-fg-subtle)" }}
             aria-label="Apagar"
           >

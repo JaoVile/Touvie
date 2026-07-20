@@ -1,8 +1,10 @@
 "use client";
 
 import { WEEKDAY_SHORT } from "@/lib/workout";
+import { Pencil } from "lucide-react";
 import { useState, useTransition } from "react";
 import { DayBuilder } from "./DayBuilder";
+import { ProgramForm } from "./ProgramForm";
 import { deleteProgram, deleteProgramDay, saveProgramDay, setActiveProgram } from "./actions";
 
 interface Program {
@@ -46,6 +48,7 @@ interface Props {
 
 export function ProgramCard({ program, days, exByDay, exercises }: Props) {
   const [open, setOpen] = useState(program.active);
+  const [editing, setEditing] = useState(false);
   const [pending, start] = useTransition();
 
   function activate() {
@@ -74,47 +77,73 @@ export function ProgramCard({ program, days, exByDay, exercises }: Props) {
         borderColor: program.active ? "var(--color-accent)" : "var(--color-border)",
       }}
     >
-      <div className="flex items-center justify-between gap-2">
-        <button type="button" onClick={() => setOpen((o) => !o)} className="flex-1 text-left">
-          <div className="flex items-center gap-2">
-            <span className="text-xs">{open ? "▾" : "▸"}</span>
-            <span className="font-medium">{program.name}</span>
-            {program.active ? (
-              <span
-                className="rounded px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-white"
-                style={{ background: "var(--gradient-brand)" }}
-              >
-                ativo
-              </span>
-            ) : null}
-            <span className="text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
-              {days.length} {days.length === 1 ? "dia" : "dias"}
-            </span>
-          </div>
-        </button>
-        <div className="flex shrink-0 items-center gap-1">
-          {!program.active ? (
-            <button
-              type="button"
-              onClick={activate}
-              disabled={pending}
-              className="rounded border px-2 py-1 text-[11px] hover:opacity-80 disabled:opacity-40"
-              style={{ borderColor: "var(--color-border)", color: "var(--color-fg-muted)" }}
-            >
-              ativar
-            </button>
-          ) : null}
+      {editing ? (
+        <div>
+          <ProgramForm
+            defaultValues={{ id: program.id, name: program.name }}
+            onDone={() => setEditing(false)}
+          />
           <button
             type="button"
-            onClick={remove}
-            disabled={pending}
-            className="rounded px-2 py-1 text-[11px] hover:opacity-80 disabled:opacity-40"
-            style={{ color: "var(--color-danger)" }}
+            onClick={() => setEditing(false)}
+            className="mt-1.5 text-[11px]"
+            style={{ color: "var(--color-fg-muted)" }}
           >
-            apagar
+            cancelar
           </button>
         </div>
-      </div>
+      ) : (
+        <div className="flex items-center justify-between gap-2">
+          <button type="button" onClick={() => setOpen((o) => !o)} className="flex-1 text-left">
+            <div className="flex items-center gap-2">
+              <span className="text-xs">{open ? "▾" : "▸"}</span>
+              <span className="font-medium">{program.name}</span>
+              {program.active ? (
+                <span
+                  className="rounded px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-white"
+                  style={{ background: "var(--gradient-brand)" }}
+                >
+                  ativo
+                </span>
+              ) : null}
+              <span className="text-[10px]" style={{ color: "var(--color-fg-subtle)" }}>
+                {days.length} {days.length === 1 ? "dia" : "dias"}
+              </span>
+            </div>
+          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            {!program.active ? (
+              <button
+                type="button"
+                onClick={activate}
+                disabled={pending}
+                className="rounded border px-2 py-1 text-[11px] hover:opacity-80 disabled:opacity-40"
+                style={{ borderColor: "var(--color-border)", color: "var(--color-fg-muted)" }}
+              >
+                ativar
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="rounded p-1 hover:opacity-80"
+              style={{ color: "var(--color-fg-subtle)" }}
+              aria-label="Editar programa"
+            >
+              <Pencil size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={remove}
+              disabled={pending}
+              className="rounded px-2 py-1 text-[11px] hover:opacity-80 disabled:opacity-40"
+              style={{ color: "var(--color-danger)" }}
+            >
+              apagar
+            </button>
+          </div>
+        </div>
+      )}
 
       {open ? (
         <div className="mt-3 grid gap-2">

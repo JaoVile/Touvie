@@ -31,6 +31,14 @@
     }
   },
   "files": {
-    "ignore": [".next", "node_modules", "public", ".claude"]
+    "ignore": [
+      ".next",
+      "node_modules",
+      "public",
+      ".claude",
+      "test-results",
+      "playwright-report",
+      "e2e/.auth"
+    ]
   }
 }

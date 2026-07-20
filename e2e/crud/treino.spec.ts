@@ -8,21 +8,31 @@ import { type Page, expect, test } from "@playwright/test";
  * de EDIÇÃO (SessionLogger edita/apaga sets). Pra um E2E confiável, este spec cobre
  * os dois CRUDs mais rasos e independentes que a UI expõe de fato:
  *
- *   1. Catálogo de exercícios (tabela `exercises`) — criar → apagar.
- *   2. Programa (tabela `workout_programs`)         — criar → apagar.
+ *   1. Catálogo de exercícios (tabela `exercises`) — criar → editar → apagar.
+ *   2. Programa (tabela `workout_programs`)         — criar → editar → apagar.
  *
- * INTENÇÃO / limite honesto: nem `exercises` nem `workout_programs` têm botão de
- * EDITAR na UI (o back-end suporta update via `id` em `saveExercise`/`saveProgram`,
- * mas nenhum componente expõe isso — igual ao gap de "editar lançamento" que já
- * existiu em finanças). Por isso o passo de UPDATE aqui é `test.fixme` documentando
- * o gap, em vez de forçar um teste que não corresponde à UI real. O log de série
- * completo (com edição de set) fica como spec futuro — precisa de setup profundo.
+ * EDIÇÃO: ambos ganharam o botão de lápis (aria-label "Editar exercício"/"Editar
+ * programa") que abre o form inline preenchido, no mesmo padrão de finanças
+ * (`saveExercise`/`saveProgram` já faziam UPDATE via `id`). O log de série completo
+ * (com edição de set no SessionLogger) fica como spec futuro — precisa de setup
+ * profundo (programa → dia → exercício → sessão) e está fora do escopo aqui.
  *
  * Conta de teste é ZERADA: cada teste cria e limpa o que criou (afterEach + nome
  * com carimbo único), sem deixar lixo no banco. Usa a sessão autenticada global.
  */
 
 const PROGRAMAS_URL = "/treino?t=programas";
+
+/**
+ * Espera a Server Action de /treino concluir (o POST que o `useTransition` dispara).
+ * Necessário porque o botão vira "Salvando…"/"…" durante o pending — então esperar
+ * o form "sumir" pelo rótulo daria falso-positivo e navegar cedo abortaria o UPDATE.
+ */
+function treinoAction(page: Page) {
+  return page.waitForResponse(
+    (r) => r.request().method() === "POST" && r.url().includes("/treino"),
+  );
+}
 
 // Nomes carimbados dos itens criados, pra limpeza garantida mesmo se o teste falhar.
 let createdExerciseName: string | null = null;
@@ -98,9 +108,6 @@ test.describe("CRUD — treino", () => {
     // Foi criado sob o grupo escolhido → heading "Peito" presente.
     await expect(page.getByRole("heading", { name: "Peito" })).toBeVisible();
 
-    // ---- UPDATE (gap conhecido) ----
-    // Sem botão de editar na UI do catálogo; documentado abaixo em test.fixme.
-
     // ---- DELETE ----
     page.once("dialog", (d) => {
       expect(d.type()).toBe("confirm");
@@ -156,9 +163,107 @@ test.describe("CRUD — treino", () => {
     createdProgramName = null;
   });
 
-  // GAP de UI: `exercises` e `workout_programs` não têm affordance de EDIÇÃO na tela
-  // (o back-end suporta update via `id`, mas nenhum componente o expõe). Registrado
-  // como pendência — não é um bug funcional, é falta de UI. Editar de verdade só
-  // existe em séries logadas (SessionLogger), que exige o setup profundo.
-  test.fixme("editar exercício/programa pela UI (sem botão de editar hoje)", async () => {});
+  test("catálogo de exercícios: edita o nome inline (com limpeza)", async ({ page }) => {
+    const name = `E2E treino ex edit ${Date.now()}`;
+    const renamed = `${name} atualizado`;
+    createdExerciseName = name;
+
+    await page.goto(PROGRAMAS_URL);
+
+    // ---- CREATE ----
+    const addNameInput = page.getByPlaceholder("Nome (Supino reto)").first();
+    await addNameInput.fill(name);
+    await page.locator('select[name="muscle_group"]').first().selectOption("Peito");
+    await page.getByRole("button", { name: "+", exact: true }).click();
+    await expect(addNameInput).toHaveValue("", { timeout: 10_000 });
+
+    await page.goto(PROGRAMAS_URL);
+    const item = page.locator("li").filter({ hasText: name });
+    await expect(item).toHaveCount(1);
+
+    // ---- UPDATE ----
+    // Abre o form inline pelo lápis (aria-label "Editar exercício").
+    await item.getByRole("button", { name: "Editar exercício" }).click();
+
+    // O form de edição é o único com botão "Atualizar" — isola do form de adicionar
+    // (que usa "+"), já que ambos compartilham o placeholder do nome.
+    const editForm = page
+      .locator("form")
+      .filter({ has: page.getByRole("button", { name: "Atualizar" }) });
+    const editNameInput = editForm.getByPlaceholder("Nome (Supino reto)");
+    await expect(editNameInput).toHaveValue(name);
+    await editNameInput.fill(renamed);
+    createdExerciseName = renamed; // cleanup passa a mirar o nome novo
+    const updated = treinoAction(page);
+    await editForm.getByRole("button", { name: "Atualizar" }).click();
+    await updated; // garante que o UPDATE terminou antes de navegar
+
+    // Após revalidar, o nome novo aparece e o antigo some.
+    await page.goto(PROGRAMAS_URL);
+    await expect(
+      page.locator("li").filter({ hasText: renamed }),
+      "o exercício renomeado deve aparecer",
+    ).toHaveCount(1);
+    await expect(
+      page.getByText(name, { exact: true }),
+      "o nome antigo não deve mais existir",
+    ).toHaveCount(0);
+
+    // ---- DELETE ----
+    const renamedItem = page.locator("li").filter({ hasText: renamed });
+    page.once("dialog", (d) => d.accept());
+    await renamedItem.getByRole("button", { name: "Apagar" }).click();
+    await expect(page.getByText(renamed, { exact: false })).toHaveCount(0, { timeout: 10_000 });
+    createdExerciseName = null;
+  });
+
+  test("programa: edita o nome inline (com limpeza)", async ({ page }) => {
+    const name = `E2E treino prog edit ${Date.now()}`;
+    const renamed = `${name} atualizado`;
+    createdProgramName = name;
+
+    await page.goto(PROGRAMAS_URL);
+
+    // ---- CREATE ----
+    const addNameInput = page.getByPlaceholder("Nome do programa");
+    await addNameInput.fill(name);
+    await page.getByRole("button", { name: "Criar" }).click();
+    await expect(addNameInput).toHaveValue("", { timeout: 10_000 });
+
+    await page.goto(PROGRAMAS_URL);
+    const card = page.locator("div.rounded-xl").filter({ hasText: name });
+    await expect(card).toHaveCount(1);
+
+    // ---- UPDATE ----
+    await card.getByRole("button", { name: "Editar programa" }).click();
+
+    // Form de edição isolado pelo botão "Atualizar" (o "Novo programa" usa "Criar").
+    const editForm = page
+      .locator("form")
+      .filter({ has: page.getByRole("button", { name: "Atualizar" }) });
+    const editNameInput = editForm.getByPlaceholder("Nome do programa");
+    await expect(editNameInput).toHaveValue(name);
+    await editNameInput.fill(renamed);
+    createdProgramName = renamed;
+    const updated = treinoAction(page);
+    await editForm.getByRole("button", { name: "Atualizar" }).click();
+    await updated; // garante que o UPDATE terminou antes de navegar
+
+    await page.goto(PROGRAMAS_URL);
+    await expect(
+      page.getByText(renamed, { exact: true }),
+      "o programa renomeado deve aparecer",
+    ).toBeVisible();
+    await expect(
+      page.getByText(name, { exact: true }),
+      "o nome antigo não deve mais existir",
+    ).toHaveCount(0);
+
+    // ---- DELETE ----
+    const renamedCard = page.locator("div.rounded-xl").filter({ hasText: renamed });
+    page.once("dialog", (d) => d.accept());
+    await renamedCard.getByRole("button", { name: "apagar", exact: true }).click();
+    await expect(page.getByText(renamed, { exact: true })).toHaveCount(0, { timeout: 10_000 });
+    createdProgramName = null;
+  });
 });
