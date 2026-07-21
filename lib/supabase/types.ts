@@ -223,6 +223,22 @@ export type Database = {
         file_size_bytes: number;
         total_pages: number | null;
         current_page: number;
+        cover_path: string | null;
+        last_read_at: Timestamptz | null;
+        status: "unread" | "reading" | "read";
+        is_favorite: boolean;
+        created_at: Timestamptz;
+        updated_at: Timestamptz;
+      }>;
+      reading_highlights: Table<{
+        id: string;
+        user_id: string;
+        book_id: string;
+        page: number;
+        rects: Json;
+        text: string;
+        color: string;
+        note: string | null;
         created_at: Timestamptz;
         updated_at: Timestamptz;
       }>;
