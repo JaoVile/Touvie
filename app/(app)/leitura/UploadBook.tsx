@@ -1,6 +1,5 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Loader2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -31,6 +30,9 @@ export function UploadBook() {
     }
 
     setStatus("uploading");
+    // Import dinâmico: o cliente browser do Supabase (~50-69KB: auth+storage+
+    // postgrest+realtime) só é baixado no 1º upload, saindo do first-load da /leitura.
+    const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
     const {
       data: { user },
