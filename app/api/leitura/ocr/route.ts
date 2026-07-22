@@ -1,5 +1,5 @@
-import { groqOcr } from "@/lib/groq";
 import { createClient } from "@/lib/supabase/server";
+import { zaiOcr } from "@/lib/zai-vision";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 
   let text = "";
   try {
-    text = await groqOcr(image);
+    text = await zaiOcr(image);
   } catch {
     return NextResponse.json({ error: "OCR indisponível agora." }, { status: 503 });
   }

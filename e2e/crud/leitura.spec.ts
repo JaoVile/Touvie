@@ -129,10 +129,10 @@ test.describe("Leitura — Ferramentas da Página", () => {
     expect((await answer.innerText()).trim().length).toBeGreaterThan(10);
   });
 
-  // BLOQUEADO: nenhum modelo de visão vivo na conta (Groq sem multimodal; Z.ai glm-4.5v
-  // exige saldo pago). O código do OCR está pronto e correto — a rota /api/leitura/ocr só
-  // devolve 503 porque groqOcr chama um VISION_MODEL morto (lib/groq.ts:8). Trocar `fixme`
-  // por `test` assim que um modelo de visão for plugado; a asserção `toBe(200)` já é o guarda.
+  // BLOQUEADO por saldo: o OCR agora usa Z.ai glm-4.5v (lib/zai-vision.ts → zaiOcr), o único
+  // modelo de visão vivo na conta — mas ele exige saldo/resource package na Z.ai (1113). Sem
+  // saldo, /api/leitura/ocr degrada pra 503. Trocar `fixme` por `test` quando a conta tiver
+  // saldo; a asserção `toBe(200)` já é o guarda de regressão.
   test.fixme("OCR ponta-a-ponta: 1ª chamada extrai, 2ª vem do cache", async () => {
     expect(bookId).not.toBeNull();
     const result = await page.evaluate(async (id) => {

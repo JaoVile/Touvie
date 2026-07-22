@@ -1,6 +1,6 @@
-import { groqVision } from "@/lib/groq";
 import { extractFromPdf } from "@/lib/planos-source";
 import { createClient } from "@/lib/supabase/server";
+import { zaiVision } from "@/lib/zai-vision";
 import { NextResponse } from "next/server";
 
 // Anexo do chat → texto que o Toube consegue "ver": imagem vira descrição
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     if (mime.startsWith("image/")) {
       const buf = Buffer.from(await file.arrayBuffer());
       const dataUrl = `data:${mime};base64,${buf.toString("base64")}`;
-      const text = await groqVision(dataUrl);
+      const text = await zaiVision(dataUrl);
       return NextResponse.json({ kind: "imagem", text: text.slice(0, MAX_CHARS) });
     }
     if (mime === "application/pdf") {
