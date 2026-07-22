@@ -82,6 +82,41 @@ export async function groqVision(dataUrl: string): Promise<string> {
   return text;
 }
 
+/** OCR de uma página (data URL base64) — transcrição pura, teto alto pra página cheia. */
+export async function groqOcr(dataUrl: string): Promise<string> {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) throw new Error("GROQ_API_KEY não configurada");
+  const res = await groqFetchRetry(
+    GROQ_URL,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: VISION_MODEL,
+        max_tokens: 2048,
+        temperature: 0,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Transcreva fielmente TODO o texto desta página de livro, na ordem de leitura. Devolva apenas o texto — sem descrever a imagem, sem comentários, sem cabeçalhos seus.",
+              },
+              { type: "image_url", image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+      }),
+    },
+    "Groq OCR",
+  );
+  const data = (await res.json()) as GroqResponse;
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error("OCR não devolveu texto");
+  return text;
+}
+
 export async function groqChat(body: Record<string, unknown>): Promise<GroqResponse> {
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("GROQ_API_KEY não configurada");

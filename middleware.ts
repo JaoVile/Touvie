@@ -6,7 +6,9 @@ const MUTATING_METHODS = new Set(["POST", "PUT", "DELETE", "PATCH"]);
 const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback", "/landpage"];
 const SYSTEM_PREFIXES = ["/api/cron/", "/api/telegram/"];
 // Auth-only flows that may be invoked from untrusted devices (e.g. PIN gate on celular)
-const TRUST_BYPASS_PREFIXES = ["/api/diary/"];
+// /api/leitura/ = compute benigno (OCR + resumo por IA; único write é o cache de
+// OCR, escopado por RLS) — liberado pra funcionar em dispositivo não-confiável (celular).
+const TRUST_BYPASS_PREFIXES = ["/api/diary/", "/api/leitura/"];
 
 export async function middleware(request: NextRequest) {
   let response: NextResponse;
