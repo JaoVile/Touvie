@@ -48,6 +48,7 @@ export function PdfReader({ url, title, bookId, initialPage, highlights = [] }: 
   const progress = useReadingProgress(bookId);
 
   const [data, setData] = useState<Uint8Array>();
+  const [loadError, setLoadError] = useState(false);
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(Math.max(1, initialPage || 1));
   const [dark, setDark] = useState(appThemeIsDark);
@@ -60,9 +61,15 @@ export function PdfReader({ url, title, bookId, initialPage, highlights = [] }: 
   useEffect(() => {
     let cancelled = false;
     fetch(url)
-      .then((r) => r.arrayBuffer())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Falha ao baixar PDF (status ${r.status})`);
+        return r.arrayBuffer();
+      })
       .then((buf) => {
         if (!cancelled) setData(new Uint8Array(buf));
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
       });
     return () => {
       cancelled = true;
@@ -90,7 +97,7 @@ export function PdfReader({ url, title, bookId, initialPage, highlights = [] }: 
       setPage(clamped);
       progress.save(clamped, numPages || undefined);
     },
-    [numPages, page, progress],
+    [numPages, page, progress.save],
   );
 
   useEffect(() => {
@@ -152,7 +159,7 @@ export function PdfReader({ url, title, bookId, initialPage, highlights = [] }: 
             <button
               type="button"
               aria-label="Próxima página"
-              disabled={numPages > 0 && page >= numPages}
+              disabled={numPages === 0 || page >= numPages}
               onClick={() => goTo(page + 1)}
               className="rounded-md p-1.5 transition hover:opacity-80 disabled:opacity-30"
               style={{ color: "var(--color-fg-subtle)" }}
@@ -166,25 +173,43 @@ export function PdfReader({ url, title, bookId, initialPage, highlights = [] }: 
           className={cn("flex justify-center overflow-auto p-3")}
           style={{ filter: dark ? "invert(1) hue-rotate(180deg)" : undefined }}
         >
-          <Document
-            file={file}
-            loading={
-              <p className="py-10 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                Carregando PDF…
+          {loadError ? (
+            <div className="flex flex-col items-center gap-2 py-10 text-center">
+              <p className="text-sm" style={{ color: "var(--color-danger)" }}>
+                Não consegui carregar o PDF. Tente recarregar a página.
               </p>
-            }
-            error={
-              <p className="py-10 text-sm" style={{ color: "var(--color-danger)" }}>
-                Não consegui abrir este PDF.
-              </p>
-            }
-            onLoadSuccess={(d) => {
-              setNumPages(d.numPages);
-              progress.save(page, d.numPages);
-            }}
-          >
-            <Page pageNumber={page} width={width} renderTextLayer renderAnnotationLayer={false} />
-          </Document>
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs transition hover:opacity-80"
+                style={{ color: "var(--color-fg-muted)" }}
+              >
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden strokeWidth={1.6} />
+                Abrir em nova aba
+              </a>
+            </div>
+          ) : (
+            <Document
+              file={file}
+              loading={
+                <p className="py-10 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                  Carregando PDF…
+                </p>
+              }
+              error={
+                <p className="py-10 text-sm" style={{ color: "var(--color-danger)" }}>
+                  Não consegui abrir este PDF.
+                </p>
+              }
+              onLoadSuccess={(d) => {
+                setNumPages(d.numPages);
+                progress.save(page, d.numPages);
+              }}
+            >
+              <Page pageNumber={page} width={width} renderTextLayer renderAnnotationLayer={false} />
+            </Document>
+          )}
         </div>
       </div>
 
