@@ -76,6 +76,27 @@ export async function renameBook(
   return { ok: true };
 }
 
+export async function saveReadingProgress(
+  bookId: string,
+  page: number,
+  totalPages?: number,
+): Promise<{ ok?: boolean; error?: string }> {
+  if (!Number.isInteger(page) || page < 1) return { error: "Página inválida." };
+  const { supabase, userId } = await requireUser();
+  const patch: { current_page: number; last_read_at: string; total_pages?: number } = {
+    current_page: page,
+    last_read_at: new Date().toISOString(),
+  };
+  if (totalPages && Number.isInteger(totalPages) && totalPages > 0) patch.total_pages = totalPages;
+  const { error } = await supabase
+    .from("reading_books")
+    .update(patch)
+    .eq("id", bookId)
+    .eq("user_id", userId);
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
 export async function deleteBook(id: string): Promise<never> {
   const { supabase, userId } = await requireUser();
   // Pega o caminho antes de apagar a linha, pra remover o arquivo do Storage.
