@@ -1,11 +1,13 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, ExternalLink, Moon, Sun } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, Moon, Sun, Wand2 } from "lucide-react";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
+import { PageTools } from "./PageTools";
 import { useReadingProgress } from "./useReadingProgress";
 
 // Worker do pdf.js servido pelo bundler (Turbopack resolve a URL do asset).
@@ -55,8 +57,10 @@ export function PdfReader({ url, title, bookId, initialPage, highlights = [] }: 
   const [page, setPage] = useState(Math.max(1, initialPage || 1));
   const [dark, setDark] = useState(darkByLocalTime);
   const [width, setWidth] = useState(MAX_WIDTH);
+  const [toolsOpen, setToolsOpen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const docRef = useRef<PDFDocumentProxy | null>(null);
 
   // Baixa os bytes uma única vez — a signed URL do Storage expira em 1h e não
   // pode ficar sendo refeita a cada re-render/troca de página.
@@ -146,6 +150,16 @@ export function PdfReader({ url, title, bookId, initialPage, highlights = [] }: 
           <div className="flex items-center gap-1">
             <button
               type="button"
+              aria-label="Ferramentas da página"
+              aria-pressed={toolsOpen}
+              onClick={() => setToolsOpen(true)}
+              className="rounded-md p-1.5 transition hover:opacity-80"
+              style={{ color: "var(--color-fg-subtle)" }}
+            >
+              <Wand2 className="h-4 w-4" aria-hidden strokeWidth={1.6} />
+            </button>
+            <button
+              type="button"
               aria-label={dark ? "Desativar tema escuro na página" : "Ativar tema escuro na página"}
               aria-pressed={dark}
               onClick={() => setDark((d) => !d)}
@@ -205,6 +219,7 @@ export function PdfReader({ url, title, bookId, initialPage, highlights = [] }: 
                 </p>
               }
               onLoadSuccess={(d) => {
+                docRef.current = d;
                 setNumPages(d.numPages);
                 progress.save(page, d.numPages);
               }}
@@ -230,6 +245,15 @@ export function PdfReader({ url, title, bookId, initialPage, highlights = [] }: 
           Abrir em nova aba
         </a>
       </div>
+
+      {toolsOpen ? (
+        <PageTools
+          doc={docRef.current}
+          bookId={bookId}
+          page={page}
+          onClose={() => setToolsOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }
