@@ -1,0 +1,37 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 281 >>
+stream
+BT /F1 16 Tf 72 720 Td 18 TL
+(Touvie E2E - pagina de teste com texto extraivel.) Tj T*
+(Esta pagina existe para validar as Ferramentas da Pagina:) Tj T*
+(extracao de texto, ouvir em voz e IA \(resumir/explicar\).) Tj T*
+(Numeros de controle: 4242 8080 test-marker-touvie.) Tj T*
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000573 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+643
+%%EOF
