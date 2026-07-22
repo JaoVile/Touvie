@@ -1,6 +1,5 @@
 "use client";
 
-import { THEMES } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, ExternalLink, Moon, Sun } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -36,12 +35,15 @@ type PdfReaderProps = {
 /** Teto de largura pra leitura confortável em telas largas. */
 const MAX_WIDTH = 900;
 
-/** Segue o tema atual do app (`data-theme` no <html>) como default do toggle. */
-function appThemeIsDark(): boolean {
-  if (typeof document === "undefined") return false;
-  const id = document.documentElement.getAttribute("data-theme");
-  const theme = THEMES.find((t) => t.id === id);
-  return (theme?.mode ?? "dark") === "dark";
+/**
+ * Default do tema da PÁGINA por horário local (relógio/fuso do dispositivo):
+ * 18:00–05:59 → escuro; 06:00–17:59 → claro. É só o ponto de partida ao abrir —
+ * o toggle manual (Sol/Lua) continua sobrepondo dentro da sessão.
+ */
+function darkByLocalTime(): boolean {
+  if (typeof window === "undefined") return false; // sem SSR aqui (ssr:false), guarda por garantia
+  const h = new Date().getHours();
+  return h >= 18 || h < 6;
 }
 
 export function PdfReader({ url, title, bookId, initialPage, highlights = [] }: PdfReaderProps) {
@@ -51,7 +53,7 @@ export function PdfReader({ url, title, bookId, initialPage, highlights = [] }: 
   const [loadError, setLoadError] = useState(false);
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(Math.max(1, initialPage || 1));
-  const [dark, setDark] = useState(appThemeIsDark);
+  const [dark, setDark] = useState(darkByLocalTime);
   const [width, setWidth] = useState(MAX_WIDTH);
 
   const containerRef = useRef<HTMLDivElement>(null);
