@@ -242,6 +242,15 @@ export type Database = {
         created_at: Timestamptz;
         updated_at: Timestamptz;
       }>;
+      reading_page_text: Table<{
+        id: string;
+        user_id: string;
+        book_id: string;
+        page: number;
+        text: string;
+        source: "layer" | "ocr";
+        created_at: Timestamptz;
+      }>;
       notification_templates: Table<{
         id: string;
         key: string;
