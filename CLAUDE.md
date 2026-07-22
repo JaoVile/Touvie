@@ -80,6 +80,12 @@ convenções que o Biome **não** garante:
 - **Migrations rodam manualmente** no SQL Editor do Supabase, em ordem numérica
   (`supabase/migrations/`). Não há CLI de migration automatizada aqui.
 - **Tailwind v4 (beta)** + PostCSS — sintaxe/config diferem da v3.
+- **`dev` e `build` usam `--turbopack` OBRIGATORIAMENTE** (não remova). O leitor de PDF
+  (`react-pdf`/`pdfjs-dist` em `app/(app)/leitura/[id]`) quebra no **webpack** empacotado
+  pelo Next 15.5 com `TypeError: Object.defineProperty called on non-object` (bug do
+  webpack <5.103.0, #20095, no eval do `pdf.mjs`). O Turbopack é imune. `next build` puro
+  (webpack) compila mas gera bundle que crasha em runtime — a Vercel roda o `build` script,
+  então ele PRECISA ter `--turbopack`. Reavaliar quando o Next subir o webpack p/ ≥5.103.
 - **Som de fundo (soundscape):** `lib/soundscape-loudness.ts` é **GERADO** por
   `scripts/measure-loudness.py` (normaliza volume por variante) — não edite à mão;
   regenere após trocar qualquer take. Curadoria de texturas (buscar/aplicar/verificar)
