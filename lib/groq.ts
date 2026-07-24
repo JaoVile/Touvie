@@ -1,6 +1,6 @@
 // Cliente fino do Groq (OpenAI-compatível), free tier. Usado pelo Toube Planos
 // (llama-3.3, plano estruturado) e pela transcrição de áudio (Whisper). A key vive
-// só no servidor. (Visão/OCR migrou pro Z.ai glm-4.5v em lib/zai-vision.ts — o
+// só no servidor. (Visão/OCR usa o Gemini free tier em lib/gemini-vision.ts — o
 // modelo de visão do Groq foi desativado da conta.)
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_TRANSCRIBE_URL = "https://api.groq.com/openai/v1/audio/transcriptions";

@@ -129,11 +129,11 @@ test.describe("Leitura — Ferramentas da Página", () => {
     expect((await answer.innerText()).trim().length).toBeGreaterThan(10);
   });
 
-  // BLOQUEADO por saldo: o OCR agora usa Z.ai glm-4.5v (lib/zai-vision.ts → zaiOcr), o único
-  // modelo de visão vivo na conta — mas ele exige saldo/resource package na Z.ai (1113). Sem
-  // saldo, /api/leitura/ocr degrada pra 503. Trocar `fixme` por `test` quando a conta tiver
-  // saldo; a asserção `toBe(200)` já é o guarda de regressão.
-  test.fixme("OCR ponta-a-ponta: 1ª chamada extrai, 2ª vem do cache", async () => {
+  // O OCR usa o Gemini free tier (lib/gemini-vision.ts → geminiOcr). Trocar `fixme` por `test`
+  // quando GEMINI_API_KEY estiver no ambiente de teste; sem a chave (ou estourando o limite
+  // diário do free tier) /api/leitura/ocr degrada pra 503. A asserção `toBe(200)` já é o
+  // guarda de regressão.
+  test("OCR ponta-a-ponta: 1ª chamada extrai, 2ª vem do cache", async () => {
     expect(bookId).not.toBeNull();
     const result = await page.evaluate(async (id) => {
       const c = document.createElement("canvas");
@@ -166,16 +166,16 @@ test.describe("Leitura — Ferramentas da Página", () => {
     expect(result.first.status, "1ª chamada de OCR").toBe(200);
     expect(result.second.status, "2ª chamada de OCR").toBe(200);
 
-    // Se o Groq leu algo (esperado), a 2ª chamada tem de vir do cache.
+    // Se o Gemini leu algo (esperado), a 2ª chamada tem de vir do cache.
     if (result.first.body.text && result.first.body.text.length > 0) {
       expect(result.first.body.cached, "1ª chamada não vem do cache").toBe(false);
       expect(result.second.body.cached, "2ª chamada deve vir do cache").toBe(true);
       expect(result.second.body.text).toBe(result.first.body.text);
     } else {
-      // Groq visão não devolveu texto — não é bug do app; anota e não falha o cache.
+      // Gemini não devolveu texto — não é bug do app; anota e não falha o cache.
       test.info().annotations.push({
         type: "warning",
-        description: `OCR retornou texto vazio (Groq): status ${result.first.status}`,
+        description: `OCR retornou texto vazio (Gemini): status ${result.first.status}`,
       });
     }
   });

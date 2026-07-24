@@ -1,10 +1,10 @@
+import { geminiVision } from "@/lib/gemini-vision";
 import { extractFromPdf } from "@/lib/planos-source";
 import { createClient } from "@/lib/supabase/server";
-import { zaiVision } from "@/lib/zai-vision";
 import { NextResponse } from "next/server";
 
 // Anexo do chat → texto que o Toube consegue "ver": imagem vira descrição
-// (Llama 4 Scout, visão), PDF vira texto extraído, .txt/.md entra direto.
+// (Gemini free tier, visão), PDF vira texto extraído, .txt/.md entra direto.
 // O binário é processado e descartado — nada é armazenado.
 const MAX_BYTES = 8 * 1024 * 1024;
 const MAX_CHARS = 6000;
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     if (mime.startsWith("image/")) {
       const buf = Buffer.from(await file.arrayBuffer());
       const dataUrl = `data:${mime};base64,${buf.toString("base64")}`;
-      const text = await zaiVision(dataUrl);
+      const text = await geminiVision(dataUrl);
       return NextResponse.json({ kind: "imagem", text: text.slice(0, MAX_CHARS) });
     }
     if (mime === "application/pdf") {
