@@ -109,6 +109,9 @@ test("compactação: >30 msgs cruas → summary preenchido e cruas podadas", asy
 });
 
 test("limpar histórico: zera sessões e mensagens", async ({ page }) => {
+  // Margem sobre o default de 30s do config: a semeadura + a action de limpar
+  // + os GETs reais ficaram perto do teto (29.9s numa run), o que flakaria.
+  test.setTimeout(60_000);
   await page.goto("/config?tab=avancado");
 
   const clearBtn = page.getByRole("button", { name: "Limpar todo o histórico do Toube" });
