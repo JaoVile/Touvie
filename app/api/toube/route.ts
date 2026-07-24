@@ -194,11 +194,12 @@ export async function POST(req: Request) {
             oldest.map((m) => ({ role: m.role, content: m.content })),
           );
           if (newSummary) {
-            await supabase
+            const { error: upErr } = await supabase
               .from("toube_sessions")
               .update({ summary: newSummary })
               .eq("id", sessionId)
               .eq("user_id", user.id);
+            if (upErr) throw upErr; // resumo não salvou → não poda nada (cai no catch, degrada)
             await supabase
               .from("toube_messages")
               .delete()
