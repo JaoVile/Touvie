@@ -1,11 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 import { type ChatMessage, type ToubeResult, toubeReply } from "@/lib/toube";
+import { summarizeConversation } from "@/lib/toube-compact";
 import { executeToubeRead } from "@/lib/toube-reads";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 // Quantas mensagens do histórico mandar ao modelo (segura custo/contexto).
 const HISTORY_WINDOW = 20;
+
+// Ao cruzar este total de mensagens cruas numa sessão, as mais antigas são
+// resumidas no summary rolante e podadas — mantém ~HISTORY_WINDOW vivas.
+const COMPACT_TRIGGER = 30;
 
 const bodySchema = z.object({
   message: z.string().trim().min(1).max(4000).optional(),
@@ -154,6 +159,63 @@ export async function POST(req: Request) {
   if (!sess?.title && message) patch.title = message.slice(0, 60);
   await supabase.from("toube_sessions").update(patch).eq("id", sessionId).eq("user_id", user.id);
 
+  // Compactação: se a sessão passou do limiar, resume as mais antigas num resumo
+  // rolante e só DEPOIS de salvar poda as cruas resumidas. Falha do resumo → não
+  // poda nada (nunca perde mensagem por erro do modelo).
+  let sessionSummary: string | null = null;
+  {
+    const { data: sRow } = await supabase
+      .from("toube_sessions")
+      .select("summary")
+      .eq("id", sessionId)
+      .eq("user_id", user.id)
+      .single();
+    sessionSummary = sRow?.summary ?? null;
+
+    const { count: rawCount } = await supabase
+      .from("toube_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("session_id", sessionId)
+      .eq("user_id", user.id);
+
+    if ((rawCount ?? 0) >= COMPACT_TRIGGER) {
+      const dropN = (rawCount ?? 0) - HISTORY_WINDOW;
+      const { data: oldest } = await supabase
+        .from("toube_messages")
+        .select("id, role, content")
+        .eq("session_id", sessionId)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true })
+        .limit(dropN);
+      if (oldest && oldest.length > 0) {
+        try {
+          const newSummary = await summarizeConversation(
+            sessionSummary,
+            oldest.map((m) => ({ role: m.role, content: m.content })),
+          );
+          if (newSummary) {
+            await supabase
+              .from("toube_sessions")
+              .update({ summary: newSummary })
+              .eq("id", sessionId)
+              .eq("user_id", user.id);
+            await supabase
+              .from("toube_messages")
+              .delete()
+              .in(
+                "id",
+                oldest.map((m) => m.id),
+              )
+              .eq("user_id", user.id);
+            sessionSummary = newSummary;
+          }
+        } catch {
+          // Groq fora: mantém as cruas, segue a rodada normal.
+        }
+      }
+    }
+  }
+
   // Histórico recente DESSA SESSÃO (o modelo só vê a conversa atual — anti-alucinação).
   const { data: rows } = await supabase
     .from("toube_messages")
@@ -163,6 +225,13 @@ export async function POST(req: Request) {
     .order("created_at", { ascending: false })
     .limit(HISTORY_WINDOW);
   const history = ((rows ?? []) as ChatMessage[]).reverse();
+
+  // O resumo rolante entra como contexto de sistema ANTES da janela viva, então o
+  // modelo mantém o fio mesmo depois da poda. ChatMessage já aceita role "system"
+  // e toubeReply faz [{system}, ...history], então isto vira um 2º system.
+  const historyForModel: ChatMessage[] = sessionSummary
+    ? [{ role: "system", content: `[Resumo da conversa até aqui]\n${sessionSummary}` }, ...history]
+    : history;
 
   // Metas + tarefas ativas da pessoa — o Toube usa pra orientar E pra editar/concluir/
   // deletar (por isso mando o id de cada uma). Vão junto ao modelo (Z.ai); limitado e
@@ -235,7 +304,7 @@ export async function POST(req: Request) {
   let result: ToubeResult;
   try {
     // Consultas de leitura executam na hora com o client RLS deste usuário.
-    result = await toubeReply(history, metasContext, (tool, args) =>
+    result = await toubeReply(historyForModel, metasContext, (tool, args) =>
       executeToubeRead(supabase, user.id, tool, args),
     );
   } catch (e) {
