@@ -11,53 +11,50 @@ const MODEL = "gemini-flash-latest";
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
 type GeminiResponse = {
-	candidates?: { content?: { parts?: { text?: string }[] } }[];
+  candidates?: { content?: { parts?: { text?: string }[] } }[];
 };
 
 // Quebra um data URL (data:image/png;base64,AAAA) em mime + base64 puro,
 // que é o formato inline_data que o Gemini espera.
 function splitDataUrl(dataUrl: string): { mimeType: string; data: string } {
-	const m = /^data:([^;]+);base64,(.*)$/s.exec(dataUrl);
-	if (!m) throw new Error("data URL inválido");
-	return { mimeType: m[1], data: m[2] };
+  const m = /^data:([^;]+);base64,(.*)$/s.exec(dataUrl);
+  if (!m) throw new Error("data URL inválido");
+  return { mimeType: m[1], data: m[2] };
 }
 
 async function geminiVisionCall(
-	dataUrl: string,
-	prompt: string,
-	maxTokens: number,
+  dataUrl: string,
+  prompt: string,
+  maxTokens: number,
 ): Promise<string> {
-	const key = process.env.GEMINI_API_KEY;
-	if (!key) throw new Error("GEMINI_API_KEY não configurada");
-	const { mimeType, data } = splitDataUrl(dataUrl);
-	const res = await fetch(API_URL, {
-		method: "POST",
-		// Key no header (não na URL) — a doc atual do Gemini usa x-goog-api-key e
-		// assim a chave não vaza em logs de acesso/proxy.
-		headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-		body: JSON.stringify({
-			contents: [
-				{
-					parts: [
-						{ text: prompt },
-						{ inline_data: { mime_type: mimeType, data } },
-					],
-				},
-			],
-			generationConfig: { temperature: 0, maxOutputTokens: maxTokens },
-		}),
-	});
-	if (!res.ok) {
-		const detail = await res.text().catch(() => "");
-		throw new Error(`Gemini visão ${res.status}: ${detail.slice(0, 200)}`);
-	}
-	const dataRes = (await res.json()) as GeminiResponse;
-	const text = dataRes.candidates?.[0]?.content?.parts
-		?.map((p) => p.text ?? "")
-		.join("")
-		.trim();
-	if (!text) throw new Error("Visão não devolveu texto");
-	return text;
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("GEMINI_API_KEY não configurada");
+  const { mimeType, data } = splitDataUrl(dataUrl);
+  const res = await fetch(API_URL, {
+    method: "POST",
+    // Key no header (não na URL) — a doc atual do Gemini usa x-goog-api-key e
+    // assim a chave não vaza em logs de acesso/proxy.
+    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data } }],
+        },
+      ],
+      generationConfig: { temperature: 0, maxOutputTokens: maxTokens },
+    }),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Gemini visão ${res.status}: ${detail.slice(0, 200)}`);
+  }
+  const dataRes = (await res.json()) as GeminiResponse;
+  const text = dataRes.candidates?.[0]?.content?.parts
+    ?.map((p) => p.text ?? "")
+    .join("")
+    .trim();
+  if (!text) throw new Error("Visão não devolveu texto");
+  return text;
 }
 
 // ⚠️ Os modelos Gemini 3.x (pra onde gemini-flash-latest aponta) têm "thinking"
@@ -69,18 +66,18 @@ async function geminiVisionCall(
 
 /** Descreve/transcreve uma imagem (data URL base64) em PT-BR — anexo do Toube. */
 export function geminiVision(dataUrl: string): Promise<string> {
-	return geminiVisionCall(
-		dataUrl,
-		"Descreva objetivamente em português o que há nesta imagem. Transcreva TODOS os textos, números e valores visíveis (recibos, listas, telas). Sem opinião, só o conteúdo.",
-		1024,
-	);
+  return geminiVisionCall(
+    dataUrl,
+    "Descreva objetivamente em português o que há nesta imagem. Transcreva TODOS os textos, números e valores visíveis (recibos, listas, telas). Sem opinião, só o conteúdo.",
+    1024,
+  );
 }
 
 /** OCR de uma página de livro (data URL base64) — transcrição pura, teto alto. */
 export function geminiOcr(dataUrl: string): Promise<string> {
-	return geminiVisionCall(
-		dataUrl,
-		"Transcreva fielmente TODO o texto desta página de livro, na ordem de leitura. Devolva apenas o texto — sem descrever a imagem, sem comentários, sem cabeçalhos seus.",
-		4096,
-	);
+  return geminiVisionCall(
+    dataUrl,
+    "Transcreva fielmente TODO o texto desta página de livro, na ordem de leitura. Devolva apenas o texto — sem descrever a imagem, sem comentários, sem cabeçalhos seus.",
+    4096,
+  );
 }
