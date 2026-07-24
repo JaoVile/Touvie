@@ -200,6 +200,15 @@
       "title": "General Log",
       "description": "Last 100 system events — crons, webhooks and APIs."
     },
+    "histIa": {
+      "title": "AI history",
+      "description": "Manage the conversations stored with Toube.",
+      "usage": "{sessions} conversations · {messages} stored messages",
+      "clear": "Clear all Toube history",
+      "confirm": "Confirm — delete everything",
+      "cancel": "Cancel",
+      "cleared": "History cleared."
+    },
     "account": {
       "title": "Account",
       "loggedAs": "Logged in as",

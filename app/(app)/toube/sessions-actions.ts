@@ -70,3 +70,13 @@ export async function listSessions(): Promise<
     .limit(100);
   return data ?? [];
 }
+
+export async function clearToubeHistory(): Promise<{ ok?: boolean; error?: string }> {
+  const { supabase, userId } = await requireUser();
+  // Apaga todas as sessões do usuário; toube_messages cai por cascade (FK 0030).
+  const { error } = await supabase.from("toube_sessions").delete().eq("user_id", userId);
+  if (error) return { error: error.message };
+  revalidatePath("/toube");
+  revalidatePath("/config");
+  return { ok: true };
+}

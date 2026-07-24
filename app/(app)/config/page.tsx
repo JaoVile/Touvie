@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_THEME } from "@/lib/themes";
 import {
   AudioLines,
+  History,
   KeyRound,
   Languages,
   Lock,
@@ -38,6 +39,7 @@ import { SoundscapePicker } from "./SoundscapePicker";
 import { StarsToggle } from "./StarsToggle";
 import { TelegramSection } from "./TelegramSection";
 import { ThemePicker } from "./ThemePicker";
+import { ToubeHistoryManager } from "./ToubeHistoryManager";
 import { ToubeVoicePicker } from "./ToubeVoicePicker";
 import { TrailColorPicker } from "./TrailColorPicker";
 import { TrailSizePicker } from "./TrailSizePicker";
@@ -56,34 +58,46 @@ export default async function ConfigPage(props: {
   const supabase = await createClient();
   const claims = await getUserClaims();
   const userId = claims!.sub;
-  const [profile, names, writePin, focusPref, locale, t] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("theme, telegram_chat_id, locale")
-      .eq("id", userId)
-      .maybeSingle()
-      .then((r) => r.data),
-    supabase
-      .from("profiles")
-      .select("full_name, display_name")
-      .eq("id", userId)
-      .maybeSingle()
-      .then((r) => r.data),
-    supabase
-      .from("profiles")
-      .select("write_pin_hash")
-      .eq("id", userId)
-      .maybeSingle()
-      .then((r) => r.data),
-    supabase
-      .from("profiles")
-      .select("focus_quest_enabled")
-      .eq("id", userId)
-      .maybeSingle()
-      .then((r) => r.data),
-    getLocale(),
-    getTranslations("focoDoDia"),
-  ]);
+  const [profile, names, writePin, focusPref, locale, t, tConfig, toubeSessions, toubeMsgs] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("theme, telegram_chat_id, locale")
+        .eq("id", userId)
+        .maybeSingle()
+        .then((r) => r.data),
+      supabase
+        .from("profiles")
+        .select("full_name, display_name")
+        .eq("id", userId)
+        .maybeSingle()
+        .then((r) => r.data),
+      supabase
+        .from("profiles")
+        .select("write_pin_hash")
+        .eq("id", userId)
+        .maybeSingle()
+        .then((r) => r.data),
+      supabase
+        .from("profiles")
+        .select("focus_quest_enabled")
+        .eq("id", userId)
+        .maybeSingle()
+        .then((r) => r.data),
+      getLocale(),
+      getTranslations("focoDoDia"),
+      getTranslations("config"),
+      supabase
+        .from("toube_sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .then((r) => r.count ?? 0),
+      supabase
+        .from("toube_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .then((r) => r.count ?? 0),
+    ]);
 
   const theme = profile?.theme ?? DEFAULT_THEME;
   const hasWriteCode = !!writePin?.write_pin_hash;
@@ -347,6 +361,16 @@ export default async function ConfigPage(props: {
                       Registro de eventos do sistema.
                     </p>
                     <LogGeral />
+                  </FoldCard>
+                </Reveal>
+
+                <Reveal className="min-w-0" delay={2 * STAGGER_MS}>
+                  <FoldCard index={idx()} className="min-w-0">
+                    <CardHead icon={History} title={tConfig("histIa.title")} />
+                    <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                      {tConfig("histIa.description")}
+                    </p>
+                    <ToubeHistoryManager sessions={toubeSessions} messages={toubeMsgs} />
                   </FoldCard>
                 </Reveal>
               </>
