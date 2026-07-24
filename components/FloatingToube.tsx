@@ -29,6 +29,7 @@ export function FloatingToube() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[] | null>(null);
+  const [summary, setSummary] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState("");
   const [loadError, setLoadError] = useState(false);
   const [view, setView] = useState<"chat" | "list">("chat");
@@ -52,6 +53,7 @@ export function FloatingToube() {
       const data = await res.json();
       setSessionId(typeof data.sessionId === "string" ? data.sessionId : "");
       setMessages(Array.isArray(data.messages) ? data.messages : []);
+      setSummary(data.summary ?? null);
     } catch {
       setLoadError(true);
       setMessages([]);
@@ -63,6 +65,7 @@ export function FloatingToube() {
   function closePanel() {
     setOpen(false);
     setMessages(null);
+    setSummary(null);
     setLoadError(false);
     setView("chat");
   }
@@ -84,6 +87,7 @@ export function FloatingToube() {
       const data = await res.json();
       setSessionId(typeof data.sessionId === "string" ? data.sessionId : (id ?? ""));
       setMessages(Array.isArray(data.messages) ? data.messages : []);
+      setSummary(data.summary ?? null);
     } catch {
       setMessages([]);
     }
@@ -94,6 +98,7 @@ export function FloatingToube() {
     const { id } = await createSession();
     setSessionId(id);
     setMessages([]);
+    setSummary(null);
     setView("chat");
   }
 
@@ -215,7 +220,12 @@ export function FloatingToube() {
                     Não carreguei o histórico, mas pode conversar normal.
                   </p>
                 ) : null}
-                <ToubeConversation initial={messages} variant="panel" sessionId={sessionId} />
+                <ToubeConversation
+                  initial={messages}
+                  variant="panel"
+                  sessionId={sessionId}
+                  summary={summary}
+                />
               </>
             )}
           </div>

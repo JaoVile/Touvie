@@ -16,6 +16,7 @@ import {
   VolumeX,
   X,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import type { ClipboardEvent, KeyboardEvent } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -116,12 +117,17 @@ export function ToubeConversation({
   initial,
   variant,
   sessionId,
+  summary,
 }: {
   initial: Message[];
   variant: "page" | "panel";
   sessionId: string;
+  // Resumo rolante da sessão (Task 1/3) — quando presente, vira uma bolha fixa
+  // no topo da lista pra dar contexto do que já rolou antes da poda.
+  summary?: string | null;
 }) {
   const router = useRouter();
+  const t = useTranslations("toube");
   const [messages, setMessages] = useState<Message[]>(initial);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -641,6 +647,16 @@ export function ToubeConversation({
             : "flex flex-col gap-3"
         }
       >
+        {summary && (
+          <div
+            className="rounded-lg border px-3 py-2 text-sm opacity-80"
+            style={{ background: "var(--color-card)", borderColor: "var(--color-border)" }}
+          >
+            <div className="mb-1 font-semibold">{t("resumoTitulo")}</div>
+            <p className="whitespace-pre-wrap">{summary}</p>
+          </div>
+        )}
+
         {messages.length === 0 ? (
           <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
             <span

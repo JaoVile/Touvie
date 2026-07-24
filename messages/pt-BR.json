@@ -273,6 +273,9 @@
       "Concluído em {duration}. Você honrou o que se propôs hoje."
     ]
   },
+  "toube": {
+    "resumoTitulo": "📝 Resumo da conversa até aqui"
+  },
   "common": {
     "loading": "Carregando…",
     "error": "Erro",

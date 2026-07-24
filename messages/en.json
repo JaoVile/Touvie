@@ -273,6 +273,9 @@
       "Finished in {duration}. You honored what you set out to do today."
     ]
   },
+  "toube": {
+    "resumoTitulo": "📝 Conversation summary so far"
+  },
   "common": {
     "loading": "Loading…",
     "error": "Error",

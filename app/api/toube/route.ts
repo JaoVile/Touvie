@@ -73,7 +73,17 @@ export async function GET(req: Request) {
     .eq("session_id", sessionId)
     .order("created_at", { ascending: false })
     .limit(40);
-  return NextResponse.json({ sessionId, messages: (data ?? []).reverse() });
+  const { data: sess } = await supabase
+    .from("toube_sessions")
+    .select("summary")
+    .eq("id", sessionId)
+    .eq("user_id", user.id)
+    .single();
+  return NextResponse.json({
+    sessionId,
+    messages: (data ?? []).reverse(),
+    summary: sess?.summary ?? null,
+  });
 }
 
 export async function POST(req: Request) {
