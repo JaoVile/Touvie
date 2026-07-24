@@ -58,6 +58,7 @@ export type Database = {
         id: string;
         user_id: string;
         title: string | null;
+        summary: string | null;
         created_at: Timestamptz;
         updated_at: Timestamptz;
       }>;
