@@ -16,14 +16,17 @@ export function ToubeSessions({
   sessions: initialSessions,
   activeId,
   initial,
+  initialSummary,
 }: {
   sessions: Session[];
   activeId: string;
   initial: Message[];
+  initialSummary?: string | null;
 }) {
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
   const [active, setActive] = useState(activeId);
   const [messages, setMessages] = useState<Message[]>(initial);
+  const [summary, setSummary] = useState<string | null>(initialSummary ?? null);
   const [loading, setLoading] = useState(false);
   const [, start] = useTransition();
 
@@ -34,6 +37,7 @@ export function ToubeSessions({
       const res = await fetch(`/api/toube?session=${id}`);
       const data = await res.json();
       setMessages(Array.isArray(data.messages) ? data.messages : []);
+      setSummary(data.summary ?? null);
       setActive(id);
     } finally {
       setLoading(false);
@@ -47,6 +51,7 @@ export function ToubeSessions({
       const { id } = await createSession();
       setSessions((s) => [{ id, title: null, updated_at: new Date(0).toISOString() }, ...s]);
       setMessages([]);
+      setSummary(null);
       setActive(id);
     } finally {
       setLoading(false);
@@ -131,7 +136,13 @@ export function ToubeSessions({
       </aside>
 
       {/* Conversa ativa — key força remount limpo ao trocar */}
-      <ToubeConversation key={active} initial={messages} variant="page" sessionId={active} />
+      <ToubeConversation
+        key={active}
+        initial={messages}
+        variant="page"
+        sessionId={active}
+        summary={summary}
+      />
     </div>
   );
 }

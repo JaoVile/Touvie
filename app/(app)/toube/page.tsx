@@ -17,7 +17,7 @@ export default async function ToubePage() {
   // Sessão ativa: a mais recente, ou cria uma se o usuário não tem nenhuma.
   let { data: sess } = await supabase
     .from("toube_sessions")
-    .select("id")
+    .select("id, summary")
     .eq("user_id", userId)
     .order("updated_at", { ascending: false })
     .limit(1)
@@ -26,7 +26,7 @@ export default async function ToubePage() {
     const { data: created } = await supabase
       .from("toube_sessions")
       .insert({ user_id: userId })
-      .select("id")
+      .select("id, summary")
       .single();
     sess = created;
   }
@@ -86,7 +86,12 @@ export default async function ToubePage() {
         </span>
       </Link>
 
-      <ToubeSessions sessions={sessions ?? []} activeId={sessionId} initial={initial} />
+      <ToubeSessions
+        sessions={sessions ?? []}
+        activeId={sessionId}
+        initial={initial}
+        initialSummary={sess?.summary ?? null}
+      />
     </>
   );
 }
