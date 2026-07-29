@@ -1,16 +1,18 @@
 import { PageGlyphs } from "@/components/PageGlyphs";
 import { Reveal } from "@/components/Reveal";
 import { GradientHeader } from "@/components/glass/GradientHeader";
-import { Bell, type LucideIcon, PenLine, ScrollText, Settings } from "lucide-react";
+import { type ReminderRow, listAllReminders } from "@/components/reminders/actions";
+import { Bell, BellRing, type LucideIcon, PenLine, ScrollText, Settings } from "lucide-react";
 import { ConfigClient } from "./ConfigClient";
 import { LogsClient } from "./LogsClient";
+import { RemindersClient } from "./RemindersClient";
 import { TemplatesClient } from "./TemplatesClient";
 import { type LogPeriod, getLogs, getTemplates, getWebhookStatus } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 const VALID_TABS: LogPeriod[] = ["hoje", "semana", "mes"];
-type Section = "logs" | "templates" | "config";
+type Section = "logs" | "templates" | "config" | "reminders";
 
 export default async function NotificacoesPage({
   searchParams,
@@ -18,16 +20,29 @@ export default async function NotificacoesPage({
   searchParams: Promise<{ v?: string; tab?: string }>;
 }) {
   const { v, tab } = await searchParams;
-  const section: Section = v === "templates" ? "templates" : v === "config" ? "config" : "logs";
+  const section: Section =
+    v === "templates"
+      ? "templates"
+      : v === "config"
+        ? "config"
+        : v === "reminders"
+          ? "reminders"
+          : "logs";
   const activeTab: LogPeriod = VALID_TABS.includes(tab as LogPeriod) ? (tab as LogPeriod) : "hoje";
 
-  const [logs, templates, webhookStatus] = await Promise.all([
+  const [logs, templates, webhookStatus, remindersRes] = await Promise.all([
     section === "logs" ? getLogs(activeTab) : Promise.resolve([]),
     section === "templates" ? getTemplates() : Promise.resolve([]),
     section === "config" ? getWebhookStatus() : Promise.resolve(null),
+    section === "reminders"
+      ? listAllReminders()
+      : Promise.resolve({ ok: true as const, reminders: [] as ReminderRow[] }),
   ]);
+  const reminders = remindersRes.ok ? (remindersRes.reminders ?? []) : [];
+  const remindersError = remindersRes.ok ? null : (remindersRes.error ?? null);
 
   const SECTIONS: Array<{ id: Section; label: string; icon: LucideIcon }> = [
+    { id: "reminders", label: "Lembretes", icon: BellRing },
     { id: "logs", label: "Logs", icon: ScrollText },
     { id: "templates", label: "Templates", icon: PenLine },
     { id: "config", label: "Configurar", icon: Settings },
@@ -76,6 +91,9 @@ export default async function NotificacoesPage({
       </div>
 
       <Reveal delay={120}>
+        {section === "reminders" && (
+          <RemindersClient initial={reminders} loadError={remindersError} />
+        )}
         {section === "logs" && <LogsClient logs={logs} activeTab={activeTab} />}
         {section === "templates" && <TemplatesClient templates={templates} />}
         {section === "config" && <ConfigClient webhookStatus={webhookStatus} />}

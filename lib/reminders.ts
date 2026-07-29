@@ -15,7 +15,8 @@ export const REMINDERS_EVENT = "touvie:reminders";
 export type ReminderSchedule =
   | { type: "daily"; time: string } // "12:30"
   | { type: "weekly"; days: number[]; time: string } // days: 0=Dom … 6=Sáb
-  | { type: "interval"; everyHours: number; from: string; to: string };
+  | { type: "interval"; everyHours: number; from: string; to: string }
+  | { type: "once"; date: string; time: string }; // date: "YYYY-MM-DD"
 
 export type Reminder = {
   id: string;
@@ -47,8 +48,27 @@ export function saveReminders(list: Reminder[]): void {
 
 const WEEKDAY_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"] as const;
 
+const MONTHS_FULL = [
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+] as const;
+
 /** Frase legível do agendamento, pra exibir no card do lembrete. */
 export function describeSchedule(s: ReminderSchedule): string {
+  if (s.type === "once") {
+    const [, m, d] = s.date.split("-").map((n) => Number.parseInt(n, 10));
+    return `Uma vez em ${String(d).padStart(2, "0")} de ${MONTHS_FULL[m - 1]} às ${s.time}`;
+  }
   if (s.type === "daily") return `Todo dia às ${s.time}`;
   if (s.type === "weekly") {
     if (s.days.length === 0) return `Sem dias · ${s.time}`;
