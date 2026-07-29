@@ -16,19 +16,40 @@ export type GroqResponse = {
   }[];
 };
 
-// Fetch com retry pros transitórios do Groq (429 rate limit / 5xx). Erro
+const MAX_ATTEMPTS = 3;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Espera antes da próxima tentativa: honra `Retry-After` (429, em segundos)
+// capado em 5s; senão exponencial 300ms·2^attempt. `attempt` é 0-based
+// (0 = após a 1ª falha → 300ms; 1 → 600ms).
+function backoffMs(res: Response | null, attempt: number): number {
+  const retryAfter = res?.headers.get("retry-after");
+  if (retryAfter) {
+    const secs = Number(retryAfter);
+    if (Number.isFinite(secs) && secs > 0) return Math.min(secs * 1000, 5000);
+  }
+  return 300 * 2 ** attempt;
+}
+
+// Fetch com retry + backoff pros transitórios do Groq (429 rate limit / 5xx). Erro
 // permanente (400/401) não repete. A FormData/JSON é reusável entre tentativas.
 async function groqFetchRetry(url: string, init: RequestInit, label: string): Promise<Response> {
   let lastStatus = 0;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const res = await fetch(url, init);
     if (res.ok) return res;
     lastStatus = res.status;
-    if (res.status === 429 || res.status >= 500) continue; // transitório → tenta de novo
+    if (res.status === 429 || res.status >= 500) {
+      if (attempt < MAX_ATTEMPTS - 1) await sleep(backoffMs(res, attempt));
+      continue; // transitório → tenta de novo
+    }
     const detail = await res.text().catch(() => "");
     throw new Error(`${label} ${res.status}: ${detail.slice(0, 200)}`);
   }
-  throw new Error(`${label} ${lastStatus}: sem sucesso após 3 tentativas`);
+  throw new Error(`${label} ${lastStatus}: sem sucesso após ${MAX_ATTEMPTS} tentativas`);
 }
 
 /** Transcreve um áudio (webm/opus, mp4/aac, mp3…) em PT-BR via Whisper. */
@@ -48,17 +69,27 @@ export async function groqTranscribe(file: Blob, filename: string): Promise<stri
   return (data.text ?? "").trim();
 }
 
+// Chat completion com retry + backoff. Além de 429/5xx, repete no `tool_use_failed`
+// (HTTP 400 que a llama-3.3 às vezes emite com tool-call malformado — transitório).
+// Outros 400/401 são permanentes e estouram na hora. Todo caller (planos, compact,
+// leitura/ask) herda essa resiliência.
 export async function groqChat(body: Record<string, unknown>): Promise<GroqResponse> {
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("GROQ_API_KEY não configurada");
-  const res = await fetch(GROQ_URL, {
+  const init: RequestInit = {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model: GROQ_MODEL, ...body }),
-  });
-  if (!res.ok) {
+  };
+  let lastErr = "";
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const res = await fetch(GROQ_URL, init);
+    if (res.ok) return (await res.json()) as GroqResponse;
     const detail = await res.text().catch(() => "");
-    throw new Error(`Groq ${res.status}: ${detail.slice(0, 200)}`);
+    lastErr = `Groq ${res.status}: ${detail.slice(0, 200)}`;
+    const retriable = res.status === 429 || res.status >= 500 || detail.includes("tool_use_failed");
+    if (!retriable) throw new Error(lastErr);
+    if (attempt < MAX_ATTEMPTS - 1) await sleep(backoffMs(res, attempt));
   }
-  return (await res.json()) as GroqResponse;
+  throw new Error(`${lastErr} (sem sucesso após ${MAX_ATTEMPTS} tentativas)`);
 }
