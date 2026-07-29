@@ -102,6 +102,35 @@ export async function listReminders(
   }
 }
 
+/** Todos os lembretes do usuário, todas as áreas (pro gerenciador central). */
+export async function listAllReminders(): Promise<{
+  ok: boolean;
+  reminders?: ReminderRow[];
+  error?: string;
+}> {
+  try {
+    const { supabase, userId } = await requireUser();
+    const { data, error } = await supabase
+      .from("user_reminders")
+      .select(
+        "id, area, message, active, schedule_type, at_time, on_date, days, every_hours, window_from, window_to",
+      )
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) {
+      return {
+        ok: false,
+        error: isMissingTable(error)
+          ? "Tabela user_reminders ainda não existe — aplique a migration 0018 no Supabase."
+          : error.message,
+      };
+    }
+    return { ok: true, reminders: (data as DbRow[]).map(rowToReminder) };
+  } catch {
+    return { ok: false, error: "Sessão expirada — entre de novo." };
+  }
+}
+
 export async function createReminder(input: {
   area: string;
   message: string;
