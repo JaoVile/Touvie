@@ -19,8 +19,9 @@ type DbRow = {
   area: string;
   message: string;
   active: boolean;
-  schedule_type: "daily" | "weekly" | "interval";
+  schedule_type: "daily" | "weekly" | "interval" | "once";
   at_time: string | null;
+  on_date: string | null;
   days: number[];
   every_hours: number | null;
   window_from: string | null;
@@ -31,7 +32,8 @@ type DbRow = {
 function scheduleToColumns(s: ReminderSchedule) {
   return {
     schedule_type: s.type,
-    at_time: s.type === "interval" ? null : s.time,
+    at_time: s.type === "interval" ? null : "time" in s ? s.time : null,
+    on_date: s.type === "once" ? s.date : null,
     days: s.type === "weekly" ? s.days : [],
     every_hours: s.type === "interval" ? s.everyHours : null,
     window_from: s.type === "interval" ? s.from : null,
@@ -51,6 +53,8 @@ function rowToReminder(r: DbRow): ReminderRow {
       from: r.window_from ?? "08:00",
       to: r.window_to ?? "20:00",
     };
+  } else if (r.schedule_type === "once") {
+    schedule = { type: "once", date: r.on_date ?? "", time: r.at_time ?? "08:00" };
   } else {
     schedule = { type: "daily", time: r.at_time ?? "08:00" };
   }
@@ -79,7 +83,7 @@ export async function listReminders(
     const { data, error } = await supabase
       .from("user_reminders")
       .select(
-        "id, area, message, active, schedule_type, at_time, days, every_hours, window_from, window_to",
+        "id, area, message, active, schedule_type, at_time, on_date, days, every_hours, window_from, window_to",
       )
       .eq("user_id", userId)
       .eq("area", area)
