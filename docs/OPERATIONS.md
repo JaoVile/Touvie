@@ -161,7 +161,7 @@ chamando a URL abaixo com header `Authorization: Bearer $CRON_SECRET`:
 | Lembrete manhã | `/api/cron/daily-reminders` | `0 11 * * *` (08:00 BRT = 11:00 UTC) |
 | Lembrete noite | `/api/cron/evening-reminders` | `0 23 * * *` (20:00 BRT) |
 | **Fluxo financeiro mensal** | `/api/cron/monthly-finance` | `0 0 28-31 * *` (21:00 BRT) — só dispara mesmo no último dia do mês |
-| Treino do dia | `/api/cron/training-reminder` | `0 21 * * *` (18:00 BRT) — ajuste à preferência |
+| Treino do dia | `/api/cron/training-reminder` | `0 14 * * *` (**11:00 BRT** — horário em uso, job `7543674`) |
 | Ponto: chegada manhã | `/api/cron/work-clock?type=clock-in-morning` | `50 11 * * 1-5` |
 | Ponto: almoço | `/api/cron/work-clock?type=lunch-break` | `50 15 * * 1-5` |
 | Ponto: chegada tarde | `/api/cron/work-clock?type=clock-in-afternoon` | `50 16 * * 1-5` |
