@@ -27,138 +27,172 @@ export const WORK_CLOCK_DEFAULTS: TemplateDefault[] = [
   },
 ];
 
+// Espelham o ciclo da migration 0036 (Upper/Lower 2× — Ciclo 2026-08).
+// Convenção do ciclo: 2 séries de TRABALHO (aquecimento não é volume prescrito)
+// e reps como PISO, não faixa — por isso número único, nunca "8-10".
+// ⚠️ Ao mudar o programa no app, estes textos NÃO acompanham sozinhos: o cron
+// training-reminder lê `notification_templates` (banco) e só cai neste arquivo
+// como fallback. Editar aqui exige propagar pro banco (migration/aba Templates).
 export const TRAINING_DEFAULTS: TemplateDefault[] = [
   {
     key: "training:monday",
-    name: "Treino — Segunda (Upper A)",
-    content: `🏋️‍♂️ <b>SEGUNDA · UPPER A</b>
-<i>peito · costas · ombros · braços (modo força)</i>
+    name: "Treino — Segunda (Superior A)",
+    content: `🏋️‍♂️ <b>SEGUNDA · SUPERIOR A</b>
+<i>2 séries de trabalho · reps é piso</i>
 ━━━━━━━━━━━━━━━━━━
 
-<b>① Flat Barbell Bench</b>  ·  <i>peito horizontal</i>
-    ➜ <code>4 × 6-8</code>  ·  RIR 1-2
+<b>① Panturrilha em pé</b>
+    ➜ <code>2 × 10</code>
 
-<b>② Pull-up</b>  ·  <i>costas vertical</i>
-    ➜ <code>4 × 8-10</code>
+<b>② Supino reto com barra</b>  ·  <i>força</i>
+    ➜ <code>2 × 5</code>
 
-<b>③ Overhead Press</b>  ·  <i>ombro frontal</i>
-    ➜ <code>3 × 6-8</code>
+<b>③ Remada curvada</b>
+    ➜ <code>2 × 6</code>
 
-<b>④ Seal Row</b>  ·  <i>costas horizontal</i>
-    ➜ <code>3 × 8-10</code>
+<b>④ Supino inclinado com halteres</b>
+    ➜ <code>2 × 8</code>
 
-<b>⑤ Lateral Raise</b>  ·  <i>ombro lateral</i>
-    ➜ <code>3 × 12-15</code>
+<b>⑤ Puxada alta pronada</b>
+    ➜ <code>2 × 8</code>
 
-<b>⑥ Barbell Curl</b>  ·  <i>bíceps</i>
-    ➜ <code>3 × 8-10</code>
+<b>⑥ Elevação lateral</b>
+    ➜ <code>2 × 12</code>
 
-<b>⑦ Cable Pushdown</b>  ·  <i>tríceps</i>
-    ➜ <code>3 × 10-12</code>
+<b>⑦ Tríceps testa</b>
+    ➜ <code>2 × 8</code>
+
+<b>⑧ Rosca direta</b>
+    ➜ <code>2 × 8</code>
 
 💪 Bom treino!`,
   },
   {
     key: "training:tuesday",
-    name: "Treino — Terça (Lower A)",
-    content: `🦵 <b>TERÇA · LOWER A</b>
-<i>quadríceps · panturrilha · core</i>
+    name: "Treino — Terça (Inferior A)",
+    content: `🦵 <b>TERÇA · INFERIOR A</b>
+<i>2 séries de trabalho · reps é piso</i>
 ━━━━━━━━━━━━━━━━━━
 
-<b>① Squat</b>  ·  <i>quad compound</i>
-    ➜ <code>4 × 6-8</code>  ·  RIR 1-2
+<b>① Panturrilha em pé</b>
+    ➜ <code>2 × 10</code>
 
-<b>② Romanian Deadlift</b>  ·  <i>posterior</i>
-    ➜ <code>3 × 8-10</code>
+<b>② Agachamento livre</b>  ·  <i>força</i>
+    ➜ <code>2 × 5</code>
 
-<b>③ Leg Extension</b>  ·  <i>quad isolation</i>
-    ➜ <code>3 × 12-15</code>
+<b>③ Leg press 45°</b>
+    ➜ <code>2 × 10</code>
 
-<b>④ Hamstring Curl</b>  ·  <i>posterior isolation</i>
-    ➜ <code>3 × 12-15</code>
+<b>④ Mesa flexora</b>
+    ➜ <code>2 × 10</code>
 
-<b>⑤ Standing Calf Raise</b>
-    ➜ <code>4 × 12-15</code>
+<b>⑤ Cadeira extensora</b>
+    ➜ <code>2 × 12</code>
 
-<b>⑥ Cable Crunch</b>  ·  <i>abs com carga</i>
-    ➜ <code>3 × 10-12</code>
+<b>⑥ Abdominal (elevação de pernas)</b>
+    ➜ <code>2 × 10</code>
 
 💪 Bom treino!`,
   },
   {
     key: "training:wednesday",
-    name: "Treino — Quarta (Box/Cardio)",
-    content: `🥊 <b>QUARTA · BOX</b>
+    name: "Treino — Quarta (Leve)",
+    content: `🌤️ <b>QUARTA · LEVE</b>
+<i>ombro, core e cardio — não é dia de puxar carga</i>
 ━━━━━━━━━━━━━━━━━━
 
-Hoje o BOX cobre cardio, ombro frontal e core.
-Foca <b>técnica</b> — não é dia de puxar carga.
+<b>① Panturrilha sentado</b>
+    ➜ <code>2 × 12</code>
+
+<b>② Elevação lateral</b>
+    ➜ <code>2 × 12</code>
+
+<b>③ Crucifixo inverso</b>
+    ➜ <code>2 × 15</code>
+
+<b>④ Pallof press</b>
+    ➜ <code>2 × 10</code>  ·  <i>10 por lado</i>
+
+<b>⑤ Rotação externa (manguito)</b>
+    ➜ <code>2 × 15</code>
+
+<b>⑥ Mobilidade quadril + torácica</b>
+    ➜ <code>5 min</code>
+
+<b>⑦ Cardio zona 2</b>
+    ➜ <code>20-25 min</code>  ·  <i>ritmo de conversa</i>
 
 ⚙️ <b>RECOVERY</b>
 • Hidrata mais que normal
 • Proteína no jantar (1g/kg mínimo)
-• Mobilidade leve de quadril e ombro
-• Dormir cedo — quinta vem UPPER B forte
+• Dormir cedo — quinta vem SUPERIOR B forte
 
-🥊 Bom treino!`,
+🌤️ Bom treino!`,
   },
   {
     key: "training:thursday",
-    name: "Treino — Quinta (Upper B)",
-    content: `💪 <b>QUINTA · UPPER B</b>
-<i>hipertrofia · braços · ombro posterior</i>
+    name: "Treino — Quinta (Superior B)",
+    content: `💪 <b>QUINTA · SUPERIOR B</b>
+<i>2 séries de trabalho · reps é piso</i>
 ━━━━━━━━━━━━━━━━━━
 
-<b>① Incline Dumbbell Bench</b>
-    ➜ <code>4 × 8-10</code>
+<b>① Panturrilha sentado</b>
+    ➜ <code>2 × 12</code>
 
-<b>② Lat Pulldown</b>
-    ➜ <code>4 × 10-12</code>
+<b>② Barra fixa</b>
+    ➜ <code>2 × 6</code>
+    <i>Se não fechar 6 na 1ª série, troca por puxada supinada na máquina</i>
 
-<b>③ Meadows Row</b>  ·  <i>unilateral</i>
-    ➜ <code>3 × 8-10</code>
+<b>③ Supino inclinado com halteres</b>
+    ➜ <code>2 × 8</code>
 
-<b>④ Pec Deck</b>
-    ➜ <code>3 × 12-15</code>
+<b>④ Remada baixa na polia</b>
+    ➜ <code>2 × 8</code>
 
-<b>⑤ Rear Delt Fly + Face Pull</b>  <i>superset</i>
-    ➜ <code>3 × 12-15</code>
+<b>⑤ Crossover na polia</b>
+    ➜ <code>2 × 12</code>
 
-<b>⑥ Cable Lateral Raise</b>
-    ➜ <code>3 × 12-15</code>
+<b>⑥ Desenvolvimento com halteres</b>
+    ➜ <code>2 × 8</code>
 
-<b>⑦ Hammer Curl</b>
-    ➜ <code>3 × 10-12</code>
+<b>⑦ Crucifixo inverso</b>
+    ➜ <code>2 × 15</code>
 
-<b>⑧ Overhead Tricep Extension</b>
-    ➜ <code>3 × 8-10</code>
+<b>⑧ Rosca inclinada</b>
+    ➜ <code>2 × 10</code>
+
+<b>⑨ Tríceps na corda</b>
+    ➜ <code>2 × 12</code>
 
 💪 Bom treino!`,
   },
   {
     key: "training:friday",
-    name: "Treino — Sexta (Lower B)",
-    content: `🍑 <b>SEXTA · LOWER B</b>
-<i>posterior · força + tensão excêntrica</i>
+    name: "Treino — Sexta (Inferior B)",
+    content: `🍑 <b>SEXTA · INFERIOR B</b>
+<i>2 séries de trabalho · reps é piso</i>
 ━━━━━━━━━━━━━━━━━━
 
-<b>① Hip Thrust</b>
-    ➜ <code>4 × 6-8</code>
+<b>① Panturrilha em pé</b>
+    ➜ <code>2 × 10</code>
 
-<b>② Hack Squat</b>
-    ➜ <code>4 × 8-10</code>
+<b>② Levantamento terra romeno</b>  ·  <i>força</i>
+    ➜ <code>2 × 6</code>
 
-<b>③ Bulgarian Split Squat</b>
-    ➜ <code>3 × 10-12 cada perna</code>
+<b>③ Agachamento búlgaro</b>
+    ➜ <code>2 × 8</code>  ·  <i>cada perna</i>
 
-<b>④ Nordic Hamstring Curl</b>  <i>(4-5s excêntrica)</i>
-    ➜ <code>3 × 6-8</code>
+<b>④ Mesa flexora</b>
+    ➜ <code>2 × 10</code>
 
-<b>⑤ Seated Calf Raise</b>
-    ➜ <code>3 × 12-15</code>
+<b>⑤ Elevação pélvica (hip thrust)</b>
+    ➜ <code>2 × 8</code>
 
-<b>⑥ Machine Crunch</b>
-    ➜ <code>3 × 10-12</code>
+<b>⑥ Cadeira extensora</b>
+    ➜ <code>2 × 12</code>
+
+<b>⑦ Abdominal na polia (rosca abdominal)</b>
+    ➜ <code>2 × 10</code>
 
 💪 Bom treino — fim de semana liberado!`,
   },
@@ -176,7 +210,7 @@ Recuperação ativa, não preguiça.
 • Refeições com proteína espalhadas no dia
 • Mobilidade de quadril e ombro
 
-<i>Próximo treino: segunda — UPPER A.</i>`,
+<i>Próximo treino: segunda — SUPERIOR A.</i>`,
   },
   {
     key: "training:sunday",
@@ -192,7 +226,7 @@ Recuperação ativa, não preguiça.
 • Prepara as marmitas
 • Dorme cedo
 
-<i>Próximo treino: segunda — UPPER A.</i>`,
+<i>Próximo treino: segunda — SUPERIOR A.</i>`,
   },
 ];
 
