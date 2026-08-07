@@ -123,11 +123,11 @@ Lançamentos · Contas · Caixinhas · Gráficos · Setup.
 - **PWA**: ícones PNG 192/512 + apple-touch-icon (gerados via `scripts/gen-icons.mjs`).
 
 ### 🔜 Pendências
-1. **Crons de lembrete sem scheduler.** Só `regenerate-bills` está na `vercel.json`.
-   `daily-reminders` (08:00), `evening-reminders` (20:00), `training-reminder` e
-   `work-clock` (4 tipos) precisam ser agendados no **cron-job.org** (header
-   `Authorization: Bearer $CRON_SECRET`) — senão os lembretes do bot nunca disparam.
-   Veja a seção [⏱️ Crons externos](#️-crons-externos-cron-joborg) abaixo.
+1. ~~**Crons de lembrete sem scheduler.**~~ Resolvido: `daily-reminders`,
+   `evening-reminders`, `training-reminder` e `reminders-sweep` estão agendados no
+   **cron-job.org** (estado real conferido pela API em 2026-08-07 — veja a tabela em
+   [⏱️ Crons externos](#️-crons-externos-cron-joborg)), junto do `monthly-finance`.
+   O `work-clock` foi descartado por decisão.
 
 ### ✅ Feito: código de escrita do diário (2026-06-04)
 - **Dois níveis no diário**: `pin_hash` destrava a **leitura**; o novo
@@ -153,27 +153,37 @@ tentativas erradas o usuário fica bloqueado até o timestamp expirar.
 
 Só `regenerate-bills` está no `vercel.json` (limite Hobby = 2 crons — guardado
 pra o cron de fatura recorrente). Os outros ficam no **cron-job.org**, cada um
-chamando a URL abaixo com header `Authorization: Bearer $CRON_SECRET`:
+chamando a URL abaixo com o header `x-cron-secret: $CRON_SECRET` (as rotas também
+aceitam `Authorization: Bearer`, mas os jobs em uso mandam o `x-cron-secret`):
 
-| Cron | Path | Schedule sugerido (BRT) |
-| ---- | ---- | ---------------------- |
-| **Lembretes do Toube (sweep)** | `/api/cron/reminders-sweep` | `*/5 * * * *` — varre `user_reminders` (diário/semanal/intervalo/once). **Sem este job, NENHUM lembrete criado pelo Toube dispara.** |
-| Lembrete manhã | `/api/cron/daily-reminders` | `0 11 * * *` (08:00 BRT = 11:00 UTC) |
-| Lembrete noite | `/api/cron/evening-reminders` | `0 23 * * *` (20:00 BRT) |
-| **Fluxo financeiro mensal** | `/api/cron/monthly-finance` | `0 0 28-31 * *` (21:00 BRT) — só dispara mesmo no último dia do mês |
-| Treino do dia | `/api/cron/training-reminder` | `0 14 * * *` (**11:00 BRT** — horário em uso, job `7543674`) |
-| Ponto: chegada manhã | `/api/cron/work-clock?type=clock-in-morning` | `50 11 * * 1-5` |
-| Ponto: almoço | `/api/cron/work-clock?type=lunch-break` | `50 15 * * 1-5` |
-| Ponto: chegada tarde | `/api/cron/work-clock?type=clock-in-afternoon` | `50 16 * * 1-5` |
-| Ponto: saída | `/api/cron/work-clock?type=clock-out` | `50 21 * * 1-5` |
+**O fuso é POR JOB no cron-job.org**, não global — e os jobs reais deste projeto
+estão em `America/Sao_Paulo`, com exceção do sweep (UTC). Ou seja: o horário que
+você digita no painel é o horário local, sem somar 3h. Estado real conferido pela
+API em **2026-08-07**:
+
+| Cron | Path | Job | Quando (fuso do job) |
+| ---- | ---- | --- | -------------------- |
+| **Lembretes do Toube (sweep)** | `/api/cron/reminders-sweep` | `7844490` | a cada 5 min (UTC) — varre `user_reminders`. **Sem este job, NENHUM lembrete criado pelo Toube dispara.** |
+| Lembrete manhã | `/api/cron/daily-reminders` | `7742331` | 08:00 BRT, todo dia |
+| Lembrete noite | `/api/cron/evening-reminders` | `7742335` | 20:00 BRT, todo dia |
+| Treino do dia | `/api/cron/training-reminder` | `7543674` | **11:00 BRT, seg–sex** |
+| Fluxo financeiro mensal | `/api/cron/monthly-finance` | `8232298` | 21:00 BRT, dias 28–31 — a rota só envia quando *amanhã* é dia 1º, então agendar os 4 dias é seguro até em fevereiro |
+
+**Não agendado por decisão** — o código existe e a rota funciona, mas não há job:
+
+| Cron | Path | Situação |
+| ---- | ---- | -------- |
+| Ponto (4 tipos) | `/api/cron/work-clock?type=…` | **descartado em 2026-08-07**: o usuário não usa lembrete de ponto. Não é pendência — não agende. Rota, templates `work-clock:*` e `WORK_CLOCK_DEFAULTS` seguem no código, inertes. |
+
+Como o `training-reminder` só roda seg–sex, os templates `training:saturday` e
+`training:sunday` existem mas nunca são disparados.
 
 > O `monthly-finance` é blindado server-side: só envia mensagem se `amanhã` for
 > dia 1, então agendar 28-31 é seguro mesmo em fevereiro. Pra forçar manualmente
 > e testar: `…?force=1`.
 
-> Os schedules de ponto são exemplos — confira no painel do cron-job.org o que
-> você já cadastrou e ajuste se necessário. Os horários acima usam UTC porque
-> cron-job.org agenda em UTC (somar 3h ao horário local BRT).
+> Os jobs autenticam com o header **`x-cron-secret`** (não `Bearer`) — o valor
+> vive nos próprios jobs do painel, e o segredo de prod pode diferir do local.
 
 ### 🧩 Notificações editáveis pela UI
 
