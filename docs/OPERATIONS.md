@@ -164,10 +164,10 @@ API em **2026-08-07**:
 | Cron | Path | Job | Quando (fuso do job) |
 | ---- | ---- | --- | -------------------- |
 | **Lembretes do Toube (sweep)** | `/api/cron/reminders-sweep` | `7844490` | a cada 5 min (UTC) — varre `user_reminders`. **Sem este job, NENHUM lembrete criado pelo Toube dispara.** |
-| Lembrete manhã | `/api/cron/daily-reminders` | `7742331` | 08:00 BRT, todo dia |
-| Lembrete noite | `/api/cron/evening-reminders` | `7742335` | 20:00 BRT, todo dia |
+| Lembrete manhã | `/api/cron/daily-reminders` | `7742331` | 07:00 BRT, todo dia |
+| Lembrete noite | `/api/cron/evening-reminders` | `7742335` | 21:00 BRT, todo dia |
 | Treino do dia | `/api/cron/training-reminder` | `7543674` | **11:00 BRT, seg–sex** |
-| Fluxo financeiro mensal | `/api/cron/monthly-finance` | `8232298` | 21:00 BRT, dias 28–31 — a rota só envia quando *amanhã* é dia 1º, então agendar os 4 dias é seguro até em fevereiro |
+| Fluxo financeiro mensal | `/api/cron/monthly-finance` | `8232298` | 22:00 BRT, dias 28–31 — a rota só envia quando *amanhã* é dia 1º, então agendar os 4 dias é seguro até em fevereiro |
 
 **Não agendado por decisão** — o código existe e a rota funciona, mas não há job:
 
