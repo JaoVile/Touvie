@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, Copy } from "lucide-react";
 import { useState, useTransition } from "react";
 import { connectTelegram, disconnectTelegram, sendTelegramTest } from "./actions";
 
@@ -12,12 +13,31 @@ export function TelegramSection({ chatId }: Props) {
   const [info, setInfo] = useState<string>();
   const [botUsername, setBotUsername] = useState<string | undefined>(undefined);
   const [linkToken, setLinkToken] = useState<string | undefined>(undefined);
+  const [copied, setCopied] = useState(false);
   const [pending, start] = useTransition();
   const connected = !!chatId;
+
+  // O deep link `?start=CÓDIGO` só é enviado sozinho quando a conversa com o bot
+  // está vazia. Quem já trocou qualquer mensagem antes clica no link, o chat abre
+  // e NADA é enviado — o vínculo trava sem erro visível. Por isso o comando fica
+  // exposto aqui pra copiar e colar à mão.
+  const startCommand = linkToken ? `/start ${linkToken}` : null;
+
+  async function copyCommand() {
+    if (!startCommand) return;
+    try {
+      await navigator.clipboard.writeText(startCommand);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("Não consegui copiar — selecione o comando acima e copie à mão.");
+    }
+  }
 
   function clear() {
     setError(undefined);
     setInfo(undefined);
+    setCopied(false);
   }
 
   function connect() {
@@ -96,7 +116,11 @@ export function TelegramSection({ chatId }: Props) {
             </li>
             <li>Clique em "Conectar bot" abaixo</li>
             <li>
-              Abra o bot no Telegram e envie <code>/start</code>
+              Copie o comando <code>/start …</code> que aparecer e cole na conversa com o bot.{" "}
+              <strong>
+                <code>/start</code> sozinho não vincula
+              </strong>{" "}
+              — o código é de uso único e vale 15 min.
             </li>
           </ol>
         </div>
@@ -154,6 +178,38 @@ export function TelegramSection({ chatId }: Props) {
         >
           Abrir @{botUsername} e vincular →
         </a>
+      ) : null}
+
+      {startCommand ? (
+        <div
+          className="space-y-2 rounded-lg border p-3"
+          style={{ borderColor: "var(--color-border)", background: "var(--color-bg-elevated)" }}
+        >
+          <p className="text-xs" style={{ color: "var(--color-fg-muted)" }}>
+            Se o botão acima abrir o chat <strong>sem enviar nada</strong> — acontece quando você já
+            conversou com o bot antes — copie o comando e cole lá:
+          </p>
+          <div className="flex items-center gap-2">
+            <code
+              className="flex-1 overflow-x-auto whitespace-nowrap rounded px-2 py-1.5 text-xs"
+              style={{ background: "var(--color-bg)", color: "var(--color-fg)" }}
+            >
+              {startCommand}
+            </code>
+            <button
+              type="button"
+              onClick={copyCommand}
+              className="flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
+              style={{
+                borderColor: copied ? "var(--color-success)" : "var(--color-border)",
+                color: copied ? "var(--color-success)" : "var(--color-fg)",
+              }}
+            >
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? "Copiado" : "Copiar"}
+            </button>
+          </div>
+        </div>
       ) : null}
     </div>
   );
