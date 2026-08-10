@@ -2,9 +2,17 @@
 
 import { GlassCard } from "@/components/glass/GlassCard";
 import { estimate1RM, formatRepsTarget, formatSet, totalVolume } from "@/lib/workout";
+import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-import { deleteLog, deleteSession, saveLog, updateSessionNotes } from "./actions";
+import {
+  completeSession,
+  deleteLog,
+  deleteSession,
+  reopenSession,
+  saveLog,
+  updateSessionNotes,
+} from "./actions";
 
 interface Planned {
   id: string;
@@ -40,6 +48,7 @@ interface Props {
   planned: Planned[];
   logs: Log[];
   catalog: Catalog[];
+  completedAt: string | null;
 }
 
 export function SessionLogger({
@@ -50,9 +59,12 @@ export function SessionLogger({
   planned,
   logs,
   catalog,
+  completedAt,
 }: Props) {
   const router = useRouter();
   const [notes, setNotes] = useState(sessionNotes);
+  const [busy, setBusy] = useState(false);
+  const done = !!completedAt;
   const [adhocExerciseIds, setAdhocExerciseIds] = useState<string[]>([]);
   const [adding, setAdding] = useState(false);
   const [pickerValue, setPickerValue] = useState("");
@@ -119,6 +131,21 @@ export function SessionLogger({
     router.refresh();
   }
 
+  async function finish() {
+    if (totalSets === 0 && !confirm("Concluir sem nenhuma série registrada?")) return;
+    setBusy(true);
+    await completeSession(sessionId);
+    setBusy(false);
+    router.refresh();
+  }
+
+  async function reopen() {
+    setBusy(true);
+    await reopenSession(sessionId);
+    setBusy(false);
+    router.refresh();
+  }
+
   // Ainda não tem nenhum exercício
   const empty = exerciseIds.length === 0;
 
@@ -132,9 +159,9 @@ export function SessionLogger({
           <div>
             <span
               className="rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-white"
-              style={{ background: "var(--gradient-brand)" }}
+              style={{ background: done ? "var(--color-success)" : "var(--gradient-brand)" }}
             >
-              Em andamento
+              {done ? `Concluído · ${formatTime(completedAt)}` : "Em andamento"}
             </span>
             <h2 className="mt-2 text-lg font-semibold">
               {dayName ?? "Treino livre"}{" "}
@@ -236,7 +263,7 @@ export function SessionLogger({
             color: "var(--color-fg)",
           }}
         />
-        <div className="mt-3 flex justify-end">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <button
             type="button"
             onClick={endSession}
@@ -245,10 +272,37 @@ export function SessionLogger({
           >
             apagar sessão de hoje
           </button>
+          {done ? (
+            <button
+              type="button"
+              onClick={reopen}
+              disabled={busy}
+              className="rounded-lg border px-3 py-2 text-sm font-semibold disabled:opacity-50"
+              style={{ borderColor: "var(--color-border)", color: "var(--color-fg)" }}
+            >
+              Reabrir treino
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={finish}
+              disabled={busy}
+              className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              style={{ background: "var(--gradient-brand)" }}
+            >
+              <Check className="h-4 w-4" />
+              {busy ? "…" : "Concluir treino"}
+            </button>
+          )}
         </div>
       </GlassCard>
     </div>
   );
+}
+
+function formatTime(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
 function ExercisePicker({

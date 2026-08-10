@@ -259,6 +259,32 @@ export async function deleteSession(id: string) {
   revalidatePath("/treino");
 }
 
+/** Fecha a sessão. `completed_at` nulo = em andamento (ver migration 0038). */
+export async function completeSession(id: string): Promise<{ ok?: boolean; error?: string }> {
+  const { supabase, userId } = await requireUser();
+  const { error } = await supabase
+    .from("workout_sessions")
+    .update({ completed_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", userId);
+  if (error) return { error: error.message };
+  revalidatePath("/treino");
+  return { ok: true };
+}
+
+/** Desfaz a conclusão — erro de clique não deve custar a sessão inteira. */
+export async function reopenSession(id: string): Promise<{ ok?: boolean; error?: string }> {
+  const { supabase, userId } = await requireUser();
+  const { error } = await supabase
+    .from("workout_sessions")
+    .update({ completed_at: null })
+    .eq("id", id)
+    .eq("user_id", userId);
+  if (error) return { error: error.message };
+  revalidatePath("/treino");
+  return { ok: true };
+}
+
 export async function updateSessionNotes(id: string, notes: string) {
   const { supabase } = await requireUser();
   await supabase

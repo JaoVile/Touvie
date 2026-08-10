@@ -36,7 +36,7 @@ export async function HojeTab({ userId }: Props) {
   const [{ data: session }, { data: program }, { data: exercisesRaw }] = await Promise.all([
     supabase
       .from("workout_sessions")
-      .select("id, program_day_id, occurred_on, notes")
+      .select("id, program_day_id, occurred_on, notes, completed_at")
       .eq("user_id", userId)
       .eq("occurred_on", today)
       .maybeSingle(),
@@ -104,6 +104,7 @@ export async function HojeTab({ userId }: Props) {
         planned={plannedWithEx}
         logs={(logsRes.data ?? []) as LogRow[]}
         catalog={exercises}
+        completedAt={(session as { completed_at: string | null }).completed_at}
       />
     );
   }

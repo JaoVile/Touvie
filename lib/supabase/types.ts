@@ -328,6 +328,8 @@ export type Database = {
         occurred_on: DateStr;
         notes: string | null;
         created_at: Timestamptz;
+        /** Nulo = em andamento. Migration 0038. */
+        completed_at: Timestamptz | null;
       }>;
       exercise_logs: Table<{
         id: string;
