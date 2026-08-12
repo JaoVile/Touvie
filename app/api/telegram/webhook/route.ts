@@ -2,15 +2,19 @@ import { todayBRTISO } from "@/lib/datetime";
 import { guessCategory } from "@/lib/importers/csv";
 import { logEvent } from "@/lib/logger";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Json } from "@/lib/supabase/types";
 import {
   type TelegramUpdate,
   WEBHOOK_SECRET_HEADER,
   escapeHtml,
+  sendChatAction,
   sendMessage,
+  sendMessageWithKeyboard,
   verifyWebhookSecret,
 } from "@/lib/telegram";
+import { runToubeTurn } from "@/lib/toube-turn";
 import { formatBRL } from "@/lib/utils";
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 
 export async function POST(req: Request) {
   if (!verifyWebhookSecret(req.headers.get(WEBHOOK_SECRET_HEADER))) {
@@ -49,6 +53,32 @@ export async function POST(req: Request) {
       userId = await handleReceita(chatId, text);
     } else if (text === "/saldo") {
       userId = await handleSaldo(chatId);
+    } else if (text.startsWith("/")) {
+      await sendMessage(
+        chatId,
+        "Comando desconhecido. Use /ping, /gasto, /receita, /saldo ou /stop — ou fale comigo normalmente. 🙂",
+      );
+    } else {
+      // Texto livre: responde 200 já e processa o Toube fora do caminho da
+      // resposta (after) — senão o Telegram reentrega o update e paga o modelo
+      // duas vezes. O try/catch AQUI DENTRO é obrigatório: uma rejeição depois
+      // do 200 é invisível pro chamador, então só vira log e mensagem de erro
+      // pra pessoa — sem ele o "Toube não respondeu" não deixaria rastro.
+      after(async () => {
+        try {
+          await handleToubeText(chatId, text);
+        } catch (err) {
+          logEvent({
+            userId: null,
+            eventType: "webhook",
+            source: "telegram/toube",
+            status: "error",
+            messagePreview: err instanceof Error ? err.message : String(err),
+            metadata: { chat_id: chatId },
+          });
+          await sendMessage(chatId, "😵 Não consegui pensar agora. Tenta de novo?").catch(() => {});
+        }
+      });
     }
     logEvent({
       userId,
@@ -351,5 +381,98 @@ async function handleSaldo(chatId: number): Promise<string | null> {
     `📊 <b>Resumo de ${monthName}</b>\n\n💰 Receitas: <b>${formatBRL(income)}</b>\n💸 Gastos: <b>${formatBRL(expense)}</b>\n📈 Saldo: <b>${sign}${formatBRL(balance)}</b>\n${topCats ? `\n<b>Top gastos por categoria:</b>\n${topCats}` : ""}`,
   );
 
+  return profile.userId;
+}
+
+// ─── Toube (texto livre) ────────────────────────────────────────────────────
+
+/** Sessão dedicada do Telegram (uma por usuário, garantida por índice único). */
+async function telegramSessionId(admin: ReturnType<typeof createAdminClient>, userId: string) {
+  const { data: existing } = await admin
+    .from("toube_sessions")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("source", "telegram")
+    .maybeSingle();
+  if (existing) return existing.id;
+  const { data: created } = await admin
+    .from("toube_sessions")
+    .insert({ user_id: userId, source: "telegram", title: "Telegram" })
+    .select("id")
+    .single();
+  if (!created) throw new Error("Não consegui abrir a conversa do Telegram.");
+  return created.id;
+}
+
+/** Rótulo curto pro botão de confirmação (o Telegram corta texto longo). */
+function proposalShortLabel(p: { action: string; args: Record<string, unknown> }): string {
+  const t = String(p.args.title ?? p.args.titulo ?? p.args.mensagem ?? "");
+  const short = t.length > 20 ? `${t.slice(0, 20)}…` : t;
+  return short || p.action.replace(/_/g, " ");
+}
+
+/**
+ * Texto livre (não-comando) do Telegram: grava a fala, roda o turno do Toube e
+ * responde. Se vierem propostas, grava em `toube_pending_proposals` e manda
+ * com botões — a Task 13 trata o callback do clique.
+ */
+async function handleToubeText(chatId: number, text: string): Promise<string | null> {
+  const profile = await resolveProfile(chatId);
+  if (!profile) {
+    await sendMessage(chatId, "❌ Conta não vinculada. Mande /start primeiro.");
+    return null;
+  }
+  const admin = createAdminClient();
+  const ctx = { supabase: admin, userId: profile.userId };
+  const sessionId = await telegramSessionId(admin, profile.userId);
+
+  await admin.from("toube_messages").insert({
+    user_id: profile.userId,
+    session_id: sessionId,
+    role: "user",
+    content: text,
+  });
+  await admin
+    .from("toube_sessions")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", sessionId);
+
+  await sendChatAction(chatId);
+  const { result } = await runToubeTurn(ctx, { sessionId });
+
+  if (result.kind !== "proposals") {
+    await sendMessage(chatId, escapeHtml(result.text));
+    return profile.userId;
+  }
+
+  const { data: pending } = await admin
+    .from("toube_pending_proposals")
+    .insert({
+      user_id: profile.userId,
+      chat_id: String(chatId),
+      proposals: result.proposals as unknown as Json,
+    })
+    .select("id")
+    .single();
+  if (!pending) {
+    await sendMessage(chatId, escapeHtml(result.text));
+    return profile.userId;
+  }
+
+  const rows = result.proposals.flatMap((p, i) => [
+    [
+      { text: `✅ ${proposalShortLabel(p)}`, callback_data: `tb:${pending.id}:${i}` },
+      { text: "✖️", callback_data: `tb:${pending.id}:${i}:n` },
+    ],
+  ]);
+  const messageId = await sendMessageWithKeyboard(chatId, escapeHtml(result.text), {
+    inline_keyboard: rows,
+  });
+  if (messageId) {
+    await admin
+      .from("toube_pending_proposals")
+      .update({ message_id: messageId })
+      .eq("id", pending.id);
+  }
   return profile.userId;
 }
