@@ -190,7 +190,7 @@ export async function runToubeTurn(
   // catálogo pra algo que a pessoa nem citou). O id é a fonte da verdade —
   // reescreve o nome exibido com o nome REAL do id pra confirmação ser honesta.
   // Se o id nem está no catálogo, marca pra barrar no execute.
-  if (result.kind === "proposals" && exercises.length > 0) {
+  if (result.kind === "proposals") {
     const exName = new Map(exercises.map((e) => [e.id, e.name]));
     for (const p of result.proposals) {
       if (p.action !== "logar_serie") continue;
