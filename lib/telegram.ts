@@ -65,7 +65,7 @@ export async function setWebhook(url: string): Promise<void> {
   await call("setWebhook", {
     url,
     secret_token: webhookSecret(),
-    allowed_updates: ["message"],
+    allowed_updates: ["message", "callback_query"],
     drop_pending_updates: true,
   });
 }
