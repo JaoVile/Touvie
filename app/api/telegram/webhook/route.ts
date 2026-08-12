@@ -50,6 +50,11 @@ export async function POST(req: Request) {
           messagePreview: err instanceof Error ? err.message : String(err),
           metadata: { callback: cb.data },
         });
+        // Uma exceção também é caminho de saída: sem isso o spinner do botão
+        // fica girando pra sempre e a pessoa não recebe nenhum aviso. `call()`
+        // em lib/telegram.ts lança em toda resposta não-ok da API do Telegram,
+        // então isto acontece de verdade, não só em teoria.
+        await answerCallbackQuery(cb.id, "Deu erro — tenta de novo.").catch(() => {});
       }
     });
     return NextResponse.json({ ok: true });
@@ -575,11 +580,21 @@ async function handleCallback(cb: TelegramCallbackQuery): Promise<string | null>
   }
 
   const admin = createAdminClient();
-  const { data: pending } = await admin
+  const { data: pending, error: pendingError } = await admin
     .from("toube_pending_proposals")
     .select("id, user_id, proposals, consumed_at, expires_at")
     .eq("id", pendingId)
     .maybeSingle();
+  if (pendingError) {
+    logEvent({
+      userId: null,
+      eventType: "webhook",
+      source: "telegram/toube",
+      status: "error",
+      messagePreview: pendingError.message,
+      metadata: { pending_id: pendingId },
+    });
+  }
 
   // Dono: o uuid veio do botão, mas quem executa vem do chat_id. Os dois batem
   // ou não executa nada.
@@ -606,23 +621,26 @@ async function handleCallback(cb: TelegramCallbackQuery): Promise<string | null>
   }
 
   if (mode === "n") {
-    await admin
-      .from("toube_pending_proposals")
-      .update({ consumed_at: new Date().toISOString() })
-      .eq("id", pending.id);
+    const claimed = await claimPending(admin, pending.id, profile.userId);
+    if (!claimed) {
+      await answerCallbackQuery(cb.id, "Isso já foi feito.");
+      await editMessageText(chatId, messageId, "✅ <i>Isso já foi feito.</i>");
+      return profile.userId;
+    }
     await answerCallbackQuery(cb.id, "Cancelado.");
     await editMessageText(chatId, messageId, "✖️ <i>Cancelado — não fiz nada.</i>");
     return profile.userId;
   }
 
   // Destrutiva: o primeiro ✅ só pede confirmação. Dedo errado numa lista de
-  // botões não pode apagar meta.
+  // botões não pode apagar meta. NÃO carimba consumed_at aqui — a proposta
+  // segue pendente até o segundo toque ou o cancelamento.
   if (DESTRUCTIVE_ACTIONS.includes(p.action) && mode !== "d") {
     await answerCallbackQuery(cb.id);
     await editMessageText(
       chatId,
       messageId,
-      `⚠️ Apagar <b>${escapeHtml(String(p.args.title ?? p.args.titulo ?? "isso"))}</b> de vez?`,
+      `⚠️ Apagar <b>${escapeHtml(proposalShortLabel(p))}</b> de vez?`,
       {
         inline_keyboard: [
           [
@@ -635,11 +653,37 @@ async function handleCallback(cb: TelegramCallbackQuery): Promise<string | null>
     return profile.userId;
   }
 
+  // Reivindica a linha ANTES de executar (update condicional a consumed_at
+  // ainda nulo): dois toques rápidos no mesmo botão viram dois after()
+  // concorrentes que leriam consumed_at=null e executariam a ação duas vezes
+  // (gasto lançado em duplicidade, por exemplo). Só quem reivindica de fato
+  // segue pra executeToube; o outro recebe "isso já foi feito".
+  const claimed = await claimPending(admin, pending.id, profile.userId);
+  if (!claimed) {
+    await answerCallbackQuery(cb.id, "Isso já foi feito.");
+    await editMessageText(chatId, messageId, "✅ <i>Isso já foi feito.</i>");
+    return profile.userId;
+  }
+
   const res = await executeToube({ supabase: admin, userId: profile.userId }, p.action, p.args);
-  await admin
-    .from("toube_pending_proposals")
-    .update({ consumed_at: new Date().toISOString() })
-    .eq("id", pending.id);
+  if (!res.ok) {
+    // A ação não rodou — desfaz o carimbo pra pessoa poder tentar de novo em
+    // vez de ficar presa num "isso já foi feito" falso.
+    const { error: unclaimError } = await admin
+      .from("toube_pending_proposals")
+      .update({ consumed_at: null })
+      .eq("id", pending.id);
+    if (unclaimError) {
+      logEvent({
+        userId: profile.userId,
+        eventType: "webhook",
+        source: "telegram/toube",
+        status: "error",
+        messagePreview: unclaimError.message,
+        metadata: { pending_id: pending.id, stage: "unclaim" },
+      });
+    }
+  }
   await answerCallbackQuery(cb.id, res.ok ? "Feito!" : "Deu erro.");
   await editMessageText(
     chatId,
@@ -649,4 +693,40 @@ async function handleCallback(cb: TelegramCallbackQuery): Promise<string | null>
       : `❌ ${escapeHtml(res.error ?? "Não consegui fazer isso.")}`,
   );
   return profile.userId;
+}
+
+/**
+ * Reivindica a linha da proposta pra este toque, de forma atômica: o `update`
+ * só bate se `consumed_at` ainda estiver nulo (`.is("consumed_at", null)`),
+ * então dois toques concorrentes nunca reivindicam os dois — um vence, o
+ * outro recebe `null` de volta e sabe que perdeu a corrida. Sem essa guarda,
+ * ler `consumed_at` e depois gravá-lo são dois passos separados: dois
+ * `callback_query` do mesmo botão (o Telegram não desabilita o botão sozinho)
+ * passam os dois pela leitura antes de qualquer um gravar, e a ação roda em
+ * dobro.
+ */
+async function claimPending(
+  admin: ReturnType<typeof createAdminClient>,
+  pendingId: string,
+  userId: string,
+): Promise<boolean> {
+  const { data, error } = await admin
+    .from("toube_pending_proposals")
+    .update({ consumed_at: new Date().toISOString() })
+    .eq("id", pendingId)
+    .is("consumed_at", null)
+    .select("id")
+    .maybeSingle();
+  if (error) {
+    logEvent({
+      userId,
+      eventType: "webhook",
+      source: "telegram/toube",
+      status: "error",
+      messagePreview: error.message,
+      metadata: { pending_id: pendingId, stage: "claim" },
+    });
+    return false;
+  }
+  return !!data;
 }
