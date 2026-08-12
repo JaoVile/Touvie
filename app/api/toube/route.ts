@@ -26,6 +26,7 @@ async function activeSession(
       .select("id")
       .eq("id", requested)
       .eq("user_id", userId)
+      .eq("source", "web")
       .maybeSingle();
     if (data) return data.id;
   }
