@@ -4,6 +4,7 @@ import { todayBRTISO } from "@/lib/datetime";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { dailySchema, saveDailyBlockCore } from "./core";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -14,14 +15,6 @@ async function requireUser() {
   return { supabase, userId: user.id };
 }
 
-const dailySchema = z.object({
-  id: z.string().uuid().optional(),
-  time_slot: z.string().regex(/^\d{2}:\d{2}$/, "Hora inválida (use HH:MM)"),
-  title: z.string().min(1, "Título obrigatório").max(120),
-  emoji: z.string().max(8).optional().nullable(),
-  notes: z.string().max(500).optional().nullable(),
-});
-
 const weeklySchema = z.object({
   id: z.string().uuid().optional(),
   weekday: z.coerce.number().int().min(0).max(6),
@@ -30,16 +23,6 @@ const weeklySchema = z.object({
   emoji: z.string().max(8).optional().nullable(),
   notes: z.string().max(500).optional().nullable(),
 });
-
-function parseFormDaily(fd: FormData) {
-  return dailySchema.safeParse({
-    id: fd.get("id")?.toString() || undefined,
-    time_slot: fd.get("time_slot")?.toString(),
-    title: fd.get("title")?.toString(),
-    emoji: fd.get("emoji")?.toString() || null,
-    notes: fd.get("notes")?.toString() || null,
-  });
-}
 
 function parseFormWeekly(fd: FormData) {
   return weeklySchema.safeParse({
@@ -53,21 +36,15 @@ function parseFormWeekly(fd: FormData) {
 }
 
 export async function saveDailyBlock(fd: FormData) {
-  const parsed = parseFormDaily(fd);
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message };
-  const { supabase, userId } = await requireUser();
-  const payload = {
-    user_id: userId,
-    time_slot: `${parsed.data.time_slot}:00`,
-    title: parsed.data.title,
-    emoji: parsed.data.emoji || null,
-    notes: parsed.data.notes || null,
-  };
-  if (parsed.data.id) {
-    await supabase.from("routine_daily").update(payload).eq("id", parsed.data.id);
-  } else {
-    await supabase.from("routine_daily").insert(payload);
-  }
+  const ctx = await requireUser();
+  const res = await saveDailyBlockCore(ctx, {
+    id: fd.get("id")?.toString() || undefined,
+    time_slot: fd.get("time_slot")?.toString(),
+    title: fd.get("title")?.toString(),
+    emoji: fd.get("emoji")?.toString() || null,
+    notes: fd.get("notes")?.toString() || null,
+  });
+  if (res.error) return { error: res.error };
   revalidatePath("/rotina");
   revalidatePath("/");
   return { ok: true };
