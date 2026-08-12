@@ -33,13 +33,14 @@ async function activeSession(
     .from("toube_sessions")
     .select("id")
     .eq("user_id", userId)
+    .eq("source", "web")
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (recent) return recent.id;
   const { data: created } = await supabase
     .from("toube_sessions")
-    .insert({ user_id: userId })
+    .insert({ user_id: userId, source: "web" })
     .select("id")
     .single();
   if (!created) throw new Error("Não consegui abrir uma conversa.");
