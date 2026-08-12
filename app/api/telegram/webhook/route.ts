@@ -395,13 +395,29 @@ async function telegramSessionId(admin: ReturnType<typeof createAdminClient>, us
     .eq("source", "telegram")
     .maybeSingle();
   if (existing) return existing.id;
-  const { data: created } = await admin
+
+  const { data: created, error } = await admin
     .from("toube_sessions")
     .insert({ user_id: userId, source: "telegram", title: "Telegram" })
     .select("id")
     .single();
-  if (!created) throw new Error("Não consegui abrir a conversa do Telegram.");
-  return created.id;
+  if (created) return created.id;
+
+  // Corrida: duas mensagens seguidas ("oi" + a pergunta) viram dois after()
+  // concorrentes — ambos veem "não existe" no select acima e tentam criar. O
+  // índice único parcial (migration 0039) barra o segundo insert com 23505;
+  // em vez de estourar e perder o turno, refaz o select e reusa a sessão que
+  // o outro já criou.
+  if (error?.code === "23505") {
+    const { data: retry } = await admin
+      .from("toube_sessions")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("source", "telegram")
+      .maybeSingle();
+    if (retry) return retry.id;
+  }
+  throw new Error("Não consegui abrir a conversa do Telegram.");
 }
 
 /** Rótulo curto pro botão de confirmação (o Telegram corta texto longo). */
@@ -426,12 +442,17 @@ async function handleToubeText(chatId: number, text: string): Promise<string | n
   const ctx = { supabase: admin, userId: profile.userId };
   const sessionId = await telegramSessionId(admin, profile.userId);
 
-  await admin.from("toube_messages").insert({
+  // Se este insert falhar, runToubeTurn lê o histórico do banco sem a fala
+  // atual — o modelo responderia à mensagem ANTERIOR (ou a histórico vazio na
+  // primeira vez), gastando a chamada paga numa resposta errada e sem deixar
+  // rastro. Por isso lança em vez de engolir: o catch do after() loga e avisa.
+  const { error: userMsgError } = await admin.from("toube_messages").insert({
     user_id: profile.userId,
     session_id: sessionId,
     role: "user",
     content: text,
   });
+  if (userMsgError) throw userMsgError;
   await admin
     .from("toube_sessions")
     .update({ updated_at: new Date().toISOString() })
@@ -445,7 +466,7 @@ async function handleToubeText(chatId: number, text: string): Promise<string | n
     return profile.userId;
   }
 
-  const { data: pending } = await admin
+  const { data: pending, error: pendingError } = await admin
     .from("toube_pending_proposals")
     .insert({
       user_id: profile.userId,
@@ -454,8 +475,22 @@ async function handleToubeText(chatId: number, text: string): Promise<string | n
     })
     .select("id")
     .single();
-  if (!pending) {
-    await sendMessage(chatId, escapeHtml(result.text));
+  if (pendingError || !pending) {
+    // Sem a linha, não tem como montar callback_data (`tb:<uuid>:<idx>`) — a
+    // pessoa não pode confirmar a proposta. Isso não pode falhar em silêncio:
+    // loga o motivo e avisa explicitamente que a confirmação não saiu.
+    logEvent({
+      userId: profile.userId,
+      eventType: "webhook",
+      source: "telegram/toube",
+      status: "error",
+      messagePreview: pendingError?.message ?? "toube_pending_proposals insert sem retorno",
+      metadata: { chat_id: chatId },
+    });
+    await sendMessage(
+      chatId,
+      `${escapeHtml(result.text)}\n\n⚠️ Não consegui preparar a confirmação agora — tenta de novo em instantes.`,
+    );
     return profile.userId;
   }
 
@@ -465,14 +500,23 @@ async function handleToubeText(chatId: number, text: string): Promise<string | n
       { text: "✖️", callback_data: `tb:${pending.id}:${i}:n` },
     ],
   ]);
-  const messageId = await sendMessageWithKeyboard(chatId, escapeHtml(result.text), {
-    inline_keyboard: rows,
-  });
-  if (messageId) {
-    await admin
-      .from("toube_pending_proposals")
-      .update({ message_id: messageId })
-      .eq("id", pending.id);
+  let messageId: number | null;
+  try {
+    messageId = await sendMessageWithKeyboard(chatId, escapeHtml(result.text), {
+      inline_keyboard: rows,
+    });
+  } catch (err) {
+    // call() em lib/telegram.ts lança quando o Telegram recusa o envio — não
+    // devolve null. Sem tratar, a linha em toube_pending_proposals ficaria
+    // órfã (sem message_id, a Task 13 não teria como editar a mensagem que
+    // nunca chegou). Apaga a linha fantasma e deixa o erro subir pro catch do
+    // after(), que loga e avisa a pessoa.
+    await admin.from("toube_pending_proposals").delete().eq("id", pending.id);
+    throw err;
   }
+  await admin
+    .from("toube_pending_proposals")
+    .update({ message_id: messageId })
+    .eq("id", pending.id);
   return profile.userId;
 }
