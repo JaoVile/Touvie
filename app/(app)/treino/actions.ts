@@ -1,9 +1,9 @@
 "use server";
 
-import { todayBRTISO } from "@/lib/datetime";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { logQuickSetCore, saveLogCore, startSessionCore } from "./core";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -228,29 +228,10 @@ export async function startSession(programDayId: string | null): Promise<{
   error?: string;
   sessionId?: string;
 }> {
-  const { supabase, userId } = await requireUser();
-  const today = todayBRTISO();
-
-  // Reaproveita sessão de hoje se já existe
-  const { data: existing } = await supabase
-    .from("workout_sessions")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("occurred_on", today)
-    .maybeSingle();
-  if (existing) {
-    revalidatePath("/treino");
-    return { ok: true, sessionId: existing.id };
-  }
-
-  const { data, error } = await supabase
-    .from("workout_sessions")
-    .insert({ user_id: userId, occurred_on: today, program_day_id: programDayId })
-    .select("id")
-    .single();
-  if (error) return { error: error.message };
+  const res = await startSessionCore(await requireUser(), programDayId);
+  if (res.error) return res;
   revalidatePath("/treino");
-  return { ok: true, sessionId: data.id };
+  return res;
 }
 
 export async function deleteSession(id: string) {
@@ -296,27 +277,6 @@ export async function updateSessionNotes(id: string, notes: string) {
 
 // --- LOGS (sets) ---------------------------------------------------
 
-const logSchema = z.object({
-  session_id: z.string().uuid(),
-  exercise_id: z.string().uuid(),
-  set_number: z.number().int().min(1).max(50),
-  reps: z.number().int().min(0).max(200).nullable(),
-  weight_kg: z.number().min(0).max(1000).nullable(),
-  rpe: z.number().int().min(1).max(10).nullable(),
-});
-
-function parseFloatOrNull(v: string | undefined | null): number | null {
-  if (!v) return null;
-  const cleaned = v.replace(",", ".");
-  const n = Number.parseFloat(cleaned);
-  return Number.isFinite(n) ? n : null;
-}
-
-function parseIntOrNull(v: string | undefined | null): number | null {
-  if (!v) return null;
-  return /^\d+$/.test(v) ? Number.parseInt(v, 10) : null;
-}
-
 export async function saveLog(input: {
   id?: string;
   session_id: string;
@@ -326,38 +286,10 @@ export async function saveLog(input: {
   weight_kg: string;
   rpe: string;
 }): Promise<{ ok?: boolean; error?: string; id?: string }> {
-  const parsed = logSchema.safeParse({
-    session_id: input.session_id,
-    exercise_id: input.exercise_id,
-    set_number: input.set_number,
-    reps: parseIntOrNull(input.reps),
-    weight_kg: parseFloatOrNull(input.weight_kg),
-    rpe: parseIntOrNull(input.rpe),
-  });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message };
-  const { supabase, userId } = await requireUser();
-  const payload = {
-    user_id: userId,
-    session_id: parsed.data.session_id,
-    exercise_id: parsed.data.exercise_id,
-    set_number: parsed.data.set_number,
-    reps: parsed.data.reps,
-    weight_kg: parsed.data.weight_kg,
-    rpe: parsed.data.rpe,
-  };
-  if (input.id) {
-    const { error } = await supabase.from("exercise_logs").update(payload).eq("id", input.id);
-    if (error) return { error: error.message };
-    return { ok: true, id: input.id };
-  }
-  const { data, error } = await supabase
-    .from("exercise_logs")
-    .insert(payload)
-    .select("id")
-    .single();
-  if (error) return { error: error.message };
+  const res = await saveLogCore(await requireUser(), input);
+  if (res.error) return res;
   revalidatePath("/treino");
-  return { ok: true, id: data.id };
+  return res;
 }
 
 /**
@@ -371,25 +303,10 @@ export async function logQuickSet(input: {
   weight_kg: string;
   rpe?: string;
 }): Promise<{ ok?: boolean; error?: string }> {
-  const session = await startSession(null);
-  if (session.error || !session.sessionId) {
-    return { error: session.error ?? "Não consegui abrir a sessão de hoje." };
-  }
-  const { supabase } = await requireUser();
-  const { count } = await supabase
-    .from("exercise_logs")
-    .select("id", { count: "exact", head: true })
-    .eq("session_id", session.sessionId)
-    .eq("exercise_id", input.exercise_id);
-  const res = await saveLog({
-    session_id: session.sessionId,
-    exercise_id: input.exercise_id,
-    set_number: (count ?? 0) + 1,
-    reps: input.reps,
-    weight_kg: input.weight_kg,
-    rpe: input.rpe ?? "",
-  });
-  return res?.error ? { error: res.error } : { ok: true };
+  const res = await logQuickSetCore(await requireUser(), input);
+  if (res.error) return res;
+  revalidatePath("/treino");
+  return res;
 }
 
 export async function deleteLog(id: string) {
