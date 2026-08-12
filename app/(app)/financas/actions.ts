@@ -5,6 +5,7 @@ import { SEED_CATEGORIES, reaisToCents } from "@/lib/finance";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { defaultAccountId, saveTransactionCore } from "./core";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -13,34 +14,6 @@ async function requireUser() {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("unauthenticated");
   return { supabase, userId: user.id };
-}
-
-type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
-
-/**
- * Modelo "um total só": o usuário não escolhe banco. Toda transação precisa de
- * uma conta pra entrar no saldo, então usamos UMA conta implícita por usuário
- * (a primeira não-cartão, ou uma "Carteira" criada na hora). O total exibido é
- * a soma de tudo, então qual conta recebe o lançamento é irrelevante pra ele.
- */
-async function defaultAccountId(supabase: SupabaseClient, userId: string): Promise<string> {
-  const { data: accs } = await supabase
-    .from("finance_accounts")
-    .select("id, kind")
-    .eq("user_id", userId)
-    .eq("archived", false)
-    .order("created_at", { ascending: true });
-  const list = accs ?? [];
-  const preferred = list.find((a) => a.kind !== "credit") ?? list[0];
-  if (preferred) return preferred.id as string;
-
-  const { data: created } = await supabase
-    .from("finance_accounts")
-    .insert({ user_id: userId, name: "Carteira", kind: "cash", balance_cents: 0 })
-    .select("id")
-    .single();
-  if (!created) throw new Error("Não foi possível criar a carteira");
-  return created.id as string;
 }
 
 // --- SEED ----------------------------------------------------------
@@ -114,20 +87,11 @@ export async function archiveCategory(id: string) {
 
 // --- TRANSACTIONS --------------------------------------------------
 
-const txSchema = z.object({
-  id: z.string().uuid().optional(),
-  category_id: z.string().uuid().nullable(),
-  amount: z.number().positive("Valor deve ser maior que zero"),
-  kind: z.enum(["income", "expense"]),
-  occurred_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
-  description: z.string().max(200).nullable(),
-});
-
 export async function saveTransaction(fd: FormData): Promise<{ ok?: boolean; error?: string }> {
   const amountStr = (fd.get("amount")?.toString() ?? "").replace(",", ".");
   const amount = Number.parseFloat(amountStr);
-
-  const parsed = txSchema.safeParse({
+  const ctx = await requireUser();
+  const res = await saveTransactionCore(ctx, {
     id: fd.get("id")?.toString() || undefined,
     category_id: fd.get("category_id")?.toString() || null,
     amount: Number.isFinite(amount) ? amount : 0,
@@ -135,40 +99,7 @@ export async function saveTransaction(fd: FormData): Promise<{ ok?: boolean; err
     occurred_on: fd.get("occurred_on")?.toString(),
     description: fd.get("description")?.toString() || null,
   });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message };
-
-  const { supabase, userId } = await requireUser();
-
-  if (parsed.data.id) {
-    // Edição: não mexe na conta (invisível pro usuário), só nos campos visíveis.
-    const { error } = await supabase
-      .from("transactions")
-      .update({
-        category_id: parsed.data.category_id,
-        amount_cents: reaisToCents(parsed.data.amount),
-        kind: parsed.data.kind,
-        occurred_on: parsed.data.occurred_on,
-        description: parsed.data.description,
-      })
-      .eq("id", parsed.data.id);
-    if (error) return { error: error.message };
-  } else {
-    const accountId = await defaultAccountId(supabase, userId);
-    const { error } = await supabase.from("transactions").insert({
-      user_id: userId,
-      account_id: accountId,
-      category_id: parsed.data.category_id,
-      amount_cents: reaisToCents(parsed.data.amount),
-      kind: parsed.data.kind,
-      occurred_on: parsed.data.occurred_on,
-      description: parsed.data.description,
-      is_recurring: false,
-      recurrence_rule: null,
-      reminder_enabled: false,
-    });
-    if (error) return { error: error.message };
-  }
-
+  if (res.error) return { error: res.error };
   revalidatePath("/financas");
   revalidatePath("/");
   return { ok: true };
@@ -225,7 +156,7 @@ export async function adjustTotalBalance(
   const deltaCents = reaisToCents(realReais) - totalCents;
   if (deltaCents === 0) return { ok: true };
 
-  const accountId = await defaultAccountId(supabase, userId);
+  const accountId = await defaultAccountId({ supabase, userId });
   const { error } = await supabase.from("transactions").insert({
     user_id: userId,
     account_id: accountId,
@@ -342,7 +273,7 @@ export async function toggleBillPaid(id: string, paid: boolean): Promise<void> {
       .eq("bill_id", id)
       .limit(1);
     if (!existing || existing.length === 0) {
-      const accountId = await defaultAccountId(supabase, userId);
+      const accountId = await defaultAccountId({ supabase, userId });
       await supabase.from("transactions").insert({
         user_id: userId,
         account_id: accountId,
