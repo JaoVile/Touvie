@@ -4,14 +4,19 @@ import { logEvent } from "@/lib/logger";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 import {
+  type TelegramCallbackQuery,
   type TelegramUpdate,
   WEBHOOK_SECRET_HEADER,
+  answerCallbackQuery,
+  editMessageText,
   escapeHtml,
   sendChatAction,
   sendMessage,
   sendMessageWithKeyboard,
   verifyWebhookSecret,
 } from "@/lib/telegram";
+import { DESTRUCTIVE_ACTIONS, type ToubeAction } from "@/lib/toube";
+import { executeToube } from "@/lib/toube-execute";
 import { runToubeTurn } from "@/lib/toube-turn";
 import { formatBRL } from "@/lib/utils";
 import { NextResponse, after } from "next/server";
@@ -26,6 +31,28 @@ export async function POST(req: Request) {
     update = (await req.json()) as TelegramUpdate;
   } catch {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+  }
+
+  // callback_query (toque em botão) não tem `message.text` — precisa ser
+  // roteado ANTES do early-return que exige `msg?.text`, senão cai no return
+  // silencioso abaixo e o toque não faz absolutamente nada.
+  if (update.callback_query) {
+    const cb = update.callback_query;
+    after(async () => {
+      try {
+        await handleCallback(cb);
+      } catch (err) {
+        logEvent({
+          userId: null,
+          eventType: "webhook",
+          source: "telegram/toube",
+          status: "error",
+          messagePreview: err instanceof Error ? err.message : String(err),
+          metadata: { callback: cb.data },
+        });
+      }
+    });
+    return NextResponse.json({ ok: true });
   }
 
   const msg = update.message;
@@ -518,5 +545,108 @@ async function handleToubeText(chatId: number, text: string): Promise<string | n
     .from("toube_pending_proposals")
     .update({ message_id: messageId })
     .eq("id", pending.id);
+  return profile.userId;
+}
+
+// ─── Callback (toque em botão) ─────────────────────────────────────────────
+
+/**
+ * Toque em botão de proposta. `callback_data` no formato `tb:<uuid>:<idx>`
+ * (confirmar), `tb:<uuid>:<idx>:n` (cancelar) ou `tb:<uuid>:<idx>:d` (segundo
+ * toque da destrutiva). O uuid vem do botão (input do usuário) — quem executa
+ * é sempre resolvido pelo chat_id, e as duas coisas têm que bater, senão um
+ * uuid vazado ou adivinhado executaria ação na conta de outra pessoa.
+ */
+async function handleCallback(cb: TelegramCallbackQuery): Promise<string | null> {
+  const chatId = cb.message?.chat.id;
+  const messageId = cb.message?.message_id;
+  const parts = (cb.data ?? "").split(":");
+  if (!chatId || !messageId || parts[0] !== "tb") {
+    await answerCallbackQuery(cb.id);
+    return null;
+  }
+  const [, pendingId, idxRaw, mode] = parts;
+  const idx = Number.parseInt(idxRaw ?? "", 10);
+
+  const profile = await resolveProfile(chatId);
+  if (!profile) {
+    await answerCallbackQuery(cb.id, "Conta não vinculada.");
+    return null;
+  }
+
+  const admin = createAdminClient();
+  const { data: pending } = await admin
+    .from("toube_pending_proposals")
+    .select("id, user_id, proposals, consumed_at, expires_at")
+    .eq("id", pendingId)
+    .maybeSingle();
+
+  // Dono: o uuid veio do botão, mas quem executa vem do chat_id. Os dois batem
+  // ou não executa nada.
+  if (!pending || pending.user_id !== profile.userId) {
+    await answerCallbackQuery(cb.id, "Essa proposta não é sua.");
+    return null;
+  }
+  if (pending.consumed_at) {
+    await answerCallbackQuery(cb.id, "Isso já foi feito.");
+    await editMessageText(chatId, messageId, "✅ <i>Isso já foi feito.</i>");
+    return profile.userId;
+  }
+  if (new Date(pending.expires_at).getTime() < Date.now()) {
+    await answerCallbackQuery(cb.id, "Proposta expirada.");
+    await editMessageText(chatId, messageId, "⌛ <i>Proposta expirada — me peça de novo.</i>");
+    return profile.userId;
+  }
+
+  const proposals = pending.proposals as { action: ToubeAction; args: Record<string, unknown> }[];
+  const p = proposals[idx];
+  if (!p) {
+    await answerCallbackQuery(cb.id, "Proposta não encontrada.");
+    return profile.userId;
+  }
+
+  if (mode === "n") {
+    await admin
+      .from("toube_pending_proposals")
+      .update({ consumed_at: new Date().toISOString() })
+      .eq("id", pending.id);
+    await answerCallbackQuery(cb.id, "Cancelado.");
+    await editMessageText(chatId, messageId, "✖️ <i>Cancelado — não fiz nada.</i>");
+    return profile.userId;
+  }
+
+  // Destrutiva: o primeiro ✅ só pede confirmação. Dedo errado numa lista de
+  // botões não pode apagar meta.
+  if (DESTRUCTIVE_ACTIONS.includes(p.action) && mode !== "d") {
+    await answerCallbackQuery(cb.id);
+    await editMessageText(
+      chatId,
+      messageId,
+      `⚠️ Apagar <b>${escapeHtml(String(p.args.title ?? p.args.titulo ?? "isso"))}</b> de vez?`,
+      {
+        inline_keyboard: [
+          [
+            { text: "🗑 Sim, apagar", callback_data: `tb:${pending.id}:${idx}:d` },
+            { text: "✖️ Não", callback_data: `tb:${pending.id}:${idx}:n` },
+          ],
+        ],
+      },
+    );
+    return profile.userId;
+  }
+
+  const res = await executeToube({ supabase: admin, userId: profile.userId }, p.action, p.args);
+  await admin
+    .from("toube_pending_proposals")
+    .update({ consumed_at: new Date().toISOString() })
+    .eq("id", pending.id);
+  await answerCallbackQuery(cb.id, res.ok ? "Feito!" : "Deu erro.");
+  await editMessageText(
+    chatId,
+    messageId,
+    res.ok
+      ? `✅ Feito!${res.note ? `\n<i>${escapeHtml(res.note)}</i>` : ""}`
+      : `❌ ${escapeHtml(res.error ?? "Não consegui fazer isso.")}`,
+  );
   return profile.userId;
 }
