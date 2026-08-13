@@ -182,6 +182,10 @@ export async function runToubeTurn(
 
   const { metasContext, exercises } = await buildMetasContext(ctx);
 
+  // ATENÇÃO: `ctx.supabase` NÃO é garantidamente o client de cookie. Na web é o
+  // de RLS; no webhook do Telegram (que não tem cookie) é o ADMIN, service_role,
+  // que bypassa RLS. Por isso toda consulta lá dentro filtra `user_id`
+  // explicitamente — o RLS aqui é rede de proteção, não o filtro.
   const result = await toubeReply(historyForModel, metasContext, (tool, args) =>
     executeToubeRead(ctx.supabase, ctx.userId, tool, args),
   );

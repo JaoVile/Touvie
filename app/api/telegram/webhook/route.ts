@@ -4,6 +4,8 @@ import { logEvent } from "@/lib/logger";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 import {
+  type InlineButton,
+  type InlineKeyboard,
   type TelegramCallbackQuery,
   type TelegramUpdate,
   WEBHOOK_SECRET_HEADER,
@@ -20,6 +22,14 @@ import { executeToube } from "@/lib/toube-execute";
 import { runToubeTurn } from "@/lib/toube-turn";
 import { formatBRL } from "@/lib/utils";
 import { NextResponse, after } from "next/server";
+
+// O trabalho do `after()` conta no orçamento de duração da função, e o caminho
+// de texto livre é o mais longo que existe aqui: insert + update +
+// sendChatAction + runToubeTurn (que pode fazer DUAS rodadas de modelo com
+// tool-calling, mais a compactação no Groq) + insert + sendMessageWithKeyboard
+// + update. No default do plano Hobby (10s) o turno é cortado no meio: a fala
+// da pessoa já gravada, resposta nenhuma e sem log.
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   if (!verifyWebhookSecret(req.headers.get(WEBHOOK_SECRET_HEADER))) {
@@ -118,7 +128,15 @@ export async function POST(req: Request) {
       source: "telegram/webhook",
       status: "success",
       messagePreview: text.slice(0, 40),
-      metadata: { chat_id: chatId, command: text },
+      // Texto livre NÃO vai pro metadata: `metadata` é jsonb sem limite, então
+      // `command: text` duplicaria a conversa inteira com o Toube num log que a
+      // pessoa não lê (a policy de app_logs é `auth.uid() = user_id`, e aqui o
+      // userId do caminho de texto livre é sempre null — ele é resolvido dentro
+      // do after()) nem apaga pelo "limpar histórico". Comando é outra coisa:
+      // é sintaxe fixa, e ainda assim vai truncado como nos outros ramos.
+      metadata: text.startsWith("/")
+        ? { chat_id: chatId, command: text.slice(0, 40) }
+        : { chat_id: chatId },
     });
   } catch (err) {
     logEvent({
@@ -136,36 +154,48 @@ export async function POST(req: Request) {
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-async function resolveProfile(
-  chatId: number,
-): Promise<{ userId: string; accountId: string } | null> {
+/**
+ * Quem é o dono deste chat — e SÓ isso. Separado de `resolveAccountId` de
+ * propósito: juntos, os dois faziam qualquer "oi" no Telegram criar uma conta
+ * "Carteira" no módulo de finanças, e faziam uma falha ao criar essa conta
+ * virar "❌ Conta não vinculada. Mande /start primeiro." numa conta vinculada
+ * perfeitamente — a pessoa desvincularia e revincularia atrás de um problema
+ * que não existe. `null` aqui significa exatamente uma coisa: chat sem vínculo.
+ */
+async function resolveUserId(chatId: number): Promise<string | null> {
   const admin = createAdminClient();
   const { data: profile } = await admin
     .from("profiles")
     .select("id")
     .eq("telegram_chat_id", String(chatId))
     .maybeSingle();
-  if (!profile) return null;
+  return profile?.id ?? null;
+}
 
-  // Modelo "um total só": o lançamento precisa de uma conta pra entrar no saldo
-  // (a view soma `where account_id = a.id`). Espelha o defaultAccountId do app:
-  // prefere a primeira conta não-cartão, ou cria a "Carteira" na hora.
+/**
+ * Conta pra pendurar o lançamento — só quem escreve em finanças (/gasto,
+ * /receita) chama. Modelo "um total só": o lançamento precisa de uma conta pra
+ * entrar no saldo (a view soma `where account_id = a.id`). Espelha o
+ * defaultAccountId do app: prefere a primeira conta não-cartão, ou cria a
+ * "Carteira" na hora.
+ */
+async function resolveAccountId(userId: string): Promise<string | null> {
+  const admin = createAdminClient();
   const { data: accs } = await admin
     .from("finance_accounts")
     .select("id, kind")
-    .eq("user_id", profile.id)
+    .eq("user_id", userId)
     .eq("archived", false)
     .order("created_at", { ascending: true });
   const preferred = (accs ?? []).find((a) => a.kind !== "credit") ?? accs?.[0];
-  if (preferred) return { userId: profile.id, accountId: preferred.id as string };
+  if (preferred) return preferred.id as string;
 
   const { data: created } = await admin
     .from("finance_accounts")
-    .insert({ user_id: profile.id, name: "Carteira", kind: "cash", balance_cents: 0 })
+    .insert({ user_id: userId, name: "Carteira", kind: "cash", balance_cents: 0 })
     .select("id")
     .single();
-  if (!created) return null;
-  return { userId: profile.id, accountId: created.id as string };
+  return (created?.id as string) ?? null;
 }
 
 function parseTxArgs(text: string): { amountCents: number; description: string } | null {
@@ -278,8 +308,8 @@ async function handleStop(chatId: number): Promise<string | null> {
 }
 
 async function handleGasto(chatId: number, text: string): Promise<string | null> {
-  const profile = await resolveProfile(chatId);
-  if (!profile) {
+  const userId = await resolveUserId(chatId);
+  if (!userId) {
     await sendMessage(chatId, "❌ Conta não vinculada. Mande /start primeiro.");
     return null;
   }
@@ -287,15 +317,25 @@ async function handleGasto(chatId: number, text: string): Promise<string | null>
   const parsed = parseTxArgs(text);
   if (!parsed) {
     await sendMessage(chatId, "❌ Formato: <code>/gasto 45,90 Descrição</code>");
-    return profile.userId;
+    return userId;
   }
 
-  const [categoryId] = await Promise.all([resolveCategoryId(profile.userId, parsed.description)]);
+  const [accountId, categoryId] = await Promise.all([
+    resolveAccountId(userId),
+    resolveCategoryId(userId, parsed.description),
+  ]);
+  if (!accountId) {
+    await sendMessage(
+      chatId,
+      "❌ Não consegui preparar sua conta de finanças agora. Tenta de novo em instantes.",
+    );
+    return userId;
+  }
 
   const admin = createAdminClient();
   const { error } = await admin.from("transactions").insert({
-    user_id: profile.userId,
-    account_id: profile.accountId,
+    user_id: userId,
+    account_id: accountId,
     category_id: categoryId,
     kind: "expense",
     amount_cents: parsed.amountCents,
@@ -306,7 +346,7 @@ async function handleGasto(chatId: number, text: string): Promise<string | null>
   if (error) {
     console.error("telegram/handleGasto insert failed", error.message);
     await sendMessage(chatId, "❌ Não consegui salvar o gasto agora. Tenta de novo em instantes.");
-    return profile.userId;
+    return userId;
   }
 
   const cat = categoryId ? ` · ${escapeHtml(guessCategory(parsed.description) ?? "")}` : "";
@@ -314,12 +354,12 @@ async function handleGasto(chatId: number, text: string): Promise<string | null>
     chatId,
     `✅ Gasto registrado!\n💸 <b>${formatBRL(parsed.amountCents)}</b> — ${escapeHtml(parsed.description)}${cat}`,
   );
-  return profile.userId;
+  return userId;
 }
 
 async function handleReceita(chatId: number, text: string): Promise<string | null> {
-  const profile = await resolveProfile(chatId);
-  if (!profile) {
+  const userId = await resolveUserId(chatId);
+  if (!userId) {
     await sendMessage(chatId, "❌ Conta não vinculada. Mande /start primeiro.");
     return null;
   }
@@ -327,13 +367,22 @@ async function handleReceita(chatId: number, text: string): Promise<string | nul
   const parsed = parseTxArgs(text);
   if (!parsed) {
     await sendMessage(chatId, "❌ Formato: <code>/receita 500 Freela</code>");
-    return profile.userId;
+    return userId;
+  }
+
+  const accountId = await resolveAccountId(userId);
+  if (!accountId) {
+    await sendMessage(
+      chatId,
+      "❌ Não consegui preparar sua conta de finanças agora. Tenta de novo em instantes.",
+    );
+    return userId;
   }
 
   const admin = createAdminClient();
   const { error } = await admin.from("transactions").insert({
-    user_id: profile.userId,
-    account_id: profile.accountId,
+    user_id: userId,
+    account_id: accountId,
     kind: "income",
     amount_cents: parsed.amountCents,
     description: parsed.description,
@@ -346,19 +395,20 @@ async function handleReceita(chatId: number, text: string): Promise<string | nul
       chatId,
       "❌ Não consegui salvar a receita agora. Tenta de novo em instantes.",
     );
-    return profile.userId;
+    return userId;
   }
 
   await sendMessage(
     chatId,
     `✅ Receita registrada!\n💰 <b>${formatBRL(parsed.amountCents)}</b> — ${escapeHtml(parsed.description)}`,
   );
-  return profile.userId;
+  return userId;
 }
 
+// /saldo só LÊ transações — não precisa (nem cria) conta.
 async function handleSaldo(chatId: number): Promise<string | null> {
-  const profile = await resolveProfile(chatId);
-  if (!profile) {
+  const userId = await resolveUserId(chatId);
+  if (!userId) {
     await sendMessage(chatId, "❌ Conta não vinculada. Mande /start primeiro.");
     return null;
   }
@@ -379,7 +429,7 @@ async function handleSaldo(chatId: number): Promise<string | null> {
   const { data: txs } = await admin
     .from("transactions")
     .select("kind, amount_cents, category_id, finance_categories(name)")
-    .eq("user_id", profile.userId)
+    .eq("user_id", userId)
     .gte("occurred_on", firstDay)
     .returns<SaldoRow[]>();
 
@@ -413,7 +463,7 @@ async function handleSaldo(chatId: number): Promise<string | null> {
     `📊 <b>Resumo de ${monthName}</b>\n\n💰 Receitas: <b>${formatBRL(income)}</b>\n💸 Gastos: <b>${formatBRL(expense)}</b>\n📈 Saldo: <b>${sign}${formatBRL(balance)}</b>\n${topCats ? `\n<b>Top gastos por categoria:</b>\n${topCats}` : ""}`,
   );
 
-  return profile.userId;
+  return userId;
 }
 
 // ─── Toube (texto livre) ────────────────────────────────────────────────────
@@ -459,27 +509,106 @@ function proposalShortLabel(p: { action: string; args: Record<string, unknown> }
   return short || p.action.replace(/_/g, " ");
 }
 
+type PendingProposal = { action: ToubeAction; args: Record<string, unknown> };
+
+/**
+ * O par ✅/✖️ de uma linha pendente. `callback_data` tem teto de 64 bytes no
+ * Telegram: `tb:` + uuid (36) = 39 bytes, e 41 com o sufixo `:n`/`:d`.
+ */
+function proposalButtons(rowId: string, p: PendingProposal): InlineButton[] {
+  return [
+    { text: `✅ ${proposalShortLabel(p)}`, callback_data: `tb:${rowId}` },
+    { text: "✖️", callback_data: `tb:${rowId}:n` },
+  ];
+}
+
+/**
+ * A proposta de uma linha. A coluna guarda um array de UM elemento (formato
+ * escrito por `handleToubeText`); tolera o objeto solto por segurança, mas
+ * nunca inventa: json inesperado devolve `null` e o chamador avisa em vez de
+ * executar qualquer coisa.
+ */
+function firstProposal(raw: Json): PendingProposal | null {
+  const first = Array.isArray(raw) ? raw[0] : raw;
+  if (!first || typeof first !== "object" || Array.isArray(first)) return null;
+  const action = (first as { action?: unknown }).action;
+  if (typeof action !== "string") return null;
+  const args = (first as { args?: unknown }).args;
+  return {
+    action: action as ToubeAction,
+    args: args && typeof args === "object" ? (args as Record<string, unknown>) : {},
+  };
+}
+
+/**
+ * Os botões que AINDA dá pra confirmar nesta mensagem. Uma mensagem carrega
+ * vários botões, mas todo caminho do callback termina em `editMessageText`, que
+ * reescreve a mensagem inteira e derruba o teclado — sem remontar o que sobrou,
+ * confirmar a primeira proposta deixaria as outras vivas no banco e
+ * inalcançáveis até expirar. Só entra o que continua pendente e no prazo, então
+ * um botão remontado sempre corresponde a algo que de fato ainda não rodou.
+ * `excludeId` tira a própria linha (o primeiro toque da destrutiva, que abre a
+ * pergunta "apagar de vez?" sem consumir nada).
+ */
+async function remainingKeyboard(
+  admin: ReturnType<typeof createAdminClient>,
+  chatId: number,
+  messageId: number,
+  userId: string,
+  excludeId?: string,
+): Promise<InlineKeyboard | undefined> {
+  const { data, error } = await admin
+    .from("toube_pending_proposals")
+    .select("id, proposals")
+    .eq("user_id", userId)
+    .eq("chat_id", String(chatId))
+    .eq("message_id", messageId)
+    .is("consumed_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
+  if (error) {
+    logEvent({
+      userId,
+      eventType: "webhook",
+      source: "telegram/toube",
+      status: "error",
+      messagePreview: error.message,
+      metadata: { chat_id: chatId, stage: "remaining_keyboard" },
+    });
+    return undefined;
+  }
+  const rows = (data ?? [])
+    .filter((r) => r.id !== excludeId)
+    .map((r) => {
+      const p = firstProposal(r.proposals);
+      return p ? proposalButtons(r.id, p) : null;
+    })
+    .filter((r): r is InlineButton[] => r !== null);
+  return rows.length ? { inline_keyboard: rows } : undefined;
+}
+
 /**
  * Texto livre (não-comando) do Telegram: grava a fala, roda o turno do Toube e
- * responde. Se vierem propostas, grava em `toube_pending_proposals` e manda
- * com botões — a Task 13 trata o callback do clique.
+ * responde. Se vierem propostas, grava UMA LINHA POR PROPOSTA em
+ * `toube_pending_proposals` e manda com botões — `handleCallback` trata o toque.
  */
 async function handleToubeText(chatId: number, text: string): Promise<string | null> {
-  const profile = await resolveProfile(chatId);
-  if (!profile) {
+  const userId = await resolveUserId(chatId);
+  if (!userId) {
     await sendMessage(chatId, "❌ Conta não vinculada. Mande /start primeiro.");
     return null;
   }
   const admin = createAdminClient();
-  const ctx = { supabase: admin, userId: profile.userId };
-  const sessionId = await telegramSessionId(admin, profile.userId);
+  const ctx = { supabase: admin, userId };
+  const sessionId = await telegramSessionId(admin, userId);
 
   // Se este insert falhar, runToubeTurn lê o histórico do banco sem a fala
   // atual — o modelo responderia à mensagem ANTERIOR (ou a histórico vazio na
   // primeira vez), gastando a chamada paga numa resposta errada e sem deixar
   // rastro. Por isso lança em vez de engolir: o catch do after() loga e avisa.
   const { error: userMsgError } = await admin.from("toube_messages").insert({
-    user_id: profile.userId,
+    user_id: userId,
     session_id: sessionId,
     role: "user",
     content: text,
@@ -495,43 +624,50 @@ async function handleToubeText(chatId: number, text: string): Promise<string | n
 
   if (result.kind !== "proposals") {
     await sendMessage(chatId, escapeHtml(result.text));
-    return profile.userId;
+    return userId;
   }
 
-  const { data: pending, error: pendingError } = await admin
-    .from("toube_pending_proposals")
-    .insert({
-      user_id: profile.userId,
+  // UMA LINHA POR PROPOSTA. `consumed_at` é da linha inteira, então um lote de N
+  // propostas numa linha só fazia a confirmação de UMA consumir todas as outras:
+  // "gastei 40 no mercado e me lembra do aluguel" vira dois botões, a pessoa
+  // confirma o gasto e, ao tocar no segundo, ouve "isso já foi feito" sobre um
+  // lembrete que nunca existiu. Separadas, cada proposta confirma, cancela e
+  // expira sozinha — igual à web, que faz patch por índice.
+  //
+  // Os ids saem daqui (e não do RETURNING) pra o pareamento proposta↔linha não
+  // depender da ordem em que o Postgres devolve as linhas do insert em lote.
+  const prepared = result.proposals.map((p) => ({ id: crypto.randomUUID(), proposal: p }));
+  const { error: pendingError } = await admin.from("toube_pending_proposals").insert(
+    prepared.map(({ id, proposal }) => ({
+      id,
+      user_id: userId,
       chat_id: String(chatId),
-      proposals: result.proposals as unknown as Json,
-    })
-    .select("id")
-    .single();
-  if (pendingError || !pending) {
-    // Sem a linha, não tem como montar callback_data (`tb:<uuid>:<idx>`) — a
-    // pessoa não pode confirmar a proposta. Isso não pode falhar em silêncio:
-    // loga o motivo e avisa explicitamente que a confirmação não saiu.
+      // Array de UM elemento: a coluna segue `jsonb not null` como está na
+      // migration 0039 e o leitor (`firstProposal`) sempre pega o [0].
+      proposals: [proposal] as unknown as Json,
+    })),
+  );
+  if (pendingError) {
+    // Sem as linhas, não tem como montar callback_data (`tb:<uuid>`) — a pessoa
+    // não pode confirmar a proposta. Isso não pode falhar em silêncio: loga o
+    // motivo e avisa explicitamente que a confirmação não saiu.
     logEvent({
-      userId: profile.userId,
+      userId,
       eventType: "webhook",
       source: "telegram/toube",
       status: "error",
-      messagePreview: pendingError?.message ?? "toube_pending_proposals insert sem retorno",
+      messagePreview: pendingError.message,
       metadata: { chat_id: chatId },
     });
     await sendMessage(
       chatId,
       `${escapeHtml(result.text)}\n\n⚠️ Não consegui preparar a confirmação agora — tenta de novo em instantes.`,
     );
-    return profile.userId;
+    return userId;
   }
 
-  const rows = result.proposals.flatMap((p, i) => [
-    [
-      { text: `✅ ${proposalShortLabel(p)}`, callback_data: `tb:${pending.id}:${i}` },
-      { text: "✖️", callback_data: `tb:${pending.id}:${i}:n` },
-    ],
-  ]);
+  const ids = prepared.map((x) => x.id);
+  const rows = prepared.map(({ id, proposal }) => proposalButtons(id, proposal));
   let messageId: number | null;
   try {
     messageId = await sendMessageWithKeyboard(chatId, escapeHtml(result.text), {
@@ -539,28 +675,33 @@ async function handleToubeText(chatId: number, text: string): Promise<string | n
     });
   } catch (err) {
     // call() em lib/telegram.ts lança quando o Telegram recusa o envio — não
-    // devolve null. Sem tratar, a linha em toube_pending_proposals ficaria
-    // órfã (sem message_id, a Task 13 não teria como editar a mensagem que
-    // nunca chegou). Apaga a linha fantasma e deixa o erro subir pro catch do
-    // after(), que loga e avisa a pessoa.
-    await admin.from("toube_pending_proposals").delete().eq("id", pending.id);
+    // devolve null. Sem tratar, as linhas em toube_pending_proposals ficariam
+    // órfãs (sem message_id, handleCallback não teria como editar a mensagem
+    // que nunca chegou). Apaga as linhas fantasma e deixa o erro subir pro
+    // catch do after(), que loga e avisa a pessoa.
+    await admin.from("toube_pending_proposals").delete().in("id", ids);
     throw err;
   }
-  await admin
-    .from("toube_pending_proposals")
-    .update({ message_id: messageId })
-    .eq("id", pending.id);
-  return profile.userId;
+  // TODAS as linhas do turno carimbam o MESMO message_id — é uma mensagem só,
+  // com vários botões. É por ele que `remainingKeyboard` acha as irmãs.
+  await admin.from("toube_pending_proposals").update({ message_id: messageId }).in("id", ids);
+  return userId;
 }
 
 // ─── Callback (toque em botão) ─────────────────────────────────────────────
 
+/** Rodapé que avisa que sobrou proposta pra confirmar nesta mensagem. */
+const STILL_PENDING = "\n\n<i>O que ainda dá pra confirmar está aí embaixo.</i>";
+
 /**
- * Toque em botão de proposta. `callback_data` no formato `tb:<uuid>:<idx>`
- * (confirmar), `tb:<uuid>:<idx>:n` (cancelar) ou `tb:<uuid>:<idx>:d` (segundo
- * toque da destrutiva). O uuid vem do botão (input do usuário) — quem executa
- * é sempre resolvido pelo chat_id, e as duas coisas têm que bater, senão um
- * uuid vazado ou adivinhado executaria ação na conta de outra pessoa.
+ * Toque em botão de proposta. `callback_data` no formato `tb:<uuid>`
+ * (confirmar), `tb:<uuid>:n` (cancelar) ou `tb:<uuid>:d` (segundo toque da
+ * destrutiva) — cabe folgado nos 64 bytes do Telegram (41 no maior caso). O
+ * uuid é o da LINHA, e cada linha guarda uma proposta só, então confirmar uma
+ * não encosta nas outras da mesma mensagem. Ele vem do botão (input do
+ * usuário) — quem executa é sempre resolvido pelo chat_id, e as duas coisas
+ * têm que bater, senão um uuid vazado ou adivinhado executaria ação na conta
+ * de outra pessoa.
  */
 async function handleCallback(cb: TelegramCallbackQuery): Promise<string | null> {
   const chatId = cb.message?.chat.id;
@@ -570,11 +711,23 @@ async function handleCallback(cb: TelegramCallbackQuery): Promise<string | null>
     await answerCallbackQuery(cb.id);
     return null;
   }
-  const [, pendingId, idxRaw, mode] = parts;
-  const idx = Number.parseInt(idxRaw ?? "", 10);
+  const [, pendingId, mode] = parts;
 
-  const profile = await resolveProfile(chatId);
-  if (!profile) {
+  // Botão do formato antigo (`tb:<uuid>:<idx>`, de quando o lote inteiro morava
+  // numa linha só). Sem o índice não dá pra saber QUAL proposta é, e executar a
+  // errada seria pior do que não executar nada — então não executa e diz por quê.
+  if (parts.length > 3 || (mode !== undefined && mode !== "n" && mode !== "d")) {
+    await answerCallbackQuery(cb.id, "Botão vencido — me peça de novo.");
+    await editMessageText(
+      chatId,
+      messageId,
+      "⌛ <i>Esses botões são de antes de uma atualização — não fiz nada. Me peça de novo.</i>",
+    );
+    return null;
+  }
+
+  const userId = await resolveUserId(chatId);
+  if (!userId) {
     await answerCallbackQuery(cb.id, "Conta não vinculada.");
     return null;
   }
@@ -598,44 +751,68 @@ async function handleCallback(cb: TelegramCallbackQuery): Promise<string | null>
 
   // Dono: o uuid veio do botão, mas quem executa vem do chat_id. Os dois batem
   // ou não executa nada.
-  if (!pending || pending.user_id !== profile.userId) {
+  if (!pending || pending.user_id !== userId) {
     await answerCallbackQuery(cb.id, "Essa proposta não é sua.");
     return null;
   }
   if (pending.consumed_at) {
     await answerCallbackQuery(cb.id, "Isso já foi feito.");
-    await editMessageText(chatId, messageId, "✅ <i>Isso já foi feito.</i>");
-    return profile.userId;
+    await editMessageText(
+      chatId,
+      messageId,
+      "✅ <i>Isso já foi feito.</i>",
+      await remainingKeyboard(admin, chatId, messageId, userId),
+    );
+    return userId;
   }
   if (new Date(pending.expires_at).getTime() < Date.now()) {
     await answerCallbackQuery(cb.id, "Proposta expirada.");
-    await editMessageText(chatId, messageId, "⌛ <i>Proposta expirada — me peça de novo.</i>");
-    return profile.userId;
+    await editMessageText(
+      chatId,
+      messageId,
+      "⌛ <i>Proposta expirada — me peça de novo.</i>",
+      await remainingKeyboard(admin, chatId, messageId, userId),
+    );
+    return userId;
   }
 
-  const proposals = pending.proposals as { action: ToubeAction; args: Record<string, unknown> }[];
-  const p = proposals[idx];
+  const p = firstProposal(pending.proposals);
   if (!p) {
     await answerCallbackQuery(cb.id, "Proposta não encontrada.");
-    return profile.userId;
+    return userId;
   }
 
   if (mode === "n") {
-    const claimed = await claimPending(admin, pending.id, profile.userId);
+    const claimed = await claimPending(admin, pending.id, userId);
     if (!claimed) {
       await answerCallbackQuery(cb.id, "Isso já foi feito.");
-      await editMessageText(chatId, messageId, "✅ <i>Isso já foi feito.</i>");
-      return profile.userId;
+      await editMessageText(
+        chatId,
+        messageId,
+        "✅ <i>Isso já foi feito.</i>",
+        await remainingKeyboard(admin, chatId, messageId, userId),
+      );
+      return userId;
     }
+    // A linha cancelada já saiu do remainingKeyboard (o claim carimbou
+    // consumed_at), então o que volta são só as OUTRAS propostas da mensagem.
+    const rest = await remainingKeyboard(admin, chatId, messageId, userId);
     await answerCallbackQuery(cb.id, "Cancelado.");
-    await editMessageText(chatId, messageId, "✖️ <i>Cancelado — não fiz nada.</i>");
-    return profile.userId;
+    await editMessageText(
+      chatId,
+      messageId,
+      `✖️ <i>Cancelado — não fiz nada.</i>${rest ? STILL_PENDING : ""}`,
+      rest,
+    );
+    return userId;
   }
 
   // Destrutiva: o primeiro ✅ só pede confirmação. Dedo errado numa lista de
   // botões não pode apagar meta. NÃO carimba consumed_at aqui — a proposta
-  // segue pendente até o segundo toque ou o cancelamento.
+  // segue pendente até o segundo toque ou o cancelamento (por isso esta linha
+  // sai do remainingKeyboard por `excludeId`: o par Sim/Não já a representa).
   if (DESTRUCTIVE_ACTIONS.includes(p.action) && mode !== "d") {
+    const others = await remainingKeyboard(admin, chatId, messageId, userId, pending.id);
     await answerCallbackQuery(cb.id);
     await editMessageText(
       chatId,
@@ -644,13 +821,14 @@ async function handleCallback(cb: TelegramCallbackQuery): Promise<string | null>
       {
         inline_keyboard: [
           [
-            { text: "🗑 Sim, apagar", callback_data: `tb:${pending.id}:${idx}:d` },
-            { text: "✖️ Não", callback_data: `tb:${pending.id}:${idx}:n` },
+            { text: "🗑 Sim, apagar", callback_data: `tb:${pending.id}:d` },
+            { text: "✖️ Não", callback_data: `tb:${pending.id}:n` },
           ],
+          ...(others?.inline_keyboard ?? []),
         ],
       },
     );
-    return profile.userId;
+    return userId;
   }
 
   // Reivindica a linha ANTES de executar (update condicional a consumed_at
@@ -658,14 +836,19 @@ async function handleCallback(cb: TelegramCallbackQuery): Promise<string | null>
   // concorrentes que leriam consumed_at=null e executariam a ação duas vezes
   // (gasto lançado em duplicidade, por exemplo). Só quem reivindica de fato
   // segue pra executeToube; o outro recebe "isso já foi feito".
-  const claimed = await claimPending(admin, pending.id, profile.userId);
+  const claimed = await claimPending(admin, pending.id, userId);
   if (!claimed) {
     await answerCallbackQuery(cb.id, "Isso já foi feito.");
-    await editMessageText(chatId, messageId, "✅ <i>Isso já foi feito.</i>");
-    return profile.userId;
+    await editMessageText(
+      chatId,
+      messageId,
+      "✅ <i>Isso já foi feito.</i>",
+      await remainingKeyboard(admin, chatId, messageId, userId),
+    );
+    return userId;
   }
 
-  const res = await executeToube({ supabase: admin, userId: profile.userId }, p.action, p.args);
+  const res = await executeToube({ supabase: admin, userId }, p.action, p.args);
   if (!res.ok) {
     // A ação não rodou — desfaz o carimbo pra pessoa poder tentar de novo em
     // vez de ficar presa num "isso já foi feito" falso.
@@ -675,7 +858,7 @@ async function handleCallback(cb: TelegramCallbackQuery): Promise<string | null>
       .eq("id", pending.id);
     if (unclaimError) {
       logEvent({
-        userId: profile.userId,
+        userId,
         eventType: "webhook",
         source: "telegram/toube",
         status: "error",
@@ -684,15 +867,21 @@ async function handleCallback(cb: TelegramCallbackQuery): Promise<string | null>
       });
     }
   }
+  // DEPOIS do unclaim, de propósito: se a execução falhou, a linha voltou a
+  // ficar pendente e o botão dela precisa reaparecer pra pessoa tentar de novo.
+  const rest = await remainingKeyboard(admin, chatId, messageId, userId);
   await answerCallbackQuery(cb.id, res.ok ? "Feito!" : "Deu erro.");
   await editMessageText(
     chatId,
     messageId,
-    res.ok
-      ? `✅ Feito!${res.note ? `\n<i>${escapeHtml(res.note)}</i>` : ""}`
-      : `❌ ${escapeHtml(res.error ?? "Não consegui fazer isso.")}`,
+    `${
+      res.ok
+        ? `✅ Feito!${res.note ? `\n<i>${escapeHtml(res.note)}</i>` : ""}`
+        : `❌ ${escapeHtml(res.error ?? "Não consegui fazer isso.")}`
+    }${rest ? STILL_PENDING : ""}`,
+    rest,
   );
-  return profile.userId;
+  return userId;
 }
 
 /**
