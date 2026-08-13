@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import {
   BellPlus,
   CalendarCheck2,
@@ -12,7 +13,7 @@ import {
   Target,
   Wallet,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 /**
  * Mini-telas da landing — UIs em miniatura que falam o mesmo idioma glass do
@@ -58,10 +59,16 @@ function MiniWindow({
 }
 
 /* ── Rotina (manhã) — hábitos do dia, alguns já marcados ─────────────────── */
+/**
+ * `becomes` marca o hábito que se completa DIANTE de quem está lendo, quando a
+ * seção entra na tela. Ele é renderizado no estado FINAL (marcado): assim, sem
+ * JS ou com reduced-motion, a tela continua coerente — a animação só existe
+ * quando o <PlayOnView> liga o data-playing, e aí ela parte do estado vazio.
+ */
 const HABITS = [
   { label: "Beber água", done: true },
   { label: "Treino 7h", done: true },
-  { label: "Ler 20 min", done: false },
+  { label: "Ler 20 min", done: true, becomes: true },
   { label: "Journaling", done: false },
 ];
 
@@ -72,8 +79,17 @@ export function MiniRotina() {
       icon={CalendarCheck2}
       title="Rotina · hoje"
       trailing={
-        <span className="font-mono text-[11px]" style={{ color: "var(--color-accent)" }}>
-          {done}/{HABITS.length}
+        // Duas leituras empilhadas: a de antes some quando o hábito é marcado.
+        <span
+          className="relative grid font-mono text-[11px]"
+          style={{ color: "var(--color-accent)" }}
+        >
+          <span className="mini-count-after col-start-1 row-start-1">
+            {done}/{HABITS.length}
+          </span>
+          <span className="mini-count-before col-start-1 row-start-1" aria-hidden="true">
+            {done - 1}/{HABITS.length}
+          </span>
         </span>
       }
     >
@@ -81,7 +97,10 @@ export function MiniRotina() {
         {HABITS.map((h) => (
           <li key={h.label} className="flex items-center gap-2.5 text-sm">
             <span
-              className="grid h-4 w-4 shrink-0 place-items-center rounded-[5px]"
+              className={cn(
+                "grid h-4 w-4 shrink-0 place-items-center rounded-[5px]",
+                h.becomes && "mini-check",
+              )}
               style={
                 h.done
                   ? { background: "var(--color-accent)" }
@@ -89,10 +108,16 @@ export function MiniRotina() {
               }
             >
               {h.done ? (
-                <Check size={11} strokeWidth={3} style={{ color: "var(--color-bg)" }} />
+                <Check
+                  size={11}
+                  strokeWidth={3}
+                  className={h.becomes ? "mini-check-icon" : undefined}
+                  style={{ color: "var(--color-bg)" }}
+                />
               ) : null}
             </span>
             <span
+              className={h.becomes ? "mini-habit-label" : undefined}
               style={{
                 color: h.done ? "var(--color-fg-subtle)" : "var(--color-fg)",
                 textDecoration: h.done ? "line-through" : "none",
@@ -197,11 +222,18 @@ export function MiniTreino() {
               </span>
             </div>
             <div className="mt-1.5 flex gap-1">
-              {Array.from({ length: l.sets }, (_, i) => `${l.name}-${i}`).map((id) => (
+              {Array.from({ length: l.sets }, (_, i) => `${l.name}-${i}`).map((id, i) => (
                 <span
                   key={id}
-                  className="h-1.5 flex-1 rounded-full"
-                  style={{ background: "color-mix(in srgb, var(--color-accent) 55%, transparent)" }}
+                  className="mini-bar h-1.5 flex-1 rounded-full"
+                  // --i escalona o preenchimento: as séries enchem uma após a
+                  // outra, como quem loga o treino set a set.
+                  style={
+                    {
+                      background: "color-mix(in srgb, var(--color-accent) 55%, transparent)",
+                      "--i": i,
+                    } as CSSProperties
+                  }
                 />
               ))}
             </div>

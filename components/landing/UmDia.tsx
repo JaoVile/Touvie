@@ -1,3 +1,4 @@
+import { PlayOnView } from "@/components/PlayOnView";
 import { Reveal } from "@/components/Reveal";
 import { type LucideIcon, Moon, Send, Sun } from "lucide-react";
 import type { ReactNode } from "react";
@@ -68,37 +69,42 @@ export function UmDia() {
                 </span>
               </div>
 
-              <div className="mt-5">{m.screen}</div>
+              {/* A mini-tela e o ping tocam JUNTOS, num observador só: primeiro a
+                  tela se comporta como o app, depois o lembrete chega. Separados,
+                  cada um dispararia no seu próprio limiar e a ordem se perderia. */}
+              <PlayOnView>
+                <div className="mt-5">{m.screen}</div>
 
-              <p
-                className="mt-5 text-sm leading-relaxed"
-                style={{ color: "var(--color-fg-muted)" }}
-              >
-                {m.body}
-              </p>
-
-              {m.ping && Ping ? (
-                <div
-                  className="mt-4 flex items-start gap-2.5 rounded-xl px-3.5 py-2.5"
-                  style={{
-                    background: "color-mix(in srgb, var(--color-accent) 7%, transparent)",
-                    border: "1px solid color-mix(in srgb, var(--color-accent) 22%, transparent)",
-                  }}
+                <p
+                  className="mt-5 text-sm leading-relaxed"
+                  style={{ color: "var(--color-fg-muted)" }}
                 >
-                  <Send
-                    size={13}
-                    strokeWidth={1.75}
-                    className="mt-0.5 shrink-0"
-                    style={{ color: "var(--color-accent)" }}
-                  />
-                  <p
-                    className="text-[13px] leading-snug"
-                    style={{ color: "var(--color-fg-muted)" }}
+                  {m.body}
+                </p>
+
+                {m.ping && Ping ? (
+                  <div
+                    className="mini-ping mt-4 flex items-start gap-2.5 rounded-xl px-3.5 py-2.5"
+                    style={{
+                      background: "color-mix(in srgb, var(--color-accent) 7%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--color-accent) 22%, transparent)",
+                    }}
                   >
-                    {m.ping.text}
-                  </p>
-                </div>
-              ) : null}
+                    <Send
+                      size={13}
+                      strokeWidth={1.75}
+                      className="mt-0.5 shrink-0"
+                      style={{ color: "var(--color-accent)" }}
+                    />
+                    <p
+                      className="text-[13px] leading-snug"
+                      style={{ color: "var(--color-fg-muted)" }}
+                    >
+                      {m.ping.text}
+                    </p>
+                  </div>
+                ) : null}
+              </PlayOnView>
             </Reveal>
           );
         })}
