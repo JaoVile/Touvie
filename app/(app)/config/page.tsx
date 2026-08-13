@@ -236,6 +236,18 @@ export default async function ConfigPage(props: {
                         {tConfig("installApp.description")}
                       </p>
                       <InstallApp />
+                      <p className="mt-4 text-sm">
+                        <Link
+                          href="/landpage"
+                          className="underline underline-offset-4"
+                          style={{ color: "var(--color-fg)" }}
+                        >
+                          {tConfig("installApp.landpage")}
+                        </Link>
+                        <span className="block text-xs" style={{ color: "var(--color-fg-muted)" }}>
+                          {tConfig("installApp.landpageHint")}
+                        </span>
+                      </p>
                     </div>
                     <div className="mt-6">
                       <h3
