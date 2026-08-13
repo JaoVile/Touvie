@@ -34,6 +34,7 @@ import { FocusQuestToggle } from "./FocusQuestToggle";
 import { ForceUpdate } from "./ForceUpdate";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { LogGeral } from "./LogGeral";
+import { NavCustomizer } from "./NavCustomizer";
 import { ProfileSection } from "./ProfileSection";
 import { QualityPicker } from "./QualityPicker";
 import { SoundCredits } from "./SoundCredits";
@@ -64,7 +65,7 @@ export default async function ConfigPage(props: {
     await Promise.all([
       supabase
         .from("profiles")
-        .select("theme, telegram_chat_id, locale")
+        .select("theme, telegram_chat_id, locale, nav_primary")
         .eq("id", userId)
         .maybeSingle()
         .then((r) => r.data),
@@ -211,6 +212,18 @@ export default async function ConfigPage(props: {
                       Nível de efeitos visuais e animações.
                     </p>
                     <QualityPicker />
+                    <div className="mt-6">
+                      <h3
+                        className="mb-2 font-semibold text-sm"
+                        style={{ color: "var(--color-fg-muted)" }}
+                      >
+                        {tConfig("navBar.title")}
+                      </h3>
+                      <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                        {tConfig("navBar.description")}
+                      </p>
+                      <NavCustomizer current={profile?.nav_primary ?? null} />
+                    </div>
                     <div className="mt-6">
                       <h3
                         className="mb-2 text-sm font-semibold"
