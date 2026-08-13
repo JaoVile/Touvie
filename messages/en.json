@@ -305,5 +305,12 @@
     "tomorrow": "Tomorrow",
     "yesterday": "Yesterday",
     "days": "days"
+  },
+  "install": {
+    "title": "Install Touvie",
+    "body": "Keep Touvie on your home screen and open it straight away, no browser needed.",
+    "iosBody": "Tap Share, then \"Add to Home Screen\".",
+    "install": "Install",
+    "dismiss": "Not now"
   }
 }
