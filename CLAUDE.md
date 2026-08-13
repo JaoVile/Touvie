@@ -77,6 +77,18 @@ convenções que o Biome **não** garante:
   que segura o tool-calling. Smoke de módulos com alias `@/` roda com
   `node --import ./scripts/dev-alias.mjs <script>.ts`.
   **O Diário é INTOCÁVEL pelo Toube** — nenhuma tool/consulta lê `journal_entries`.
+- **Toube no Telegram:** o Toube também conversa pelo bot. A escrita NÃO pode
+  depender de cookie de sessão, então cada módulo tem um `app/(app)/<modulo>/core.ts`
+  que recebe `{ supabase, userId }` (`lib/toube-ctx.ts`) e **sempre** filtra
+  `.eq("user_id", …)` — o webhook usa o admin client, que bypassa RLS, então esse
+  filtro é a única defesa. O `actions.ts` de cada módulo é só a casca `"use server"`.
+  `lib/toube-execute.ts` (ações) e `lib/toube-turn.ts` (turno de conversa) **não
+  levam `"use server"`** de propósito: precisam ser chamáveis do route handler.
+  A conversa do Telegram vive numa sessão própria (`toube_sessions.source`), e a web
+  filtra `source = 'web'` em todo lugar que lista/resolve sessão.
+  ⚠️ **Se mexer em `allowed_updates` (`lib/telegram.ts`), rode `setWebhook` de novo** —
+  sem `"callback_query"` na lista o Telegram não entrega o toque e os botões de
+  confirmação ficam inertes, sem erro em lugar nenhum.
 - **Migrations rodam manualmente** no SQL Editor do Supabase, em ordem numérica
   (`supabase/migrations/`). Não há CLI de migration automatizada aqui.
 - **Tailwind v4 (beta)** + PostCSS — sintaxe/config diferem da v3.
