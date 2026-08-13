@@ -683,8 +683,24 @@ async function handleToubeText(chatId: number, text: string): Promise<string | n
     throw err;
   }
   // TODAS as linhas do turno carimbam o MESMO message_id — é uma mensagem só,
-  // com vários botões. É por ele que `remainingKeyboard` acha as irmãs.
-  await admin.from("toube_pending_proposals").update({ message_id: messageId }).in("id", ids);
+  // com vários botões. É por ele que `remainingKeyboard` acha as irmãs: sem o
+  // carimbo, confirmar uma proposta apaga o teclado e as outras ficam
+  // inalcançáveis até expirar. Falha aqui é silenciosa pra pessoa (a mensagem
+  // com botões JÁ chegou), então o log é a única testemunha — não deixe passar.
+  const { error: stampError } = await admin
+    .from("toube_pending_proposals")
+    .update({ message_id: messageId })
+    .in("id", ids);
+  if (stampError || messageId == null) {
+    logEvent({
+      userId,
+      eventType: "webhook",
+      source: "telegram/toube",
+      status: "error",
+      messagePreview: stampError?.message ?? "sendMessage não devolveu message_id",
+      metadata: { chat_id: chatId, pending_ids: ids },
+    });
+  }
   return userId;
 }
 
