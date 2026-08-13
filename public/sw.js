@@ -1,23 +1,89 @@
-const CACHE = "touvie-v1";
+// Service worker do Touvie.
+//
+// Estratégia por tipo de request — a escolha central é NÃO cachear HTML:
+//
+//   navegação (HTML) → network-first, cai no /offline.html se a rede falhar.
+//     HTML sempre fresco significa que um deploy novo aparece na hora, sem
+//     ninguém preso em versão velha (a armadilha clássica de PWA).
+//
+//   /_next/static/* e /icons/* → cache-first.
+//     Seguro porque o Next põe HASH DE CONTEÚDO no nome desses arquivos: build
+//     novo = nome novo. Não existe "servir estático velho" — o HTML novo pede
+//     outro arquivo. É daqui que vem o ganho de abrir rápido no celular.
+//
+//   /api/*, Supabase, qualquer outra origem → passa direto, sem tocar em cache.
+//     Dado de usuário passando por cache é como se inventa bug de "vi saldo
+//     errado". Fora de escopo de propósito.
+//
+// Bump o VERSION pra invalidar tudo de uma vez (o activate limpa os antigos).
+const VERSION = "v2";
+const CACHE = `touvie-${VERSION}`;
 const OFFLINE = "/offline.html";
+
+// Em dev os chunks do Next mudam SEM mudar de nome, então cache-first deixaria
+// você olhando pra código velho e caçando um bug que já consertou. O precache
+// do offline.html continua (é estático de verdade), o resto passa direto.
+//
+// A guarda é hostname + PORTA (o dev deste projeto é fixo em 3007) em vez de só
+// hostname de propósito: assim dá pra rodar `next start -p 3100` na máquina e
+// verificar o cache de verdade antes de subir. Só hostname tornaria o caminho
+// de produção impossível de testar localmente — e cache não-testado é
+// exatamente o tipo de coisa que quebra depois do deploy.
+const DEV =
+  ["localhost", "127.0.0.1"].includes(self.location.hostname) && self.location.port === "3007";
+
+/** Arquivo com hash de conteúdo no nome — cachear pra sempre é seguro. */
+function isImmutable(url) {
+  return url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/");
+}
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll([OFFLINE])).then(() => self.skipWaiting())
+    caches
+      .open(CACHE)
+      .then((c) => c.addAll([OFFLINE]))
+      .then(() => self.skipWaiting()),
   );
 });
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
   );
 });
 
 self.addEventListener("fetch", (e) => {
-  if (e.request.mode !== "navigate") return;
+  const req = e.request;
+  // POST/PUT/DELETE nunca entram em cache — e interceptá-los só adiciona risco.
+  if (req.method !== "GET") return;
+
+  const url = new URL(req.url);
+  // Outra origem (Supabase, Telegram, fontes): não é nosso, não mexemos.
+  if (url.origin !== self.location.origin) return;
+
+  if (req.mode === "navigate") {
+    e.respondWith(fetch(req).catch(() => caches.match(OFFLINE)));
+    return;
+  }
+
+  if (DEV || !isImmutable(url)) return;
+
   e.respondWith(
-    fetch(e.request).catch(() => caches.match(OFFLINE))
+    caches.match(req).then(
+      (hit) =>
+        hit ??
+        fetch(req).then((res) => {
+          // Só guarda resposta boa e completa: 206/opaque no cache viram bug
+          // difícil de enxergar depois.
+          if (res.ok && res.status === 200) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(req, copy));
+          }
+          return res;
+        }),
+    ),
   );
 });
