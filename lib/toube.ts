@@ -435,7 +435,7 @@ type WireMessage =
   | { role: "assistant"; content: string; tool_calls: RawToolCall[] }
   | { role: "tool"; tool_call_id: string; content: string };
 
-async function zaiChat(messages: WireMessage[]) {
+async function zaiChat(messages: WireMessage[], toolChoice: "auto" | "required" = "auto") {
   const key = process.env.ZAI_API_KEY;
   if (!key) throw new Error("ZAI_API_KEY não configurada");
   const res = await fetch(ZAI_URL, {
@@ -449,7 +449,7 @@ async function zaiChat(messages: WireMessage[]) {
       // Thinking off (chat curto); tool calling funciona mesmo assim (confirmado).
       thinking: { type: "disabled" },
       tools: [...TOOLS, ...READ_TOOLS],
-      tool_choice: "auto",
+      tool_choice: toolChoice,
       messages,
       temperature: 0.8,
       max_tokens: 700,
@@ -464,6 +464,23 @@ async function zaiChat(messages: WireMessage[]) {
   };
   return data.choices?.[0]?.message;
 }
+
+/**
+ * O modelo AFIRMOU ter feito alguma coisa?
+ *
+ * O glm-4.7-flash (gratuito) às vezes responde "Pronto! Vai chegar às 9:30"
+ * SEM emitir a ferramenta — nenhuma proposta é criada, nenhum lembrete existe,
+ * e a pessoa fica esperando. O prompt já proíbe isso na regra ABSOLUTA 6 e o
+ * modelo ignora; então a checagem tem que ser no código, não na palavra dele.
+ *
+ * O padrão é DELIBERADAMENTE estreito — primeira pessoa do passado, ou promessa
+ * de entrega futura. Falso positivo aqui custa caro (troca uma resposta boa por
+ * uma de erro), então é melhor deixar mentira passar do que atrapalhar conversa
+ * normal. "Pronto" sozinho, por exemplo, não conta: aparece em "pronto, pode
+ * perguntar".
+ */
+export const CLAIMS_ACTION =
+  /\b(criei|marquei|agendei|registrei|lancei|anotei|adicionei|apaguei|deletei|conclu[ií]|salvei|programei)\b|\bvou (marcar|criar|agendar|registrar|lan[çc]ar|anotar|adicionar|apagar|deletar|salvar|programar)\b|vai (chegar|receber|te avisar)|est[áa] (agendad|marcad|criad|salv)|deixei (marcad|agendad|anotad)/i;
 
 export async function toubeReply(
   history: ChatMessage[],
@@ -541,6 +558,42 @@ export async function toubeReply(
     }
 
     const text = msg?.content?.trim();
+
+    // Texto que AFIRMA ter agido, sem nenhuma ferramenta emitida: é a mentira
+    // do glm. Não dá pra deixar passar — a pessoa fica esperando um lembrete
+    // que nunca foi criado. Uma segunda chance, agora obrigando a ferramenta.
+    if (text && CLAIMS_ACTION.test(text)) {
+      const forced = await zaiChat(messages, "required").catch(() => null);
+      const forcedProposals: ToubeProposal[] = (forced?.tool_calls ?? [])
+        .filter((t) => ACTION_NAMES.includes(t.function?.name as ToubeAction))
+        .map((tc) => {
+          let args: Record<string, unknown> = {};
+          try {
+            args = JSON.parse(tc.function?.arguments || "{}");
+          } catch {
+            /* args inválidos — a validação no confirmar barra */
+          }
+          return { action: tc.function?.name as ToubeAction, args };
+        });
+
+      if (forcedProposals.length) {
+        return {
+          kind: "proposals",
+          text:
+            forced?.content?.trim() ||
+            `Posso ${forcedProposals.map(proposalText).join("; e ")} — é só confirmar abaixo. ✅`,
+          proposals: forcedProposals,
+        };
+      }
+
+      // Nem forçado ele emitiu (ou emitiu só consulta). Melhor admitir do que
+      // repassar a afirmação falsa: quem lê "pronto!" não confere o app depois.
+      return {
+        kind: "text",
+        text: "Não consegui fazer isso agora — pode pedir de novo, com o horário?",
+      };
+    }
+
     if (text) return { kind: "text", text };
     // Sem texto e sem proposta (ex.: modelo repetiu uma consulta na rodada 1):
     // resposta amigável em vez de estourar 502.
