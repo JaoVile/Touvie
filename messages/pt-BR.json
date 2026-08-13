@@ -220,6 +220,12 @@
       "description": "Escolha o idioma da interface.",
       "ptBR": "Português (Brasil)",
       "en": "English"
+    },
+    "forceUpdate": {
+      "title": "Forçar atualização",
+      "description": "Se o app ficar estranho ou preso numa versão antiga, isto limpa o cache e recarrega do zero. Você continua logado e não perde nada — seus dados ficam no servidor, não no navegador.",
+      "action": "Forçar atualização",
+      "running": "Atualizando…"
     }
   },
   "notifications": {

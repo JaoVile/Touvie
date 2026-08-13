@@ -15,6 +15,7 @@ import {
   Lock,
   Music,
   Palette,
+  RefreshCw,
   ScrollText,
   Send,
   Settings,
@@ -30,6 +31,7 @@ import { AccessCodeForm } from "./AccessCodeForm";
 import { CursorToggle } from "./CursorToggle";
 import { DeleteAccountButton } from "./DeleteAccountButton";
 import { FocusQuestToggle } from "./FocusQuestToggle";
+import { ForceUpdate } from "./ForceUpdate";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { LogGeral } from "./LogGeral";
 import { ProfileSection } from "./ProfileSection";
@@ -371,6 +373,16 @@ export default async function ConfigPage(props: {
                       {tConfig("histIa.description")}
                     </p>
                     <ToubeHistoryManager sessions={toubeSessions} messages={toubeMsgs} />
+                  </FoldCard>
+                </Reveal>
+
+                <Reveal className="min-w-0" delay={3 * STAGGER_MS}>
+                  <FoldCard index={idx()} className="min-w-0">
+                    <CardHead icon={RefreshCw} title={tConfig("forceUpdate.title")} />
+                    <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                      {tConfig("forceUpdate.description")}
+                    </p>
+                    <ForceUpdate />
                   </FoldCard>
                 </Reveal>
               </>

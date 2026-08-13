@@ -220,6 +220,12 @@
       "description": "Choose the interface language.",
       "ptBR": "Português (Brasil)",
       "en": "English"
+    },
+    "forceUpdate": {
+      "title": "Force refresh",
+      "description": "If the app looks off or seems stuck on an old version, this clears the cache and reloads from scratch. You stay logged in and lose nothing — your data lives on the server, not in the browser.",
+      "action": "Force refresh",
+      "running": "Refreshing…"
     }
   },
   "notifications": {
