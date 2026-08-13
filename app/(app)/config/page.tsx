@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_THEME } from "@/lib/themes";
 import {
   AudioLines,
+  Download,
   History,
   KeyRound,
   Languages,
@@ -32,6 +33,7 @@ import { CursorToggle } from "./CursorToggle";
 import { DeleteAccountButton } from "./DeleteAccountButton";
 import { FocusQuestToggle } from "./FocusQuestToggle";
 import { ForceUpdate } from "./ForceUpdate";
+import { InstallApp } from "./InstallApp";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { LogGeral } from "./LogGeral";
 import { NavCustomizer } from "./NavCustomizer";
@@ -396,6 +398,28 @@ export default async function ConfigPage(props: {
                       {tConfig("forceUpdate.description")}
                     </p>
                     <ForceUpdate />
+                  </FoldCard>
+                </Reveal>
+
+                <Reveal className="min-w-0" delay={4 * STAGGER_MS}>
+                  <FoldCard index={idx()} className="min-w-0">
+                    <CardHead icon={Download} title={tConfig("installApp.title")} />
+                    <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                      {tConfig("installApp.description")}
+                    </p>
+                    <InstallApp />
+                    <p className="mt-4 text-sm">
+                      <Link
+                        href="/landpage"
+                        className="underline underline-offset-4"
+                        style={{ color: "var(--color-fg)" }}
+                      >
+                        {tConfig("installApp.landpage")}
+                      </Link>
+                      <span className="block text-xs" style={{ color: "var(--color-fg-muted)" }}>
+                        {tConfig("installApp.landpageHint")}
+                      </span>
+                    </p>
                   </FoldCard>
                 </Reveal>
               </>

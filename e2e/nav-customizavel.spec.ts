@@ -41,7 +41,13 @@ test.describe("Barra de navegação personalizável", () => {
       }
     }
     const save = page.getByRole("button", { name: "Salvar barra" });
-    if (await save.isEnabled()) await save.click();
+    if (await save.isEnabled()) {
+      await save.click();
+      // Espera a confirmação: sem isto o teste acaba antes da Server Action
+      // completar e a restauração nunca chega ao banco — o spec seguinte pega
+      // a barra alterada e falha por motivo errado (aconteceu).
+      await expect(page.getByText("Barra atualizada.")).toBeVisible({ timeout: 15_000 });
+    }
   });
 
   test("a barra de baixo reflete a escolha feita nas configurações", async ({ page }) => {

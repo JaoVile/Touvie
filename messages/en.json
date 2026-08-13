@@ -234,6 +234,15 @@
       "save": "Save bar",
       "saving": "Saving…",
       "saved": "Bar updated."
+    },
+    "installApp": {
+      "title": "Install the app",
+      "description": "Keep Touvie on your home screen and open it straight away, no browser needed. Available any time, even if you dismissed the invite.",
+      "action": "Install now",
+      "installed": "The app is already installed on this device.",
+      "manual": "In this browser installing is manual: tap Share, then \"Add to Home Screen\".",
+      "landpage": "View the landing page",
+      "landpageHint": "Opens Touvie's landing page. Its \"Enter\" button brings you right back into the app."
     }
   },
   "notifications": {

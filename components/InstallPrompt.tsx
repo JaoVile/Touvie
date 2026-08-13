@@ -1,95 +1,61 @@
 "use client";
 
+import {
+  canInstall,
+  isIOSSafari,
+  isStandalone,
+  promptInstall,
+  startInstallCapture,
+  subscribe,
+} from "@/lib/pwa-install";
 import { cn } from "@/lib/utils";
 import { Download, Share, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-/** Chave da dispensa. Dispensou uma vez, não volta a incomodar. */
+/**
+ * Chave da dispensa. Dispensou uma vez, o BANNER não volta a incomodar — mas o
+ * convite continua disponível em Config → Instalar o app. A dispensa é sobre
+ * exibição, não sobre poder instalar.
+ */
 const DISMISS_KEY = "touvie:install-dismissed";
-
-/**
- * O evento que o Chrome dispara quando o app é instalável. Não está no lib.dom
- * do TS (é proposta, não padrão), então o tipo mora aqui.
- */
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
-
-/** Já está rodando instalado? Aí não há o que convidar. */
-function isStandalone(): boolean {
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    // Safari no iOS não implementa display-mode; expõe esta flag não-padrão.
-    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
-  );
-}
-
-/**
- * iOS é heurística de user-agent, e é assim porque a Apple não oferece
- * alternativa: o Safari NÃO dispara `beforeinstallprompt` nem expõe qualquer
- * API de instalação. Sem detectar o sistema, o usuário de iPhone simplesmente
- * nunca descobre que dá pra instalar.
- * Frágil por natureza — se a Apple mexer na string do UA, isto para de casar e
- * o banner some no iOS (falha silenciosa, não quebra nada).
- */
-function isIOSSafari(): boolean {
-  const ua = window.navigator.userAgent;
-  const iOS =
-    /iPad|iPhone|iPod/.test(ua) ||
-    // iPadOS 13+ se apresenta como Macintosh; o toque é o que separa.
-    (ua.includes("Macintosh") && "ontouchend" in document);
-  if (!iOS) return false;
-  // Chrome/Firefox no iOS (crios/fxios) usam o mesmo motor mas não têm o
-  // fluxo de "Adicionar à Tela de Início" — só o Safari tem.
-  return !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
-}
 
 export function InstallPrompt() {
   const t = useTranslations("install");
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
+  const pathname = usePathname();
+  const [ready, setReady] = useState(false);
   const [iosHint, setIosHint] = useState(false);
+  const [dismissed, setDismissed] = useState(true); // pessimista até checar
+
+  // Em Config o banner é ruído: a própria tela tem a seção "Instalar o app" no
+  // fim do avançado. Convidar quem já está no lugar do convite é insistência.
+  const inConfig = pathname?.startsWith("/config") ?? false;
 
   useEffect(() => {
+    // Captura SEMPRE, mesmo dispensado: o evento vem uma vez só por
+    // carregamento, e o botão do /config depende dele.
+    startInstallCapture();
     if (isStandalone()) return;
-    if (localStorage.getItem(DISMISS_KEY)) return;
 
-    if (isIOSSafari()) {
-      setIosHint(true);
-      return;
-    }
+    setDismissed(Boolean(localStorage.getItem(DISMISS_KEY)));
+    if (isIOSSafari()) setIosHint(true);
 
-    const onPrompt = (e: Event) => {
-      // Sem o preventDefault o Chrome mostra o próprio mini-infobar e o nosso
-      // banner vira redundante.
-      e.preventDefault();
-      setDeferred(e as BeforeInstallPromptEvent);
-    };
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    // Instalou por fora do banner (menu do browser): some com o convite.
-    const onInstalled = () => setDeferred(null);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
+    setReady(canInstall());
+    return subscribe(() => setReady(canInstall()));
   }, []);
 
-  if (!deferred && !iosHint) return null;
+  if (inConfig) return null;
+  if (dismissed) return null;
+  if (!ready && !iosHint) return null;
 
   function dismiss() {
     localStorage.setItem(DISMISS_KEY, "1");
-    setDeferred(null);
-    setIosHint(false);
+    setDismissed(true);
   }
 
   async function install() {
-    if (!deferred) return;
-    await deferred.prompt();
-    // Aceitando ou recusando, o evento é de uso único — o Chrome só manda outro
-    // numa visita futura. Guardar a dispensa evita reoferecer na mesma sessão.
-    await deferred.userChoice.catch(() => null);
+    await promptInstall();
     dismiss();
   }
 
