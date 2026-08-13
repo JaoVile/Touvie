@@ -1453,3 +1453,95 @@ input[type="week"]:hover::-webkit-calendar-picker-indicator {
     animation: none;
   }
 }
+
+/* ── Mini-telas da landing: a demonstração ────────────────────────────────
+   Quando a seção "Um dia" entra na tela, as mini-telas se COMPORTAM como o
+   app: o hábito é marcado, as séries enchem. É o que faz alguém parar de
+   rolar — antes disso a seção mostrava prints parados.
+
+   Disparadas pelo `data-playing` do <PlayOnView>, uma vez só. Regra do
+   estado-base: o markup já está no estado FINAL (marcado, cheio), e a
+   animação parte do vazio via `both`. Assim, sem JS ou com reduced-motion,
+   a tela continua coerente — nunca fica um checkbox vazio pra sempre.
+
+   Só transform/opacity/background: isto vive no meio de uma página de 11 mil
+   pixels, não vale gastar quadro. */
+
+/* Hábito sendo marcado — o quadrado enche, o tique entra, o texto risca. */
+[data-playing="true"] .mini-check {
+  animation: mini-check-box 0.4s var(--ease-cubic, ease) 0.7s both;
+}
+@keyframes mini-check-box {
+  from {
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--color-border);
+  }
+}
+[data-playing="true"] .mini-check-icon {
+  animation: mini-check-tick 0.32s var(--ease-cubic, ease) 0.95s both;
+}
+@keyframes mini-check-tick {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+[data-playing="true"] .mini-habit-label {
+  animation: mini-habit-strike 0.3s linear 1.05s both;
+}
+@keyframes mini-habit-strike {
+  from {
+    color: var(--color-fg);
+    text-decoration-color: transparent;
+  }
+}
+
+/* Contador 2/4 → 3/4, trocando no instante em que o tique cai. */
+[data-playing="true"] .mini-count-after {
+  animation: mini-count-in 0.25s ease 1.05s both;
+}
+@keyframes mini-count-in {
+  from {
+    opacity: 0;
+  }
+}
+.mini-count-before {
+  opacity: 0;
+}
+[data-playing="true"] .mini-count-before {
+  animation: mini-count-out 0.25s ease both;
+}
+@keyframes mini-count-out {
+  from {
+    opacity: 1;
+  }
+  99% {
+    opacity: 0;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Séries enchendo, uma após a outra (--i vem do componente). */
+[data-playing="true"] .mini-bar {
+  transform-origin: left center;
+  animation: mini-bar-fill 0.45s var(--ease-cubic, ease) both;
+  animation-delay: calc(0.35s + var(--i, 0) * 90ms);
+}
+@keyframes mini-bar-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* O lembrete do Telegram deslizando pra dentro, depois da tela se comportar. */
+[data-playing="true"] .mini-ping {
+  animation: mini-ping-in 0.5s var(--ease-cubic, ease) 1.35s both;
+}
+@keyframes mini-ping-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
