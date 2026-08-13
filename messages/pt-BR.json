@@ -305,5 +305,12 @@
     "tomorrow": "Amanhã",
     "yesterday": "Ontem",
     "days": "dias"
+  },
+  "install": {
+    "title": "Instalar o Touvie",
+    "body": "Deixe o Touvie na sua tela de início e abra direto, sem passar pelo navegador.",
+    "iosBody": "Toque em Compartilhar e depois em \"Adicionar à Tela de Início\".",
+    "install": "Instalar",
+    "dismiss": "Agora não"
   }
 }
