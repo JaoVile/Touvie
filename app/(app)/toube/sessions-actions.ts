@@ -66,6 +66,7 @@ export async function listSessions(): Promise<
     .from("toube_sessions")
     .select("id, title, updated_at")
     .eq("user_id", userId)
+    .eq("source", "web")
     .order("updated_at", { ascending: false })
     .limit(100);
   return data ?? [];

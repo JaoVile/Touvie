@@ -1,5 +1,6 @@
 "use server";
 
+import { saveMeasurementCore } from "@/app/(app)/dieta/core";
 import { TACO_SEED } from "@/lib/diet";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -173,20 +174,9 @@ export async function updateMealNotes(id: string, notes: string) {
 
 // --- BODY MEASUREMENTS --------------------------------------------
 
-const measurementSchema = z.object({
-  id: z.string().uuid().optional(),
-  measured_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  weight_kg: z.number().min(0).max(500).nullable(),
-  waist_cm: z.number().min(0).max(300).nullable(),
-  chest_cm: z.number().min(0).max(300).nullable(),
-  arm_cm: z.number().min(0).max(150).nullable(),
-  thigh_cm: z.number().min(0).max(200).nullable(),
-  bodyfat_pct: z.number().min(0).max(70).nullable(),
-  notes: z.string().max(500).nullable(),
-});
-
 export async function saveMeasurement(fd: FormData): Promise<{ ok?: boolean; error?: string }> {
-  const parsed = measurementSchema.safeParse({
+  const ctx = await requireUser();
+  const res = await saveMeasurementCore(ctx, {
     id: fd.get("id")?.toString() || undefined,
     measured_on: fd.get("measured_on")?.toString(),
     weight_kg: parseNumOrNull(fd.get("weight_kg")?.toString()),
@@ -197,14 +187,7 @@ export async function saveMeasurement(fd: FormData): Promise<{ ok?: boolean; err
     bodyfat_pct: parseNumOrNull(fd.get("bodyfat_pct")?.toString()),
     notes: fd.get("notes")?.toString() || null,
   });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message };
-  const { supabase, userId } = await requireUser();
-  const { id, ...fields } = parsed.data;
-  const payload = { user_id: userId, ...fields };
-  const { error } = id
-    ? await supabase.from("body_measurements").update(payload).eq("id", id)
-    : await supabase.from("body_measurements").insert(payload);
-  if (error) return { error: error.message };
+  if (res.error) return { error: res.error };
   revalidatePath("/dieta");
   return { ok: true };
 }

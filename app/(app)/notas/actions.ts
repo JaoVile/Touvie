@@ -1,5 +1,6 @@
 "use server";
 
+import { createQuickNoteCore } from "@/app/(app)/notas/core";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -55,30 +56,17 @@ export async function saveNote(
   return { ok: true, saved_at: new Date().toISOString() };
 }
 
-const quickNoteSchema = z.object({
-  title: z.string().trim().min(1, "Título obrigatório").max(200),
-  content: z.string().max(100_000),
-});
-
 /**
  * Cria uma nota JÁ com conteúdo (usada pelo Toube). A `createNote` acima cria
  * vazia e redireciona — não serve pro fluxo do agente.
  */
 export async function createQuickNote(fd: FormData): Promise<{ ok?: boolean; error?: string }> {
-  const parsed = quickNoteSchema.safeParse({
+  const ctx = await requireUser();
+  const res = await createQuickNoteCore(ctx, {
     title: fd.get("title")?.toString() ?? "",
     content: fd.get("content")?.toString() ?? "",
   });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message };
-
-  const { supabase, userId } = await requireUser();
-  const { error } = await supabase.from("notes").insert({
-    user_id: userId,
-    title: parsed.data.title,
-    content: parsed.data.content,
-    tags: [],
-  });
-  if (error) return { error: error.message };
+  if (res.error) return { error: res.error };
   revalidatePath("/notas");
   return { ok: true };
 }

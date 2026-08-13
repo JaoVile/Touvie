@@ -59,8 +59,21 @@ export type Database = {
         user_id: string;
         title: string | null;
         summary: string | null;
+        /** Migration 0039. */
+        source: "web" | "telegram";
         created_at: Timestamptz;
         updated_at: Timestamptz;
+      }>;
+      /** Migration 0039. Proposta aguardando confirmação por botão no Telegram. */
+      toube_pending_proposals: Table<{
+        id: string;
+        user_id: string;
+        chat_id: string;
+        message_id: number | null;
+        proposals: Json;
+        consumed_at: Timestamptz | null;
+        expires_at: Timestamptz;
+        created_at: Timestamptz;
       }>;
       focus_quests: Table<{
         id: string;

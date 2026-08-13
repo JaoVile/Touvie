@@ -14,18 +14,21 @@ export default async function ToubePage() {
   const supabase = await createClient();
   const userId = (await getUserClaims())!.sub;
 
-  // Sessão ativa: a mais recente, ou cria uma se o usuário não tem nenhuma.
+  // Sessão ativa: a mais recente DA WEB, ou cria uma se o usuário não tem
+  // nenhuma. Filtro por source evita cair no fio do Telegram (webhook bumpa
+  // updated_at a cada mensagem — ver migration 0039).
   let { data: sess } = await supabase
     .from("toube_sessions")
     .select("id, summary")
     .eq("user_id", userId)
+    .eq("source", "web")
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (!sess) {
     const { data: created } = await supabase
       .from("toube_sessions")
-      .insert({ user_id: userId })
+      .insert({ user_id: userId, source: "web" })
       .select("id, summary")
       .single();
     sess = created;
@@ -43,6 +46,7 @@ export default async function ToubePage() {
       .from("toube_sessions")
       .select("id, title, updated_at")
       .eq("user_id", userId)
+      .eq("source", "web")
       .order("updated_at", { ascending: false })
       .limit(100),
   ]);

@@ -148,9 +148,13 @@ async function programaAtivo(supabase: Client, userId: string): Promise<string> 
     .limit(1) // se por inconsistência houver 2 ativos, pega 1 em vez de o maybeSingle dar erro
     .maybeSingle();
   if (!prog) return "";
+  // `user_id` explícito mesmo com a cadeia já ancorada no programa do usuário:
+  // este client pode ser o admin (service_role, que bypassa RLS) quando a
+  // consulta vem do webhook do Telegram — sem o filtro não sobra rede nenhuma.
   const { data: days } = await supabase
     .from("workout_days")
     .select("id, weekday, name")
+    .eq("user_id", userId)
     .eq("program_id", prog.id)
     .order("weekday");
   if (!days?.length) return `\n\nPROGRAMA ATIVO "${prog.name}": sem dias cadastrados.`;
@@ -167,6 +171,7 @@ async function programaAtivo(supabase: Client, userId: string): Promise<string> 
     .select(
       "program_day_id, sort_order, target_sets, target_reps_low, target_reps_high, exercises(name)",
     )
+    .eq("user_id", userId)
     .in(
       "program_day_id",
       days.map((d) => d.id),

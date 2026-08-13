@@ -4,20 +4,9 @@ import { ALL_DEFAULTS } from "@/lib/notification-defaults";
 import { createClient } from "@/lib/supabase/server";
 import { deleteWebhook, getWebhookInfo, setWebhook } from "@/lib/telegram";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import { saveReminderCore } from "./core";
 
 // ─── Lembretes (user_reminders) ─────────────────────────────────────────────────
-
-const reminderSchema = z.object({
-  message: z.string().trim().min(1, "Mensagem obrigatória").max(200),
-  at_time: z.string().regex(/^\d{2}:\d{2}$/, "Hora inválida (use HH:MM)"),
-  // Presente → lembrete de UMA VEZ SÓ (once) nesse dia. Ausente → diário.
-  on_date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (use YYYY-MM-DD)")
-    .optional(),
-  area: z.string().max(40).optional(),
-});
 
 /**
  * Cria um lembrete: DIÁRIO (todo dia no mesmo horário) ou de UMA VEZ SÓ (quando
@@ -30,45 +19,24 @@ const reminderSchema = z.object({
 export async function saveReminder(
   fd: FormData,
 ): Promise<{ ok?: boolean; error?: string; warning?: string }> {
-  const parsed = reminderSchema.safeParse({
-    message: fd.get("message")?.toString(),
-    at_time: fd.get("at_time")?.toString(),
-    on_date: fd.get("on_date")?.toString() || undefined,
-    area: fd.get("area")?.toString() || undefined,
-  });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message };
-
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sessão expirada." };
 
-  const once = Boolean(parsed.data.on_date);
-  const { error } = await supabase.from("user_reminders").insert({
-    user_id: user.id,
-    area: parsed.data.area ?? "toube",
-    message: parsed.data.message,
-    schedule_type: once ? "once" : "daily",
-    at_time: parsed.data.at_time,
-    on_date: parsed.data.on_date ?? null,
-    active: true,
-  });
-  if (error) return { error: error.message };
-
+  const res = await saveReminderCore(
+    { supabase, userId: user.id },
+    {
+      message: fd.get("message")?.toString(),
+      at_time: fd.get("at_time")?.toString(),
+      on_date: fd.get("on_date")?.toString() || undefined,
+      area: fd.get("area")?.toString() || undefined,
+    },
+  );
+  if (res.error) return { error: res.error };
   revalidatePath("/notificacoes");
-
-  // Sem Telegram conectado o cron não tem pra onde entregar — avisa (não é erro).
-  const { data: prof } = await supabase
-    .from("profiles")
-    .select("telegram_chat_id")
-    .eq("id", user.id)
-    .maybeSingle();
-  const warning = prof?.telegram_chat_id
-    ? undefined
-    : "Lembrete criado, mas conecte o Telegram em Config → Telegram pra ele chegar.";
-
-  return { ok: true, warning };
+  return res;
 }
 
 // ─── Logs ─────────────────────────────────────────────────────────────────────

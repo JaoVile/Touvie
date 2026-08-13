@@ -65,7 +65,7 @@ export async function setWebhook(url: string): Promise<void> {
   await call("setWebhook", {
     url,
     secret_token: webhookSecret(),
-    allowed_updates: ["message"],
+    allowed_updates: ["message", "callback_query"],
     drop_pending_updates: true,
   });
 }
@@ -86,6 +86,57 @@ export async function getWebhookInfo(): Promise<WebhookInfo> {
   return call<WebhookInfo>("getWebhookInfo");
 }
 
+export type InlineButton = { text: string; callback_data: string };
+export type InlineKeyboard = { inline_keyboard: InlineButton[][] };
+
+export interface TelegramCallbackQuery {
+  id: string;
+  data?: string;
+  message?: { message_id: number; chat: { id: number } };
+  from?: { id: number };
+}
+
+/** Mensagem com botões. Devolve o message_id pra dar pra editar depois. */
+export async function sendMessageWithKeyboard(
+  chatId: number,
+  text: string,
+  keyboard: InlineKeyboard,
+): Promise<number | null> {
+  const res = await call<{ message_id?: number }>("sendMessage", {
+    chat_id: chatId,
+    text,
+    parse_mode: "HTML",
+    reply_markup: keyboard,
+  });
+  return res.message_id ?? null;
+}
+
+/** Troca o texto de uma mensagem já enviada. `keyboard` ausente REMOVE os botões. */
+export async function editMessageText(
+  chatId: number,
+  messageId: number,
+  text: string,
+  keyboard?: InlineKeyboard,
+): Promise<void> {
+  await call("editMessageText", {
+    chat_id: chatId,
+    message_id: messageId,
+    text,
+    parse_mode: "HTML",
+    reply_markup: keyboard ?? { inline_keyboard: [] },
+  });
+}
+
+/** Mata o "relógio" girando no botão. Obrigatório após todo callback_query. */
+export async function answerCallbackQuery(id: string, text?: string): Promise<void> {
+  await call("answerCallbackQuery", { callback_query_id: id, text });
+}
+
+/** "digitando…" — sem isso o silêncio de 10s parece travamento. */
+export async function sendChatAction(chatId: number, action = "typing"): Promise<void> {
+  await call("sendChatAction", { chat_id: chatId, action });
+}
+
 // Tipos mínimos do payload de webhook que usamos
 export interface TelegramUpdate {
   update_id: number;
@@ -95,6 +146,7 @@ export interface TelegramUpdate {
     chat: { id: number; type: string };
     text?: string;
   };
+  callback_query?: TelegramCallbackQuery;
 }
 
 export const WEBHOOK_SECRET_HEADER = "x-telegram-bot-api-secret-token";
