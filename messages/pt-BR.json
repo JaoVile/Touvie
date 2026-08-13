@@ -226,6 +226,14 @@
       "description": "Se o app ficar estranho ou preso numa versão antiga, isto limpa o cache e recarrega do zero. Você continua logado e não perde nada — seus dados ficam no servidor, não no navegador.",
       "action": "Forçar atualização",
       "running": "Atualizando…"
+    },
+    "navBar": {
+      "title": "Barra de navegação",
+      "description": "Escolha quais 4 módulos ficam na barra de baixo do celular. Os outros continuam no botão \"Mais\", e Config fica sempre à mão.",
+      "counter": "{count} de {total} escolhidos",
+      "save": "Salvar barra",
+      "saving": "Salvando…",
+      "saved": "Barra atualizada."
     }
   },
   "notifications": {

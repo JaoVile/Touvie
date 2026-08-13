@@ -1,6 +1,7 @@
 "use server";
 
 import { TRUSTED_COOKIE, signTrustedDevice, trustedCookieOptions } from "@/lib/device";
+import { isValidPrimary } from "@/lib/nav-items";
 import { hashPin, verifyPin } from "@/lib/pin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -18,6 +19,29 @@ export async function updateTheme(theme: string) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "unauthenticated" };
   await supabase.from("profiles").update({ theme }).eq("id", user.id);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/**
+ * Escolhe quais 4 módulos ocupam a barra inferior do celular.
+ *
+ * A validação é server-side porque o array vem do cliente: exatamente 4, sem
+ * repetição, todos módulos conhecidos. `/config` não está na lista de módulos
+ * (é fixo na barra), então tentar mandá-lo já é barrado aqui.
+ */
+export async function updateNavPrimary(hrefs: string[]) {
+  if (!isValidPrimary(hrefs)) return { error: "Seleção inválida" };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "unauthenticated" };
+  const { error } = await supabase
+    .from("profiles")
+    .update({ nav_primary: hrefs })
+    .eq("id", user.id);
+  if (error) return { error: error.message };
   revalidatePath("/", "layout");
   return { ok: true };
 }

@@ -43,6 +43,8 @@ export type Database = {
         theme: string;
         locale: string;
         focus_quest_enabled: boolean;
+        /** Hrefs dos 4 módulos na barra inferior do celular (migration 0040). */
+        nav_primary: string[];
         created_at: Timestamptz;
         updated_at: Timestamptz;
       }>;

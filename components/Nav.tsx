@@ -1,22 +1,8 @@
 "use client";
 
+import { NAV_CONFIG, NAV_ITEMS, resolvePrimary } from "@/lib/nav-items";
 import { cn } from "@/lib/utils";
-import {
-  Bell,
-  BookOpen,
-  CalendarDays,
-  Dumbbell,
-  Ellipsis,
-  House,
-  Lock,
-  type LucideIcon,
-  Salad,
-  Settings,
-  Sparkles,
-  StickyNote,
-  Target,
-  Wallet,
-} from "lucide-react";
+import { Ellipsis, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -31,30 +17,35 @@ type NavItem = { href: string; label: string; Icon: LucideIcon };
  *    Treino, Dieta) + "Mais" (abre os secundários num painel) + Opções. Evita o
  *    amontoado de 11 ícones espremidos no rodapé do celular.
  */
-export function Nav() {
+/**
+ * `primary` são os hrefs escolhidos pra barra de baixo (`profiles.nav_primary`,
+ * passado pelo layout). Ausente ou corrompido cai no padrão — barra quebrada
+ * seria pior que barra não-personalizada.
+ */
+export function Nav({ primary }: { primary?: string[] | null }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
   const [moreOpen, setMoreOpen] = useState(false);
 
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
-  const PRIMARY: NavItem[] = [
-    { href: "/", label: t("today"), Icon: House },
-    { href: "/financas", label: t("finances"), Icon: Wallet },
-    { href: "/treino", label: t("training"), Icon: Dumbbell },
-    { href: "/dieta", label: t("diet"), Icon: Salad },
-  ];
-  const SECONDARY: NavItem[] = [
-    { href: "/toube", label: t("toube"), Icon: Sparkles },
-    { href: "/rotina", label: t("routine"), Icon: CalendarDays },
-    { href: "/metas", label: t("goals"), Icon: Target },
-    { href: "/diario", label: t("diary"), Icon: Lock },
-    { href: "/notas", label: t("notes"), Icon: StickyNote },
-    { href: "/leitura", label: t("reading"), Icon: BookOpen },
-    { href: "/notificacoes", label: t("notifications"), Icon: Bell },
-  ];
-  const CONFIG: NavItem = { href: "/config", label: t("config"), Icon: Settings };
-  const ALL: NavItem[] = [...PRIMARY, ...SECONDARY, CONFIG];
+  const chosen = resolvePrimary(primary);
+  const label = (item: (typeof NAV_ITEMS)[number]): NavItem => ({
+    href: item.href,
+    label: t(item.labelKey),
+    Icon: item.Icon,
+  });
+
+  // Ordem da barra segue a ordem da escolha; o que sobrar vai pro "Mais" na
+  // ordem canônica dos módulos — assim nenhum módulo some da navegação.
+  const PRIMARY: NavItem[] = chosen
+    .map((href) => NAV_ITEMS.find((i) => i.href === href))
+    .filter((i): i is (typeof NAV_ITEMS)[number] => Boolean(i))
+    .map(label);
+  const SECONDARY: NavItem[] = NAV_ITEMS.filter((i) => !chosen.includes(i.href)).map(label);
+  const CONFIG: NavItem = label(NAV_CONFIG);
+  // O desktop mostra tudo na ordem canônica, independente da escolha do celular.
+  const ALL: NavItem[] = [...NAV_ITEMS.map(label), CONFIG];
 
   const itemCls = (active: boolean) =>
     cn(

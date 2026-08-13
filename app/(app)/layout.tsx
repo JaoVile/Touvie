@@ -19,13 +19,20 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (!claims) redirect("/login");
   const userId = claims.sub;
 
-  // Foco do dia (opt-in). Query isolada: se a coluna/tabela não existir
-  // (migração 0025 pendente), a feature simplesmente não aparece.
-  const focusEnabled = await Promise.resolve(
-    supabase.from("profiles").select("focus_quest_enabled").eq("id", userId).maybeSingle(),
+  // Preferências do perfil numa query só (o layout roda em toda navegação
+  // logada — não vale gastar dois round-trips). Se a coluna não existir
+  // (migração pendente), cada feature cai no seu padrão em vez de quebrar.
+  const prefs = await Promise.resolve(
+    supabase
+      .from("profiles")
+      .select("focus_quest_enabled, nav_primary")
+      .eq("id", userId)
+      .maybeSingle(),
   )
-    .then((r) => r.data?.focus_quest_enabled ?? false)
-    .catch(() => false);
+    .then((r) => r.data)
+    .catch(() => null);
+  const focusEnabled = prefs?.focus_quest_enabled ?? false;
+  const navPrimary = prefs?.nav_primary ?? null;
 
   let todayQuest = null;
   if (focusEnabled) {
@@ -49,7 +56,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       {focusEnabled && <FocusQuest initial={todayQuest} />}
       <ScrollProgress />
       <SideLabel />
-      <Nav />
+      <Nav primary={navPrimary} />
       <main
         className="mx-auto w-full max-w-7xl flex-1 px-4 pt-12 sm:px-6"
         style={{ paddingBottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}

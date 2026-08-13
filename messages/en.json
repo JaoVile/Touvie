@@ -226,6 +226,14 @@
       "description": "If the app looks off or seems stuck on an old version, this clears the cache and reloads from scratch. You stay logged in and lose nothing — your data lives on the server, not in the browser.",
       "action": "Force refresh",
       "running": "Refreshing…"
+    },
+    "navBar": {
+      "title": "Navigation bar",
+      "description": "Pick which 4 modules sit in the phone's bottom bar. The rest stay under \"More\", and Settings is always within reach.",
+      "counter": "{count} of {total} selected",
+      "save": "Save bar",
+      "saving": "Saving…",
+      "saved": "Bar updated."
     }
   },
   "notifications": {
