@@ -24,44 +24,49 @@ const MODULES = ["rotina", "metas", "finanças", "treino", "diário", "dieta", "
  */
 export function Hero() {
   return (
-    <section id="inicio" className="relative flex min-h-[100svh] flex-col">
+    <section id="inicio" className="relative flex min-h-[100svh] flex-col overflow-hidden">
       {/* Fundo do hero, clipado ao container pra não vazar scroll nem cortar
           o conteúdo: a marca monumental viva ao fundo. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
-      >
-        {/* Marca monumental viva, bem ao fundo — a auréola gira atrás do
-            manifesto. Opacidade baixa + leve subida pra não disputar com o
-            texto; tamanho responsivo (vmin) pra emoldurar sem estourar. */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <TouvieEmblem
-            size={1277}
-            alt=""
-            hideMonogram
-            className="te-landing"
-            style={{
-              width: "min(127.5vmin, 1277px)",
-              height: "min(127.5vmin, 1277px)",
-              opacity: 0.46,
-            }}
-          />
-        </div>
-      </div>
-
       {/* Miolo — ocupa o espaço disponível e centra vertical/horizontal. */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-20 text-center">
-        <Reveal from="scale">
-          <p
-            className="gradient-text-anim leading-none"
-            style={{
-              fontFamily: "var(--font-pinyon), cursive",
-              fontSize: "clamp(3.5rem, 10vw, 6rem)",
-            }}
+        {/* O emblema é ancorado AO WORDMARK, não ao centro da seção.
+            Centrado na seção ele caía sobre o h1 (medido: +194px de
+            desalinhamento no desktop, +179px no celular) — no desktop o arco é
+            grande o bastante pra abraçar tudo e disfarçar, mas no celular ele
+            encolhe e passa a enlaçar o título, deixando o "Touvie" de fora.
+            Ancorado assim, ele acompanha o wordmark em qualquer viewport.
+            O wrapper fica em fluxo (altura do wordmark) e o emblema absoluto
+            dentro dele; a Reveal envolve só o <p>, senão o emblema entraria
+            escalando junto. O clip é do <section> (overflow-hidden). */}
+        <div className="relative">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 left-1/2 -z-10 -translate-x-1/2 -translate-y-1/2"
           >
-            Touvie
-          </p>
-        </Reveal>
+            <TouvieEmblem
+              size={1277}
+              alt=""
+              hideMonogram
+              className="te-landing"
+              style={{
+                width: "min(127.5vmin, 1277px)",
+                height: "min(127.5vmin, 1277px)",
+                opacity: 0.46,
+              }}
+            />
+          </div>
+          <Reveal from="scale">
+            <p
+              className="gradient-text-anim leading-none"
+              style={{
+                fontFamily: "var(--font-pinyon), cursive",
+                fontSize: "clamp(3.5rem, 10vw, 6rem)",
+              }}
+            >
+              Touvie
+            </p>
+          </Reveal>
+        </div>
 
         <Reveal delay={140} className="mt-4">
           <p
