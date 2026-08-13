@@ -206,16 +206,20 @@ a,
 [data-quality="desempenho"] .toube-typing span {
   animation: none;
 }
-[data-quality="desempenho"] .te-root,
-[data-quality="desempenho"] .te-root *,
-[data-quality="desempenho"] .gradient-text-anim,
-[data-quality="desempenho"] .float-note,
-[data-quality="desempenho"] .touvie-logo-anim,
-[data-quality="desempenho"] .aura,
-[data-quality="desempenho"] .halo-ring,
-[data-quality="desempenho"] .tw-glow,
-[data-quality="desempenho"] .tw-sheen {
-  /* O design já tem estado-base bom pra animation:none (usado no reduced-motion). */
+/* As animações decorativas BARATAS seguem ligadas no modo desempenho.
+   Cada uma é UM elemento animando transform/opacity/background-position — custo
+   de GPU desprezível. Cortá-las não compra fluidez perceptível e transforma o
+   app numa foto: medido na landpage, o corte antigo dava 1 quadro distinto em 6
+   (parado), contra 6 em 6 no modo completo.
+   O que pesa de verdade é cortado em outro lugar: o backdrop-filter logo acima,
+   e o StarField e o rastro do cursor nos próprios componentes, que leem o tier
+   em JS (lib/quality.ts). Quem precisa de silêncio total é o
+   prefers-reduced-motion, que tem bloco próprio e continua desligando tudo —
+   isso é acessibilidade, não performance. */
+[data-quality="desempenho"] .te-root * {
+  /* Exceção: o emblema segue respirando como um todo (.te-root), mas as camadas
+     internas param. São muitos elementos balançando ao mesmo tempo — é o único
+     efeito decorativo cujo custo cresce com a contagem de nós. */
   animation: none !important;
 }
 
