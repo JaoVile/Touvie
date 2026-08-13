@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Download, Share, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 /**
@@ -22,9 +23,14 @@ const DISMISS_KEY = "touvie:install-dismissed";
 
 export function InstallPrompt() {
   const t = useTranslations("install");
+  const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [iosHint, setIosHint] = useState(false);
   const [dismissed, setDismissed] = useState(true); // pessimista até checar
+
+  // Em Config o banner é ruído: a própria tela tem a seção "Instalar o app" no
+  // fim do avançado. Convidar quem já está no lugar do convite é insistência.
+  const inConfig = pathname?.startsWith("/config") ?? false;
 
   useEffect(() => {
     // Captura SEMPRE, mesmo dispensado: o evento vem uma vez só por
@@ -39,6 +45,7 @@ export function InstallPrompt() {
     return subscribe(() => setReady(canInstall()));
   }, []);
 
+  if (inConfig) return null;
   if (dismissed) return null;
   if (!ready && !iosHint) return null;
 

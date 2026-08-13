@@ -18,6 +18,15 @@ test.describe("PWA — forçar atualização", () => {
     // O card vive na aba "avançado" (a página abre em "geral").
     await page.goto("/config?tab=avancado");
 
+    // Espera o SW assumir ANTES de semear: o `activate` dele apaga todo cache
+    // que não seja o seu, então semear antes disso é corrida — a semente some
+    // sozinha e o teste falha por motivo errado (aconteceu).
+    await page.waitForFunction(
+      async () => Boolean((await navigator.serviceWorker.getRegistration())?.active),
+      null,
+      { timeout: 20_000 },
+    );
+
     // Semeia um cache pra provar que o botão realmente limpa.
     await page.evaluate(async (name) => {
       const c = await caches.open(name);

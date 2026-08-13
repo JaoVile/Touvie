@@ -72,7 +72,8 @@ test.describe("PWA — convite de instalação", () => {
 
     // O ponto do teste: a dispensa é sobre o BANNER. Se a captura do evento
     // dependesse dela (como dependia antes), aqui não haveria o que instalar.
-    await page.goto("/config?tab=aparencia");
+    // A seção de instalar mora no fim da aba "avançado".
+    await page.goto("/config?tab=avancado");
     await expect(async () => {
       await fireInstallPrompt(page);
       await expect(page.getByRole("button", { name: "Instalar agora" })).toBeVisible({

@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_THEME } from "@/lib/themes";
 import {
   AudioLines,
+  Download,
   History,
   KeyRound,
   Languages,
@@ -227,30 +228,6 @@ export default async function ConfigPage(props: {
                     </div>
                     <div className="mt-6">
                       <h3
-                        className="mb-2 font-semibold text-sm"
-                        style={{ color: "var(--color-fg-muted)" }}
-                      >
-                        {tConfig("installApp.title")}
-                      </h3>
-                      <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                        {tConfig("installApp.description")}
-                      </p>
-                      <InstallApp />
-                      <p className="mt-4 text-sm">
-                        <Link
-                          href="/landpage"
-                          className="underline underline-offset-4"
-                          style={{ color: "var(--color-fg)" }}
-                        >
-                          {tConfig("installApp.landpage")}
-                        </Link>
-                        <span className="block text-xs" style={{ color: "var(--color-fg-muted)" }}>
-                          {tConfig("installApp.landpageHint")}
-                        </span>
-                      </p>
-                    </div>
-                    <div className="mt-6">
-                      <h3
                         className="mb-2 text-sm font-semibold"
                         style={{ color: "var(--color-fg-muted)" }}
                       >
@@ -421,6 +398,28 @@ export default async function ConfigPage(props: {
                       {tConfig("forceUpdate.description")}
                     </p>
                     <ForceUpdate />
+                  </FoldCard>
+                </Reveal>
+
+                <Reveal className="min-w-0" delay={4 * STAGGER_MS}>
+                  <FoldCard index={idx()} className="min-w-0">
+                    <CardHead icon={Download} title={tConfig("installApp.title")} />
+                    <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                      {tConfig("installApp.description")}
+                    </p>
+                    <InstallApp />
+                    <p className="mt-4 text-sm">
+                      <Link
+                        href="/landpage"
+                        className="underline underline-offset-4"
+                        style={{ color: "var(--color-fg)" }}
+                      >
+                        {tConfig("installApp.landpage")}
+                      </Link>
+                      <span className="block text-xs" style={{ color: "var(--color-fg-muted)" }}>
+                        {tConfig("installApp.landpageHint")}
+                      </span>
+                    </p>
                   </FoldCard>
                 </Reveal>
               </>
