@@ -32,6 +32,7 @@ import { CursorToggle } from "./CursorToggle";
 import { DeleteAccountButton } from "./DeleteAccountButton";
 import { FocusQuestToggle } from "./FocusQuestToggle";
 import { ForceUpdate } from "./ForceUpdate";
+import { InstallApp } from "./InstallApp";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { LogGeral } from "./LogGeral";
 import { NavCustomizer } from "./NavCustomizer";
@@ -223,6 +224,18 @@ export default async function ConfigPage(props: {
                         {tConfig("navBar.description")}
                       </p>
                       <NavCustomizer current={profile?.nav_primary ?? null} />
+                    </div>
+                    <div className="mt-6">
+                      <h3
+                        className="mb-2 font-semibold text-sm"
+                        style={{ color: "var(--color-fg-muted)" }}
+                      >
+                        {tConfig("installApp.title")}
+                      </h3>
+                      <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
+                        {tConfig("installApp.description")}
+                      </p>
+                      <InstallApp />
                     </div>
                     <div className="mt-6">
                       <h3

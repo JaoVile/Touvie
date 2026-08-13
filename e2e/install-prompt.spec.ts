@@ -64,6 +64,26 @@ test.describe("PWA — convite de instalação", () => {
     await expect(page.getByRole("button", { name: "Instalar" })).toBeVisible();
   });
 
+  test("dispensar o banner NÃO tira a instalação do /config", async ({ page }) => {
+    await page.goto("/");
+    await fireUntilVisible(page);
+    await page.getByRole("button", { name: "Agora não" }).click();
+    await expect(page.getByText("Instalar o Touvie")).toBeHidden();
+
+    // O ponto do teste: a dispensa é sobre o BANNER. Se a captura do evento
+    // dependesse dela (como dependia antes), aqui não haveria o que instalar.
+    await page.goto("/config?tab=aparencia");
+    await expect(async () => {
+      await fireInstallPrompt(page);
+      await expect(page.getByRole("button", { name: "Instalar agora" })).toBeVisible({
+        timeout: 500,
+      });
+    }).toPass({ timeout: 20_000 });
+
+    // E o banner continua dispensado nesta página.
+    await expect(page.getByText("Instalar o Touvie")).toBeHidden();
+  });
+
   test("'Agora não' dispensa e a dispensa sobrevive à recarga", async ({ page }) => {
     await page.goto("/");
     await fireUntilVisible(page);

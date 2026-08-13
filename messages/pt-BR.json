@@ -234,6 +234,13 @@
       "save": "Salvar barra",
       "saving": "Salvando…",
       "saved": "Barra atualizada."
+    },
+    "installApp": {
+      "title": "Instalar o app",
+      "description": "Deixe o Touvie na tela de início e abra direto, sem passar pelo navegador. Disponível a qualquer momento, mesmo se você já dispensou o convite.",
+      "action": "Instalar agora",
+      "installed": "O app já está instalado neste aparelho.",
+      "manual": "Neste navegador a instalação é manual: toque em Compartilhar e depois em \"Adicionar à Tela de Início\"."
     }
   },
   "notifications": {
