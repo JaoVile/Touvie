@@ -66,6 +66,19 @@ convenções que o Biome **não** garante:
   autenticam com o header **`x-cron-secret`**, não Bearer). Os lembretes criados
   pelo Toube (`user_reminders`) SÓ disparam porque o job `reminders-sweep` roda a
   cada 5 min lá — se lembrete "não chega", cheque esse job primeiro.
+- **Entrega de notificação passa por `lib/notify.ts`, sempre.** Nenhum cron importa
+  `sendMessage` direto: eles chamam `notifyUser(admin, userId, {text, url, tag?})`, que lê
+  `notify_push`/`notify_telegram` do perfil e despacha pros canais ligados. `lib/push.ts`
+  isola o Web Push e poda assinatura morta (404/410).
+  → **O texto é HTML de Telegram** (`lib/notification-defaults.ts` usa `<b>`). O push converte
+  pra texto puro no `notifyUser`; se você criar um canal novo, converta também — mandar o texto
+  cru mostra as tags na tela.
+  → **Sem as envs `VAPID_*` o push não quebra, ele fica MUDO** (envia 0 e segue). Isso agora
+  vira `app_logs` com `source="push"` — cheque o Log Geral antes de caçar em outro lugar.
+  A chave pública é embutida em **build time**: trocou na Vercel, precisa de deploy novo.
+  → A inscrição é **por navegador**, não por conta: `endpoint` é `unique` global, e por isso o
+  `savePushSubscription` limpa o endpoint pelo admin client (sem filtro de usuário) antes de
+  inserir. Não "conserte" isso pra `upsert` — não há policy de UPDATE, de propósito.
 - **Toube (assistente IA)** vive em `lib/toube.ts` (prompt+tools+loop de consulta,
   Z.ai glm-4.7-flash), `lib/toube-reads.ts` (consultas RLS), `lib/toube-planos.ts`
   + `lib/planos-draft.ts` + `lib/planos-source.ts` (modo Plano, Groq llama-3.3),

@@ -67,8 +67,38 @@ Acessa http://localhost:3007, faz login. No notebook, marca **"Confiar neste dis
    - `TELEGRAM_BOT_TOKEN` (do @BotFather)
    - `TELEGRAM_WEBHOOK_SECRET` (qualquer string aleatória)
    - `GROQ_API_KEY` — chave do Groq (free) usada pelo **Toube Planos** pra montar treino; sem ela, a aba Planos não responde
+   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` — Web Push (ver abaixo)
 4. Deploy. Os dois crons em `vercel.json` são ativados automaticamente (plano Hobby permite 2).
 5. Abre `/config`, clica em "Conectar bot" e manda `/start` no bot.
+
+## 🔔 Notificações (Web Push)
+
+O app entrega lembrete por conta própria, sem depender do bot. Em **Config → Notificações** a
+pessoa escolhe onde recebe: no app, no Telegram, ou nos dois. Vale para todos os lembretes —
+manhã, noite, treino, fechamento do mês e os que o Toube cria.
+
+**As três envs (geradas uma vez, com `npx web-push generate-vapid-keys`):**
+
+| Env | Onde vive | O que é |
+|---|---|---|
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Vercel + `.env.local` | Chave **pública**; vai pro browser de propósito |
+| `VAPID_PRIVATE_KEY` | **só** Vercel + `.env.local` | Chave privada — nunca em arquivo versionado |
+| `VAPID_SUBJECT` | Vercel + `.env.local` | `mailto:` do dono |
+
+⚠️ **Sem elas o push não quebra: ele simplesmente não envia.** O `sendPushToUser` devolve `0` e
+segue. A partir de agora isso vira um `app_logs` com `source="push"`, `motivo="vapid_ausente"` —
+**cheque o Log Geral em `/config` antes de caçar o bug em outro lugar.** Erro de entrega
+(par de chaves trocado = 401/403) também aparece lá, como `motivo="envio_falhou"`.
+
+⚠️ **A chave pública é embutida em build time.** Se você adicionar/trocar ela na Vercel, precisa
+de um **novo deploy** — o build antigo continua com o valor velho.
+
+**Se um lembrete "não chegou", nesta ordem:**
+1. O canal está ligado em Config? Com os dois desligados, não chega em lugar nenhum (a tela avisa).
+2. O aparelho aparece em "Aparelhos ativos"? Se não, ative por lá — a inscrição é **por navegador**,
+   e tem que ser feita no aparelho que vai receber.
+3. Log Geral: tem `source="push"` com erro?
+4. Só então o cron (`reminders-sweep` no cron-job.org, a cada 5 min).
 
 ## 📱 Fluxo de uso
 
