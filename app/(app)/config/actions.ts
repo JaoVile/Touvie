@@ -350,7 +350,7 @@ export async function savePushSubscription(sub: {
   p256dh: string;
   auth: string;
   userAgent?: string;
-}): Promise<{ ok?: boolean; error?: string }> {
+}): Promise<{ ok?: boolean; error?: string; id?: string }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -367,16 +367,24 @@ export async function savePushSubscription(sub: {
     .eq("user_id", user.id);
   if (delError) return { error: delError.message };
 
-  const { error } = await supabase.from("push_subscriptions").insert({
-    user_id: user.id,
-    endpoint: sub.endpoint,
-    p256dh: sub.p256dh,
-    auth: sub.auth,
-    user_agent: sub.userAgent ?? null,
-  });
+  // `.select("id").single()` devolve o id da linha recém-criada — o client
+  // (NotifyChannels) usa isso pra saber qual linha é "este aparelho" sem
+  // esperar um reload, tanto no subscribe manual quanto na reconciliação
+  // silenciosa.
+  const { data, error } = await supabase
+    .from("push_subscriptions")
+    .insert({
+      user_id: user.id,
+      endpoint: sub.endpoint,
+      p256dh: sub.p256dh,
+      auth: sub.auth,
+      user_agent: sub.userAgent ?? null,
+    })
+    .select("id")
+    .single();
   if (error) return { error: error.message };
   revalidatePath("/config");
-  return { ok: true };
+  return { ok: true, id: data.id };
 }
 
 /** Remove um aparelho da lista. */

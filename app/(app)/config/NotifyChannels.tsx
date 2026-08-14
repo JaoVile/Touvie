@@ -14,6 +14,14 @@ import {
 
 type Estado = "assinado" | "pode-assinar" | "negado" | "ios-instalar" | "sem-suporte";
 
+/**
+ * `serviceWorker.ready` nunca rejeita nem expira sozinho — se o registro
+ * falhou (aba privada, SW desregistrado, erro engolido em
+ * `ServiceWorkerRegister`), a Promise fica pendurada pra sempre e o spinner
+ * nunca sai da tela. Esse teto dá uma saída.
+ */
+const READY_TIMEOUT_MS = 5_000;
+
 type Device = {
   id: string;
   endpoint: string;
@@ -100,6 +108,7 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
   const [subscribing, setSubscribing] = useState(false);
   const [error, setError] = useState<string>();
   const [testInfo, setTestInfo] = useState<string>();
+  const [testWarning, setTestWarning] = useState<string>();
   const [pending, start] = useTransition();
 
   // Evita reconciliar duas vezes em StrictMode/remounts.
@@ -124,7 +133,17 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
       }
 
       try {
-        const reg = await navigator.serviceWorker.ready;
+        const reg = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), READY_TIMEOUT_MS)),
+        ]);
+        if (cancelled) return;
+        if (!reg) {
+          setEstado(decidirEstado(false));
+          setChecking(false);
+          return;
+        }
+
         const sub = await reg.pushManager.getSubscription();
         if (cancelled) return;
 
@@ -142,21 +161,50 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
           return;
         }
 
-        // Reconciliação silenciosa: sem toast, sem spinner.
+        // Reconciliação silenciosa: sem toast, sem spinner. Só marca
+        // "assinado" se o servidor CONFIRMAR a escrita — se ela falhar, a
+        // tela não pode afirmar que está ativado sem nenhuma saída.
         if (!reconciled.current) {
           reconciled.current = true;
           const json = sub.toJSON();
           if (json.keys?.p256dh && json.keys?.auth) {
-            await savePushSubscription({
-              endpoint: sub.endpoint,
-              p256dh: json.keys.p256dh,
-              auth: json.keys.auth,
-              userAgent: navigator.userAgent,
-            }).catch(() => null);
+            let res: { ok?: boolean; error?: string; id?: string };
+            try {
+              res = await savePushSubscription({
+                endpoint: sub.endpoint,
+                p256dh: json.keys.p256dh,
+                auth: json.keys.auth,
+                userAgent: navigator.userAgent,
+              });
+            } catch (e) {
+              res = { error: e instanceof Error ? e.message : "Falha ao reconciliar" };
+            }
+            if (cancelled) return;
+            if (res.ok && res.id) {
+              setMyDeviceId(res.id);
+              setDeviceList((cur) => [
+                {
+                  id: res.id as string,
+                  endpoint: sub.endpoint,
+                  user_agent: navigator.userAgent,
+                  created_at: new Date().toISOString(),
+                },
+                ...cur,
+              ]);
+              setEstado("assinado");
+            } else {
+              setEstado("pode-assinar");
+            }
+            setChecking(false);
+            return;
           }
         }
+
+        // Sem chaves válidas pra reconciliar (ou a reconciliação já foi
+        // tentada nesta montagem): sem confirmação do servidor, não afirma
+        // "assinado" — a saída segura é o botão de ativar.
         if (cancelled) return;
-        setEstado(decidirEstado(true));
+        setEstado("pode-assinar");
         setChecking(false);
       } catch {
         if (!cancelled) {
@@ -191,9 +239,19 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
         auth: json.keys.auth,
         userAgent: navigator.userAgent,
       });
-      if (res.error) {
-        setError(res.error);
+      if (res.error || !res.id) {
+        setError(res.error ?? "Não consegui confirmar no servidor");
       } else {
+        setMyDeviceId(res.id);
+        setDeviceList((cur) => [
+          {
+            id: res.id as string,
+            endpoint: sub.endpoint,
+            user_agent: navigator.userAgent,
+            created_at: new Date().toISOString(),
+          },
+          ...cur,
+        ]);
         setEstado("assinado");
       }
     } catch (e) {
@@ -203,8 +261,28 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
     }
   }
 
+  /**
+   * Só chamado quando `id === myDeviceId`. Sem isso, a próxima montagem
+   * acha o endpoint deste navegador fora da lista do servidor — a MESMA
+   * condição que a reconciliação silenciosa existe pra curar — e re-registra
+   * o aparelho removido sozinho.
+   */
+  async function unsubscribeThisDevice() {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe();
+    } catch {
+      // Segue mesmo se falhar no navegador — a linha no servidor ainda é
+      // removida abaixo, que é o que garante não receber push nenhum.
+    }
+  }
+
   function remove(id: string) {
     start(async () => {
+      if (id === myDeviceId) {
+        await unsubscribeThisDevice();
+      }
       const res = await removePushSubscription(id);
       if (res.error) {
         setError(res.error);
@@ -240,10 +318,23 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
   function sendTest() {
     setError(undefined);
     setTestInfo(undefined);
+    setTestWarning(undefined);
     start(async () => {
       const res = await sendTestNotification();
-      if (res.error) setError(res.error);
-      else setTestInfo(t("testSent"));
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      const push = res.push ?? 0;
+      const telegram = !!res.telegram;
+      // notifyUser devolve {push:0, telegram:false} SEM erro quando não há
+      // canal ligado ou nenhum aparelho registrado — pintar "Enviado." nesse
+      // caso seria mentir. Só é sucesso se algo de fato saiu por algum canal.
+      if (push === 0 && !telegram) {
+        setTestWarning(t("testNone"));
+        return;
+      }
+      setTestInfo(t("testResult", { push, telegram: telegram ? "true" : "false" }));
     });
   }
 
@@ -288,6 +379,7 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
         {checking ? (
           <p className="flex items-center gap-2 text-xs" style={{ color: "var(--color-fg-muted)" }}>
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+            {t("checking")}
           </p>
         ) : estado === "assinado" ? (
           <div className="flex items-center justify-between gap-3">
@@ -381,6 +473,11 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
         {testInfo ? (
           <p className="mt-1.5 text-xs" style={{ color: "var(--color-success)" }}>
             {testInfo}
+          </p>
+        ) : null}
+        {testWarning ? (
+          <p className="mt-1.5 text-xs" style={{ color: "var(--color-danger)" }}>
+            {testWarning}
           </p>
         ) : null}
       </div>

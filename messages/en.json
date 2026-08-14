@@ -210,7 +210,9 @@
       "devices": "Active devices",
       "remove": "Remove",
       "test": "Send a test",
-      "testSent": "Sent.",
+      "checking": "Checking this device…",
+      "testResult": "Sent to {push, plural, =0 {no devices} one {# device} other {# devices}}{telegram, select, true { and to Telegram} other {}}.",
+      "testNone": "Nothing was delivered: no active device in this app and Telegram is off or didn't deliver.",
       "noneWarning": "With both off you won't get reminders anywhere."
     },
     "logs": {

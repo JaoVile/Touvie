@@ -11,14 +11,13 @@ import { expect, test } from "@playwright/test";
  * Restaura a preferência no fim: sem isso o spec seguinte herda o estado.
  */
 
-// Chromium headless SEMPRE reporta `Notification.permission` como "denied",
-// mesmo depois de `context.grantPermissions(["notifications"])` — é uma
-// limitação conhecida do Chromium (falta de display real pra UI nativa de
-// notificação), não um bug do componente. Confirmado durante a implementação:
-// em modo headed (com display), a permissão concedida é refletida
-// corretamente e o fluxo funciona. Este arquivo roda headed só por isso —
-// o resto da suíte continua headless.
-test.use({ headless: false });
+// O "headless shell" (binário padrão do Playwright) sempre reporta
+// `Notification.permission` como "denied", mesmo depois de
+// `context.grantPermissions(["notifications"])` — não embute a API de
+// notificação nativa. O canal "chromium" usa o Chromium completo em modo
+// "new headless" (suporta notificações) — continua headless, roda em
+// qualquer lugar, sem exigir display.
+test.use({ channel: "chromium" });
 
 const AVANCADO = "/config?tab=avancado";
 
@@ -81,5 +80,42 @@ test.describe("Notificações — canais", () => {
     await page.goto(AVANCADO);
     // Chromium concede sem diálogo; o botão de assinar tem que estar disponível.
     await expect(page.getByRole("button", { name: "Ativar no app" })).toBeVisible();
+  });
+});
+
+test.describe("Notificações — canais: permissão negada", () => {
+  test("explica que o navegador não pergunta de novo, sem botão morto", async ({ page }) => {
+    // Simula `Notification.permission === "denied"` sem depender do diálogo do
+    // OS — sobrescreve o getter ANTES de qualquer script da página rodar.
+    await page.addInitScript(() => {
+      Object.defineProperty(Notification, "permission", { get: () => "denied" });
+    });
+    await page.goto(AVANCADO);
+    await expect(page.getByText("Notificações bloqueadas neste navegador.")).toBeVisible();
+    await expect(
+      page.getByText("O navegador não pergunta de novo — libere nas configurações do site"),
+    ).toBeVisible();
+    // Nada de botão de ativar nesse estado.
+    await expect(page.getByRole("button", { name: "Ativar no app" })).toBeHidden();
+  });
+});
+
+test.describe("Notificações — canais: iOS Safari sem instalar", () => {
+  // UA de iPhone Safari real — decidirEstado() detecta por essa string
+  // (isIOSSafari), então precisa bater com o regex de verdade, não um mock.
+  test.use({
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
+  });
+
+  test("aponta pra instalar o app antes de ativar notificações", async ({ page }) => {
+    await page.goto(AVANCADO);
+    await expect(
+      page.getByText("No iPhone, notificações só funcionam com o app instalado"),
+    ).toBeVisible();
+    // A ordem da decisão importa: iOS-sem-instalar vence "sem suporte", então
+    // o link pra seção de instalar tem que estar lá — não uma mensagem genérica.
+    await expect(page.getByRole("link", { name: "Instalar o app" })).toBeVisible();
+    await expect(page.getByText("Este navegador não suporta notificações.")).toBeHidden();
   });
 });
