@@ -37,12 +37,18 @@ function ensureVapid(): boolean {
   const priv = process.env.VAPID_PRIVATE_KEY;
   const subject = process.env.VAPID_SUBJECT;
   if (!pub || !priv || !subject) return false;
+  // O VAPID exige `mailto:` ou `https:` no subject. Um e-mail cru é o erro mais
+  // fácil de cometer ao preencher a env — e derrubava 100% do push. Aceitamos e
+  // normalizamos: um e-mail sem esquema só pode significar uma coisa.
+  const bruto = subject.trim();
+  const normalizado = /^[^\s:@]+@[^\s:@]+\.[^\s:@]+$/.test(bruto) ? `mailto:${bruto}` : bruto;
+
   try {
-    // `setVapidDetails` LANÇA com env malformada (subject sem `mailto:`, chave
+    // `setVapidDetails` LANÇA com env malformada (subject inválido, chave
     // truncada, espaço/quebra colada no valor ao copiar pra Vercel). Sem este
     // try, a exceção subia e morria no catch do notify.ts: o sintoma virava
     // "nenhum aparelho ativo" sem uma linha de log em lugar nenhum.
-    webpush.setVapidDetails(subject.trim(), pub.trim(), priv.trim());
+    webpush.setVapidDetails(normalizado, pub.trim(), priv.trim());
   } catch (err) {
     if (!vapidAvisado) {
       vapidAvisado = true;
@@ -54,7 +60,7 @@ function ensureVapid(): boolean {
         metadata: {
           motivo: "vapid_invalido",
           // Formato, nunca o valor: a privada é segredo e a pública não ajuda no log.
-          subjectPrefixo: subject.slice(0, 7),
+          subjectPrefixo: bruto.slice(0, 7),
           pubBytes: Buffer.from(pub.trim(), "base64url").length,
           privBytes: Buffer.from(priv.trim(), "base64url").length,
         },
