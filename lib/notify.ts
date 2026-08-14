@@ -13,7 +13,39 @@ export type NotifyInput = {
   title?: string;
   /** Pra onde o toque leva. Default "/". */
   url?: string;
+  /**
+   * Chave de agrupamento da notificação nativa. Sem ela, o service worker
+   * agrupa pela `url` — certo pros crons de horário (não empilha o mesmo
+   * lembrete de sempre), errado pro sweep, onde vários lembretes distintos
+   * compartilham "/notificacoes" e um sobrescreveria o outro na bandeja.
+   */
+  tag?: string;
 };
+
+/** Teto do corpo do push. Também mantém o payload longe do limite de ~4KB. */
+const PUSH_BODY_MAX = 300;
+
+/**
+ * Converte o texto (que é HTML de Telegram) em corpo de notificação nativa.
+ *
+ * Sem isso a pessoa lê literalmente `⏰ <b>BATER PONTO</b>` na tela do celular,
+ * e `&amp;` no lugar de `&` — vale pras seis notificações, ou seja, 100% do
+ * canal novo. O texto do Telegram continua HTML intacto; a transformação é só
+ * do lado do push.
+ */
+function toPushBody(text: string): string {
+  const limpo = text
+    .replace(/<[^>]+>/g, "") // tira as tags (mesmo idioma do lib/logger.ts)
+    // Desescapa o que o escapeHtml produziu. `&amp;` vai por ÚLTIMO: antes dos
+    // outros, ele re-desescaparia o que acabou de gerar (`&amp;lt;` → `<`).
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, "&")
+    .replace(/\n{3,}/g, "\n\n") // colapsa quebras múltiplas
+    .trim();
+  return limpo.length > PUSH_BODY_MAX ? `${limpo.slice(0, PUSH_BODY_MAX).trimEnd()}…` : limpo;
+}
 
 export type NotifyResult = {
   /** Quantos aparelhos receberam push. */
@@ -69,8 +101,9 @@ export async function notifyUser(
     tarefas.push(
       sendPushToUser(admin, userId, {
         title: input.title ?? "Touvie",
-        body: input.text,
+        body: toPushBody(input.text),
         url: input.url ?? "/",
+        ...(input.tag ? { tag: input.tag } : {}),
       })
         .then((n) => {
           result.push = n;

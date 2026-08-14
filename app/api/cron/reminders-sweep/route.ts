@@ -121,6 +121,9 @@ export async function GET(req: Request) {
       const res = await notifyUser(admin, r.user_id, {
         text: `🔔 <b>${escapeHtml(r.message)}</b>`,
         url: "/notificacoes",
+        // Um tag por lembrete: dois vencidos na mesma varredura são duas
+        // notificações, não uma sobrescrevendo a outra.
+        tag: `reminder:${r.id}`,
       });
       // 'once' é uma vez só: desativa depois de disparar (não repete nunca mais).
       await admin

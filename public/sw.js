@@ -89,12 +89,12 @@ self.addEventListener("fetch", (e) => {
 });
 
 // ── Notificações próprias (Web Push) ────────────────────────────────────
-// O payload vem de lib/push.ts como JSON { title, body, url }.
+// O payload vem de lib/push.ts como JSON { title, body, url, tag? }.
 
 self.addEventListener("push", (e) => {
   // Sem payload não dá pra mostrar nada útil — mas ignorar em silêncio faria o
   // Chrome mostrar a notificação genérica dele ("Este site foi atualizado").
-  let data = { title: "Touvie", body: "", url: "/" };
+  let data = { title: "Touvie", body: "", url: "/", tag: undefined };
   try {
     if (e.data) data = { ...data, ...e.data.json() };
   } catch {
@@ -106,8 +106,11 @@ self.addEventListener("push", (e) => {
       body: data.body,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
-      // Agrupa por URL: dois lembretes do mesmo módulo não empilham lixo.
-      tag: data.url,
+      // Agrupa por URL por padrão: dois disparos do mesmo cron de horário não
+      // empilham lixo. Quem manda `tag` próprio é quem PRECISA aparecer em
+      // paralelo — o sweep, onde vários lembretes distintos dividem a mesma
+      // "/notificacoes" e um sobrescreveria o outro na bandeja.
+      tag: data.tag ?? data.url,
       renotify: true,
       data: { url: data.url },
     }),

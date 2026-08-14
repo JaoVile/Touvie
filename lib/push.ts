@@ -11,6 +11,8 @@ export type PushPayload = {
   body: string;
   /** Pra onde o toque leva. */
   url: string;
+  /** Agrupamento na bandeja. Sem ela, o service worker agrupa pela `url`. */
+  tag?: string;
 };
 
 let configured = false;
