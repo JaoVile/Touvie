@@ -196,6 +196,23 @@
       "title": "Telegram",
       "description": "Lembretes às 08:00 e 20:00 (BRT). Crons rodam só em produção (Vercel)."
     },
+    "notifyChannels": {
+      "title": "Onde receber notificações",
+      "description": "Escolha por onde os lembretes chegam. Vale pra todos: bom dia, boa noite, treino, fechamento do mês e os lembretes que você cria pelo Toube.",
+      "push": "Receber no app",
+      "telegram": "Receber no Telegram",
+      "enable": "Ativar no app",
+      "enabled": "Ativado neste aparelho",
+      "denied": "Notificações bloqueadas neste navegador.",
+      "deniedHow": "O navegador não pergunta de novo — libere nas configurações do site e recarregue.",
+      "iosNeedsInstall": "No iPhone, notificações só funcionam com o app instalado na tela de início. Instale primeiro na seção acima.",
+      "unsupported": "Este navegador não suporta notificações.",
+      "devices": "Aparelhos ativos",
+      "remove": "Remover",
+      "test": "Enviar teste",
+      "testSent": "Enviado.",
+      "noneWarning": "Com os dois desligados você não vai receber lembrete em lugar nenhum."
+    },
     "logs": {
       "title": "Log Geral",
       "description": "Últimos 100 eventos do sistema — crons, webhooks e APIs."

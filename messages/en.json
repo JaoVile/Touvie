@@ -196,6 +196,23 @@
       "title": "Telegram",
       "description": "Reminders at 08:00 and 20:00 (BRT). Crons only run in production (Vercel)."
     },
+    "notifyChannels": {
+      "title": "Where to get notifications",
+      "description": "Choose how reminders reach you. Applies to all of them: morning, evening, training, month close and the reminders you create through Toube.",
+      "push": "Get them in the app",
+      "telegram": "Get them on Telegram",
+      "enable": "Enable in the app",
+      "enabled": "Enabled on this device",
+      "denied": "Notifications are blocked in this browser.",
+      "deniedHow": "The browser won't ask again — allow it in the site settings and reload.",
+      "iosNeedsInstall": "On iPhone, notifications only work with the app installed on the home screen. Install it in the section above first.",
+      "unsupported": "This browser doesn't support notifications.",
+      "devices": "Active devices",
+      "remove": "Remove",
+      "test": "Send a test",
+      "testSent": "Sent.",
+      "noneWarning": "With both off you won't get reminders anywhere."
+    },
     "logs": {
       "title": "General Log",
       "description": "Last 100 system events — crons, webhooks and APIs."
