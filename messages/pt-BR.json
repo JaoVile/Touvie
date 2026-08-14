@@ -211,6 +211,7 @@
       "remove": "Remover",
       "test": "Enviar teste",
       "checking": "Verificando este aparelho…",
+      "enableFailed": "Não consegui ativar agora — tente de novo.",
       "testResult": "Enviado pra {push, plural, =0 {nenhum aparelho} one {# aparelho} other {# aparelhos}}{telegram, select, true { e pro Telegram} other {}}.",
       "testNone": "Não chegou em lugar nenhum: nenhum aparelho ativo neste app e o Telegram está desligado ou não entregou.",
       "noneWarning": "Com os dois desligados você não vai receber lembrete em lugar nenhum."

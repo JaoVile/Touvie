@@ -235,8 +235,17 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
     setError(undefined);
     setSubscribing(true);
     try {
+      // Diferente de `unsubscribeThisDevice`: no estouro daqui não dá pra
+      // seguir (não existe "assinar sem service worker") — cai num erro
+      // visível e volta pra "pode-assinar", com o botão ali pra tentar de
+      // novo, em vez de deixar "Ativar no app" desabilitado pra sempre.
+      const reg = await readyOrNull();
+      if (!reg) {
+        setError(t("enableFailed"));
+        setEstado("pode-assinar");
+        return;
+      }
       const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: key,

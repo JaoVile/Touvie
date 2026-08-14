@@ -211,6 +211,7 @@
       "remove": "Remove",
       "test": "Send a test",
       "checking": "Checking this device…",
+      "enableFailed": "Couldn't enable it right now — try again.",
       "testResult": "Sent to {push, plural, =0 {no devices} one {# device} other {# devices}}{telegram, select, true { and to Telegram} other {}}.",
       "testNone": "Nothing was delivered: no active device in this app and Telegram is off or didn't deliver.",
       "noneWarning": "With both off you won't get reminders anywhere."
