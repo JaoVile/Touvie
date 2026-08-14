@@ -38,12 +38,25 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, sent: 0, reason: "template_inactive" });
   }
 
-  const { data: profiles } = await admin
+  const { data: profiles, error: profilesErr } = await admin
     .from("profiles")
     // SEM `.not("telegram_chat_id", ...)`: quem usa só push também precisa
     // aparecer aqui, senão a notificação própria nunca sai.
     .select("id, notify_push, notify_telegram")
     .or("notify_push.eq.true,notify_telegram.eq.true");
+
+  // Consulta que falha deixava `profiles` null e a rodada respondia
+  // `ok: true, reason: "no_subscribers"` ANTES do logEvent — uma rodada
+  // inteira sumia sem rastro. Formato espelhado do reminders-sweep.
+  if (profilesErr) {
+    logEvent({
+      eventType: "cron",
+      source: "cron/evening-reminders",
+      status: "error",
+      messagePreview: profilesErr.message,
+    });
+    return NextResponse.json({ error: profilesErr.message }, { status: 500 });
+  }
 
   if (!profiles || profiles.length === 0) {
     return NextResponse.json({ ok: true, sent: 0, reason: "no_subscribers" });
