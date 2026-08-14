@@ -22,6 +22,21 @@ type Estado = "assinado" | "pode-assinar" | "negado" | "ios-instalar" | "sem-sup
  */
 const READY_TIMEOUT_MS = 5_000;
 
+/**
+ * Guarda única do timeout acima — usada tanto na montagem quanto em
+ * `unsubscribeThisDevice`, pra não dar pra um dos dois lugares esquecer o
+ * teto e voltar a pendurar sem saída (foi exatamente isso que aconteceu:
+ * `unsubscribeThisDevice` chamava `serviceWorker.ready` direto, sem essa
+ * guarda, e travava "Remover"/"Enviar teste" pra sempre nas mesmas condições
+ * do Finding 4).
+ */
+async function readyOrNull(): Promise<ServiceWorkerRegistration | null> {
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), READY_TIMEOUT_MS)),
+  ]);
+}
+
 type Device = {
   id: string;
   endpoint: string;
@@ -133,10 +148,7 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
       }
 
       try {
-        const reg = await Promise.race([
-          navigator.serviceWorker.ready,
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), READY_TIMEOUT_MS)),
-        ]);
+        const reg = await readyOrNull();
         if (cancelled) return;
         if (!reg) {
           setEstado(decidirEstado(false));
@@ -266,10 +278,20 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
    * acha o endpoint deste navegador fora da lista do servidor — a MESMA
    * condição que a reconciliação silenciosa existe pra curar — e re-registra
    * o aparelho removido sozinho.
+   *
+   * Usa `readyOrNull()` (com teto de 5s) em vez de `serviceWorker.ready`
+   * direto: nas mesmas condições em que o registro nunca fica pronto (SW
+   * desregistrado, registro que falhou em silêncio), `remove()` PRECISA
+   * seguir pro delete do servidor mesmo assim — travar "Remover" e "Enviar
+   * teste" pra sempre (o `pending` do `useTransition` que os desabilita)
+   * seria o mesmo botão morto do Finding 4, só que reintroduzido aqui. O
+   * pior caso vira uma inscrição órfã no navegador, que a reconciliação da
+   * próxima montagem resolve.
    */
   async function unsubscribeThisDevice() {
     try {
-      const reg = await navigator.serviceWorker.ready;
+      const reg = await readyOrNull();
+      if (!reg) return;
       const sub = await reg.pushManager.getSubscription();
       if (sub) await sub.unsubscribe();
     } catch {
