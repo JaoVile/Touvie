@@ -309,20 +309,33 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
     }
   }
 
+  /**
+   * O try/catch aqui não é zelo: se a Server Action LANÇA (celular sem sinal,
+   * 403 do middleware), a rejeição sobe pelo `startTransition` em vez de o
+   * callback terminar, e o `pending` que desabilita "Remover" e "Enviar teste"
+   * fica preso — os dois botões morrem sem mensagem nenhuma. Engolir o erro é
+   * o que faz a transição fechar; por isso não existe `finally` separado, o
+   * "ocupado" some justamente ao voltarmos daqui normalmente.
+   */
   function remove(id: string) {
     start(async () => {
-      if (id === myDeviceId) {
-        await unsubscribeThisDevice();
-      }
-      const res = await removePushSubscription(id);
-      if (res.error) {
-        setError(res.error);
-        return;
-      }
-      setDeviceList((cur) => cur.filter((d) => d.id !== id));
-      if (id === myDeviceId) {
-        setMyDeviceId(null);
-        setEstado("pode-assinar");
+      try {
+        if (id === myDeviceId) {
+          await unsubscribeThisDevice();
+        }
+        const res = await removePushSubscription(id);
+        if (res.error) {
+          setError(res.error);
+          return;
+        }
+        setDeviceList((cur) => cur.filter((d) => d.id !== id));
+        if (id === myDeviceId) {
+          setMyDeviceId(null);
+          setEstado("pode-assinar");
+        }
+      } catch {
+        // A lista fica como estava — nada foi removido de fato no servidor.
+        setError(t("enableFailed"));
       }
     });
   }
@@ -336,12 +349,23 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
     setTelegramOn(nextTelegram);
     setChannelsBusy(true);
     start(async () => {
-      const res = await updateNotifyChannels(nextPush, nextTelegram);
-      setChannelsBusy(false);
-      if (res.error) {
+      try {
+        const res = await updateNotifyChannels(nextPush, nextTelegram);
+        if (res.error) {
+          setPushOn(prevPush);
+          setTelegramOn(prevTelegram);
+          setError(res.error);
+        }
+      } catch {
+        // Antes, o `setChannelsBusy(false)` morava só no caminho feliz: uma
+        // action que LANÇA deixava os dois interruptores desabilitados PRA
+        // SEMPRE, exibindo um valor que o banco nunca gravou. O `finally`
+        // abaixo é o que garante a saída; aqui só desfazemos o otimismo.
         setPushOn(prevPush);
         setTelegramOn(prevTelegram);
-        setError(res.error);
+        setError(t("enableFailed"));
+      } finally {
+        setChannelsBusy(false);
       }
     });
   }
@@ -351,21 +375,27 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
     setTestInfo(undefined);
     setTestWarning(undefined);
     start(async () => {
-      const res = await sendTestNotification();
-      if (res.error) {
-        setError(res.error);
-        return;
+      // Mesmo motivo do `remove()`: sem o catch, uma action que lança prende o
+      // `pending` e mata "Enviar teste" e "Remover" juntos, em silêncio.
+      try {
+        const res = await sendTestNotification();
+        if (res.error) {
+          setError(res.error);
+          return;
+        }
+        const push = res.push ?? 0;
+        const telegram = !!res.telegram;
+        // notifyUser devolve {push:0, telegram:false} SEM erro quando não há
+        // canal ligado ou nenhum aparelho registrado — pintar "Enviado." nesse
+        // caso seria mentir. Só é sucesso se algo de fato saiu por algum canal.
+        if (push === 0 && !telegram) {
+          setTestWarning(t("testNone"));
+          return;
+        }
+        setTestInfo(t("testResult", { push, telegram: telegram ? "true" : "false" }));
+      } catch {
+        setError(t("enableFailed"));
       }
-      const push = res.push ?? 0;
-      const telegram = !!res.telegram;
-      // notifyUser devolve {push:0, telegram:false} SEM erro quando não há
-      // canal ligado ou nenhum aparelho registrado — pintar "Enviado." nesse
-      // caso seria mentir. Só é sucesso se algo de fato saiu por algum canal.
-      if (push === 0 && !telegram) {
-        setTestWarning(t("testNone"));
-        return;
-      }
-      setTestInfo(t("testResult", { push, telegram: telegram ? "true" : "false" }));
     });
   }
 
