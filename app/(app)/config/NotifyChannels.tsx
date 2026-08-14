@@ -335,7 +335,7 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
         }
       } catch {
         // A lista fica como estava — nada foi removido de fato no servidor.
-        setError(t("enableFailed"));
+        setError(t("removeFailed"));
       }
     });
   }
@@ -394,7 +394,7 @@ export function NotifyChannels({ devices, initialPush, initialTelegram }: Props)
         }
         setTestInfo(t("testResult", { push, telegram: telegram ? "true" : "false" }));
       } catch {
-        setError(t("enableFailed"));
+        setError(t("testFailed"));
       }
     });
   }

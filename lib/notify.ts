@@ -44,7 +44,14 @@ function toPushBody(text: string): string {
     .replace(/&amp;/g, "&")
     .replace(/\n{3,}/g, "\n\n") // colapsa quebras múltiplas
     .trim();
-  return limpo.length > PUSH_BODY_MAX ? `${limpo.slice(0, PUSH_BODY_MAX).trimEnd()}…` : limpo;
+  if (limpo.length <= PUSH_BODY_MAX) return limpo;
+  // O corte é por unidade UTF-16: se cair no meio de um par substituto, sobra
+  // metade de emoji (vira "�" na bandeja) — e os templates são cheios deles.
+  const cortado = limpo
+    .slice(0, PUSH_BODY_MAX)
+    .replace(/[\uD800-\uDBFF]$/, "")
+    .trimEnd();
+  return `${cortado}…`;
 }
 
 export type NotifyResult = {
