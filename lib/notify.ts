@@ -115,8 +115,19 @@ export async function notifyUser(
         .then((n) => {
           result.push = n;
         })
-        .catch(() => {
-          /* falha de push não pode derrubar o Telegram */
+        .catch((err) => {
+          // Não derruba o Telegram — mas NÃO fica mudo. Este catch engolia
+          // qualquer exceção do push (ex.: setVapidDetails lançando com env
+          // malformada na Vercel), e o sintoma era "nenhum aparelho ativo"
+          // sem uma linha de log em lugar nenhum.
+          logEvent({
+            userId,
+            eventType: "cron",
+            source: "push",
+            status: "error",
+            messagePreview: err instanceof Error ? err.message : "push lancou",
+            metadata: { motivo: "push_lancou" },
+          });
         }),
     );
   }
@@ -127,8 +138,16 @@ export async function notifyUser(
         .then(() => {
           result.telegram = true;
         })
-        .catch(() => {
-          /* idem: um canal caindo não leva o outro junto */
+        .catch((err) => {
+          // Idem: um canal caindo não leva o outro junto, mas some do log nunca.
+          logEvent({
+            userId,
+            eventType: "cron",
+            source: "telegram",
+            status: "error",
+            messagePreview: err instanceof Error ? err.message : "telegram lancou",
+            metadata: { motivo: "telegram_lancou" },
+          });
         }),
     );
   }

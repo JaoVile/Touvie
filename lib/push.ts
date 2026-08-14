@@ -37,7 +37,31 @@ function ensureVapid(): boolean {
   const priv = process.env.VAPID_PRIVATE_KEY;
   const subject = process.env.VAPID_SUBJECT;
   if (!pub || !priv || !subject) return false;
-  webpush.setVapidDetails(subject, pub, priv);
+  try {
+    // `setVapidDetails` LANÇA com env malformada (subject sem `mailto:`, chave
+    // truncada, espaço/quebra colada no valor ao copiar pra Vercel). Sem este
+    // try, a exceção subia e morria no catch do notify.ts: o sintoma virava
+    // "nenhum aparelho ativo" sem uma linha de log em lugar nenhum.
+    webpush.setVapidDetails(subject.trim(), pub.trim(), priv.trim());
+  } catch (err) {
+    if (!vapidAvisado) {
+      vapidAvisado = true;
+      logEvent({
+        eventType: "cron",
+        source: "push",
+        status: "error",
+        messagePreview: err instanceof Error ? err.message : "VAPID invalido",
+        metadata: {
+          motivo: "vapid_invalido",
+          // Formato, nunca o valor: a privada é segredo e a pública não ajuda no log.
+          subjectPrefixo: subject.slice(0, 7),
+          pubBytes: Buffer.from(pub.trim(), "base64url").length,
+          privBytes: Buffer.from(priv.trim(), "base64url").length,
+        },
+      });
+    }
+    return false;
+  }
   configured = true;
   return true;
 }
