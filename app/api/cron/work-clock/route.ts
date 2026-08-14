@@ -1,7 +1,7 @@
 import { logEvent } from "@/lib/logger";
 import { WORK_CLOCK_FALLBACK } from "@/lib/notification-defaults";
+import { notifyUser } from "@/lib/notify";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendMessage } from "@/lib/telegram";
 import { NextResponse } from "next/server";
 
 function authorized(req: Request): boolean {
@@ -38,8 +38,10 @@ export async function GET(req: Request) {
 
   const { data: profiles } = await admin
     .from("profiles")
-    .select("id, telegram_chat_id")
-    .not("telegram_chat_id", "is", null);
+    // SEM `.not("telegram_chat_id", ...)`: quem usa só push também precisa
+    // aparecer aqui, senão a notificação própria nunca sai.
+    .select("id, notify_push, notify_telegram")
+    .or("notify_push.eq.true,notify_telegram.eq.true");
 
   if (!profiles || profiles.length === 0) {
     return NextResponse.json({ ok: true, sent: 0, reason: "no_subscribers" });
@@ -47,13 +49,9 @@ export async function GET(req: Request) {
 
   let sent = 0;
   for (const p of profiles) {
-    if (!p.telegram_chat_id) continue;
-    try {
-      await sendMessage(p.telegram_chat_id, text);
-      sent += 1;
-    } catch (err) {
-      console.error(`Telegram send failed for ${p.id}:`, err);
-    }
+    const r = await notifyUser(admin, p.id, { text, url: "/rotina" });
+    // `sent` passa a contar entrega REAL (algum canal recebeu), não tentativa.
+    if (r.push > 0 || r.telegram) sent += 1;
   }
 
   logEvent({

@@ -3,8 +3,8 @@ import { logEvent } from "@/lib/logger";
 import { CRON_FALLBACK } from "@/lib/notification-defaults";
 import { renderTemplate } from "@/lib/notifications/render";
 import { EVENING_VARS, buildContext } from "@/lib/notifications/variables";
+import { notifyUser } from "@/lib/notify";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendMessage } from "@/lib/telegram";
 import { NextResponse } from "next/server";
 
 function authorized(req: Request): boolean {
@@ -40,8 +40,10 @@ export async function GET(req: Request) {
 
   const { data: profiles } = await admin
     .from("profiles")
-    .select("id, telegram_chat_id")
-    .not("telegram_chat_id", "is", null);
+    // SEM `.not("telegram_chat_id", ...)`: quem usa só push também precisa
+    // aparecer aqui, senão a notificação própria nunca sai.
+    .select("id, notify_push, notify_telegram")
+    .or("notify_push.eq.true,notify_telegram.eq.true");
 
   if (!profiles || profiles.length === 0) {
     return NextResponse.json({ ok: true, sent: 0, reason: "no_subscribers" });
@@ -50,7 +52,6 @@ export async function GET(req: Request) {
   let sent = 0;
   let firstText: string | undefined;
   for (const p of profiles) {
-    if (!p.telegram_chat_id) continue;
     const ctx = buildContext(admin, p.id, today, tomorrow, weekday);
     const text = await renderTemplate(template, ctx, EVENING_VARS);
     // Se o template virou só o "Boa noite!" (todas as seções dinâmicas
@@ -58,12 +59,9 @@ export async function GET(req: Request) {
     // linha além do greeting.
     if (!text || !text.includes("\n")) continue;
     if (!firstText) firstText = text;
-    try {
-      await sendMessage(p.telegram_chat_id, text);
-      sent += 1;
-    } catch (err) {
-      console.error(`Telegram send failed for ${p.id}:`, err);
-    }
+    const r = await notifyUser(admin, p.id, { text, url: "/" });
+    // `sent` passa a contar entrega REAL (algum canal recebeu), não tentativa.
+    if (r.push > 0 || r.telegram) sent += 1;
   }
 
   logEvent({
