@@ -71,9 +71,13 @@ export async function GET(req: Request) {
     const text = await renderTemplate(template, ctx, MONTHLY_VARS);
     if (!text) continue;
     if (!firstText) firstText = text;
-    const r = await notifyUser(admin, p.id, { text, url: "/financas" });
-    // `sent` passa a contar entrega REAL (algum canal recebeu), não tentativa.
-    if (r.push > 0 || r.telegram) sent += 1;
+    try {
+      const r = await notifyUser(admin, p.id, { text, url: "/financas" });
+      // `sent` passa a contar entrega REAL (algum canal recebeu), não tentativa.
+      if (r.push > 0 || r.telegram) sent += 1;
+    } catch (err) {
+      console.error(`notifyUser failed for ${p.id}:`, err);
+    }
   }
 
   logEvent({

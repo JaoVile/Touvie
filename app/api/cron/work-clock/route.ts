@@ -49,9 +49,13 @@ export async function GET(req: Request) {
 
   let sent = 0;
   for (const p of profiles) {
-    const r = await notifyUser(admin, p.id, { text, url: "/rotina" });
-    // `sent` passa a contar entrega REAL (algum canal recebeu), não tentativa.
-    if (r.push > 0 || r.telegram) sent += 1;
+    try {
+      const r = await notifyUser(admin, p.id, { text, url: "/rotina" });
+      // `sent` passa a contar entrega REAL (algum canal recebeu), não tentativa.
+      if (r.push > 0 || r.telegram) sent += 1;
+    } catch (err) {
+      console.error(`notifyUser failed for ${p.id}:`, err);
+    }
   }
 
   logEvent({
