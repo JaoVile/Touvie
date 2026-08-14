@@ -1,3 +1,4 @@
+import { logEvent } from "@/lib/logger";
 import type { Database } from "@/lib/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import webpush from "web-push";
@@ -44,10 +45,20 @@ export async function sendPushToUser(
 ): Promise<number> {
   if (!ensureVapid()) return 0;
 
-  const { data: subs } = await admin
+  const { data: subs, error: subsErr } = await admin
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth")
     .eq("user_id", userId);
+  if (subsErr) {
+    logEvent({
+      userId,
+      eventType: "cron",
+      source: "push",
+      status: "error",
+      messagePreview: subsErr.message,
+    });
+    return 0;
+  }
   if (!subs?.length) return 0;
 
   const mortas: string[] = [];
