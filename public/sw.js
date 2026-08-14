@@ -87,3 +87,47 @@ self.addEventListener("fetch", (e) => {
     ),
   );
 });
+
+// ── Notificações próprias (Web Push) ────────────────────────────────────
+// O payload vem de lib/push.ts como JSON { title, body, url }.
+
+self.addEventListener("push", (e) => {
+  // Sem payload não dá pra mostrar nada útil — mas ignorar em silêncio faria o
+  // Chrome mostrar a notificação genérica dele ("Este site foi atualizado").
+  let data = { title: "Touvie", body: "", url: "/" };
+  try {
+    if (e.data) data = { ...data, ...e.data.json() };
+  } catch {
+    /* payload malformado: cai no default acima */
+  }
+
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      // Agrupa por URL: dois lembretes do mesmo módulo não empilham lixo.
+      tag: data.url,
+      renotify: true,
+      data: { url: data.url },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = e.notification.data?.url || "/";
+  e.waitUntil(
+    // Reaproveita uma aba do app se já houver uma — abrir uma segunda cópia do
+    // Touvie a cada toque seria irritante.
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((cs) => {
+      for (const c of cs) {
+        if (c.url.includes(self.location.origin) && "focus" in c) {
+          c.navigate(url);
+          return c.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
+});
