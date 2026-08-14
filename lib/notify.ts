@@ -38,13 +38,29 @@ export async function notifyUser(
   userId: string,
   input: NotifyInput,
 ): Promise<NotifyResult> {
-  const { data: prof } = await admin
+  const { data: prof, error: profErr } = await admin
     .from("profiles")
     .select("telegram_chat_id, notify_push, notify_telegram")
     .eq("id", userId)
     .maybeSingle();
 
   const result: NotifyResult = { push: 0, telegram: false };
+
+  if (profErr) {
+    // "sem perfil" (usuário não existe) e "consulta falhou" (banco/rede) não
+    // podem colapsar no mesmo retorno mudo — é a mesma classe de bug corrigida
+    // em lib/push.ts. Motivo distinto de "sem_destino": aqui nem chegamos a
+    // decidir canal nenhum.
+    logEvent({
+      userId,
+      eventType: "cron",
+      source: "notify",
+      status: "error",
+      messagePreview: profErr.message,
+      metadata: { motivo: "perfil_indisponivel" },
+    });
+    return result;
+  }
   if (!prof) return result;
 
   const tarefas: Promise<unknown>[] = [];
