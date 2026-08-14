@@ -2,6 +2,7 @@
 
 import { TRUSTED_COOKIE, signTrustedDevice, trustedCookieOptions } from "@/lib/device";
 import { isValidPrimary } from "@/lib/nav-items";
+import { notifyUser } from "@/lib/notify";
 import { hashPin, verifyPin } from "@/lib/pin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -326,6 +327,117 @@ export async function updatePassword(fd: FormData): Promise<{ error?: string; ok
   const { error } = await supabase.auth.updateUser({ password: next });
   if (error) return { error: error.message };
   return { ok: true };
+}
+
+// --- PUSH (notificações próprias) -----------------------------------
+
+/**
+ * Grava (ou revalida) a assinatura de push deste aparelho.
+ *
+ * `push_subscriptions` só tem policy de select/insert/delete — de propósito,
+ * não existe policy de UPDATE. Um `upsert(..., { onConflict: "endpoint" })`
+ * feito pelo client de cookie, quando o endpoint já existe, vira
+ * `INSERT ... ON CONFLICT DO UPDATE`, e a parte de UPDATE é regida pela
+ * policy de UPDATE que não existe — o Postgres barra essa branch por RLS.
+ * Ou seja: reinscrever o MESMO aparelho (o navegador reemite a assinatura
+ * sozinho às vezes) falharia sempre, e se o erro fosse ignorado no cliente
+ * isso viraria uma falha muda de push. Por isso aqui é delete-then-insert:
+ * duas operações, cada uma coberta por uma policy que já existe, sem tocar
+ * em UPDATE e sem precisar do admin client pra essa escrita.
+ */
+export async function savePushSubscription(sub: {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  userAgent?: string;
+}): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "unauthenticated" };
+
+  // Remove uma assinatura anterior do MESMO endpoint (se houver, e se for
+  // deste usuário — o filtro por user_id é defesa em profundidade além do
+  // RLS) antes de inserir de novo.
+  const { error: delError } = await supabase
+    .from("push_subscriptions")
+    .delete()
+    .eq("endpoint", sub.endpoint)
+    .eq("user_id", user.id);
+  if (delError) return { error: delError.message };
+
+  const { error } = await supabase.from("push_subscriptions").insert({
+    user_id: user.id,
+    endpoint: sub.endpoint,
+    p256dh: sub.p256dh,
+    auth: sub.auth,
+    user_agent: sub.userAgent ?? null,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/config");
+  return { ok: true };
+}
+
+/** Remove um aparelho da lista. */
+export async function removePushSubscription(
+  id: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "unauthenticated" };
+  const { error } = await supabase
+    .from("push_subscriptions")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id); // defesa em profundidade além do RLS
+  if (error) return { error: error.message };
+  revalidatePath("/config");
+  return { ok: true };
+}
+
+/** Liga/desliga os canais de notificação. */
+export async function updateNotifyChannels(
+  push: boolean,
+  telegram: boolean,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "unauthenticated" };
+  const { error } = await supabase
+    .from("profiles")
+    .update({ notify_push: push, notify_telegram: telegram })
+    .eq("id", user.id);
+  if (error) return { error: error.message };
+  revalidatePath("/config");
+  return { ok: true };
+}
+
+/**
+ * Manda uma notificação de teste pelos canais ligados.
+ * É a única forma de saber se push funciona no aparelho sem esperar as 8h.
+ * Usa o admin client porque `notifyUser` precisa enxergar todos os aparelhos
+ * do usuário pra decidir os canais — a autorização já foi feita acima pelo
+ * client de cookie, o admin aqui é só o transporte, igual será nos crons.
+ */
+export async function sendTestNotification(): Promise<
+  { ok?: boolean; error?: string } & Partial<Awaited<ReturnType<typeof notifyUser>>>
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "unauthenticated" };
+  const r = await notifyUser(createAdminClient(), user.id, {
+    title: "Touvie",
+    text: "Notificação de teste — se você está vendo isso, está funcionando. 🎉",
+    url: "/config",
+  });
+  return { ok: true, ...r };
 }
 
 export async function sendTelegramTest(): Promise<{ ok?: boolean; error?: string }> {
