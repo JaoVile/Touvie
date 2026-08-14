@@ -16,6 +16,15 @@ export type PushPayload = {
 let configured = false;
 
 /**
+ * Guarda de PROCESSO (não por usuário) do aviso de VAPID ausente.
+ *
+ * Sem ela, um cron que varre N perfis registraria N linhas idênticas em
+ * `app_logs` — o log vira spam e some no meio dele mesmo o que importa. Uma vez
+ * por processo basta: a env não muda no meio da execução.
+ */
+let vapidAvisado = false;
+
+/**
  * Configura o VAPID uma vez. Fora daqui ninguém toca nas chaves.
  * Sem as envs, o push simplesmente não existe — e isso NÃO é erro fatal: o
  * Telegram continua entregando. Por isso devolve boolean em vez de lançar.
@@ -43,7 +52,23 @@ export async function sendPushToUser(
   userId: string,
   payload: PushPayload,
 ): Promise<number> {
-  if (!ensureVapid()) return 0;
+  if (!ensureVapid()) {
+    // Continua devolvendo 0 e deixando o Telegram entregar — só para de ser
+    // mudo. Sem esse registro, três envs digitadas errado na Vercel derrubam
+    // 100% do push pra sempre e o único sinal seria `sent: 0`.
+    if (!vapidAvisado) {
+      vapidAvisado = true;
+      logEvent({
+        userId,
+        eventType: "cron",
+        source: "push",
+        status: "error",
+        messagePreview: "VAPID nao configurado",
+        metadata: { motivo: "vapid_ausente" },
+      });
+    }
+    return 0;
+  }
 
   const { data: subs, error: subsErr } = await admin
     .from("push_subscriptions")
@@ -76,22 +101,58 @@ export async function sendPushToUser(
         const status = (err as { statusCode?: number }).statusCode;
         // 404/410 = assinatura não existe mais. Qualquer outro código pode ser
         // transitório (rede, serviço fora) — nesses a assinatura fica.
-        if (status === 404 || status === 410) mortas.push(s.id);
+        if (status === 404 || status === 410) {
+          mortas.push(s.id);
+        } else {
+          // 401/403 (par VAPID trocado), 413, 429, 5xx e falha de rede caíam
+          // aqui e sumiam. Registra SEM o endpoint e SEM p256dh/auth: são
+          // material de criptografia, não vão pro log.
+          logEvent({
+            userId,
+            eventType: "cron",
+            source: "push",
+            status: "error",
+            messagePreview: err instanceof Error ? err.message : "falha no envio",
+            metadata: { motivo: "envio_falhou", statusCode: status ?? null, endpointId: s.id },
+          });
+        }
       }
     }),
   );
 
   if (mortas.length) {
-    await admin.from("push_subscriptions").delete().in("id", mortas);
+    // Poda que falha em silêncio = fantasma que volta a consumir requisição
+    // todo dia, sem ninguém saber por quê.
+    const { error: podaErr } = await admin.from("push_subscriptions").delete().in("id", mortas);
+    if (podaErr) {
+      logEvent({
+        userId,
+        eventType: "cron",
+        source: "push",
+        status: "error",
+        messagePreview: podaErr.message,
+        metadata: { motivo: "poda_falhou", quantas: mortas.length },
+      });
+    }
   }
   if (entreguesIds.length) {
     // Carimba só quem de fato recebeu — não o usuário inteiro, senão
     // assinatura que acabou de falhar mentiria "visto agora" pra quem lê a
     // lista de aparelhos.
-    await admin
+    const { error: carimboErr } = await admin
       .from("push_subscriptions")
       .update({ last_ok_at: new Date().toISOString() })
       .in("id", entreguesIds);
+    if (carimboErr) {
+      logEvent({
+        userId,
+        eventType: "cron",
+        source: "push",
+        status: "error",
+        messagePreview: carimboErr.message,
+        metadata: { motivo: "carimbo_falhou", quantas: entreguesIds.length },
+      });
+    }
   }
   return entreguesIds.length;
 }
