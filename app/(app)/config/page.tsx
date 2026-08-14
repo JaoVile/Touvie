@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_THEME } from "@/lib/themes";
 import {
   AudioLines,
+  Bell,
   Download,
   History,
   KeyRound,
@@ -37,6 +38,7 @@ import { InstallApp } from "./InstallApp";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { LogGeral } from "./LogGeral";
 import { NavCustomizer } from "./NavCustomizer";
+import { NotifyChannels } from "./NotifyChannels";
 import { ProfileSection } from "./ProfileSection";
 import { QualityPicker } from "./QualityPicker";
 import { SoundCredits } from "./SoundCredits";
@@ -63,46 +65,62 @@ export default async function ConfigPage(props: {
   const supabase = await createClient();
   const claims = await getUserClaims();
   const userId = claims!.sub;
-  const [profile, names, writePin, focusPref, locale, t, tConfig, toubeSessions, toubeMsgs] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select("theme, telegram_chat_id, locale, nav_primary")
-        .eq("id", userId)
-        .maybeSingle()
-        .then((r) => r.data),
-      supabase
-        .from("profiles")
-        .select("full_name, display_name")
-        .eq("id", userId)
-        .maybeSingle()
-        .then((r) => r.data),
-      supabase
-        .from("profiles")
-        .select("write_pin_hash")
-        .eq("id", userId)
-        .maybeSingle()
-        .then((r) => r.data),
-      supabase
-        .from("profiles")
-        .select("focus_quest_enabled")
-        .eq("id", userId)
-        .maybeSingle()
-        .then((r) => r.data),
-      getLocale(),
-      getTranslations("focoDoDia"),
-      getTranslations("config"),
-      supabase
-        .from("toube_sessions")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .then((r) => r.count ?? 0),
-      supabase
-        .from("toube_messages")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .then((r) => r.count ?? 0),
-    ]);
+  const [
+    profile,
+    names,
+    writePin,
+    focusPref,
+    locale,
+    t,
+    tConfig,
+    toubeSessions,
+    toubeMsgs,
+    pushDevices,
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("theme, telegram_chat_id, locale, nav_primary, notify_push, notify_telegram")
+      .eq("id", userId)
+      .maybeSingle()
+      .then((r) => r.data),
+    supabase
+      .from("profiles")
+      .select("full_name, display_name")
+      .eq("id", userId)
+      .maybeSingle()
+      .then((r) => r.data),
+    supabase
+      .from("profiles")
+      .select("write_pin_hash")
+      .eq("id", userId)
+      .maybeSingle()
+      .then((r) => r.data),
+    supabase
+      .from("profiles")
+      .select("focus_quest_enabled")
+      .eq("id", userId)
+      .maybeSingle()
+      .then((r) => r.data),
+    getLocale(),
+    getTranslations("focoDoDia"),
+    getTranslations("config"),
+    supabase
+      .from("toube_sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .then((r) => r.count ?? 0),
+    supabase
+      .from("toube_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .then((r) => r.count ?? 0),
+    supabase
+      .from("push_subscriptions")
+      .select("id, endpoint, user_agent, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .then((r) => r.data ?? []),
+  ]);
 
   const theme = profile?.theme ?? DEFAULT_THEME;
   const hasWriteCode = !!writePin?.write_pin_hash;
@@ -363,6 +381,17 @@ export default async function ConfigPage(props: {
               <>
                 <Reveal className="min-w-0" delay={0 * STAGGER_MS}>
                   <FoldCard index={idx()} className="min-w-0">
+                    <CardHead icon={Bell} title={tConfig("notifyChannels.title")} />
+                    <NotifyChannels
+                      devices={pushDevices}
+                      initialPush={profile?.notify_push ?? true}
+                      initialTelegram={profile?.notify_telegram ?? true}
+                    />
+                  </FoldCard>
+                </Reveal>
+
+                <Reveal className="min-w-0" delay={1 * STAGGER_MS}>
+                  <FoldCard index={idx()} className="min-w-0">
                     <CardHead icon={Send} title="Telegram" />
                     <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
                       Receba lembretes da sua rotina.
@@ -371,7 +400,7 @@ export default async function ConfigPage(props: {
                   </FoldCard>
                 </Reveal>
 
-                <Reveal className="min-w-0" delay={1 * STAGGER_MS}>
+                <Reveal className="min-w-0" delay={3 * STAGGER_MS}>
                   <FoldCard index={idx()} className="min-w-0">
                     <CardHead icon={ScrollText} title="Log Geral" />
                     <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
@@ -381,7 +410,7 @@ export default async function ConfigPage(props: {
                   </FoldCard>
                 </Reveal>
 
-                <Reveal className="min-w-0" delay={2 * STAGGER_MS}>
+                <Reveal className="min-w-0" delay={4 * STAGGER_MS}>
                   <FoldCard index={idx()} className="min-w-0">
                     <CardHead icon={History} title={tConfig("histIa.title")} />
                     <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
@@ -391,7 +420,7 @@ export default async function ConfigPage(props: {
                   </FoldCard>
                 </Reveal>
 
-                <Reveal className="min-w-0" delay={3 * STAGGER_MS}>
+                <Reveal className="min-w-0" delay={5 * STAGGER_MS}>
                   <FoldCard index={idx()} className="min-w-0">
                     <CardHead icon={RefreshCw} title={tConfig("forceUpdate.title")} />
                     <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>
@@ -401,7 +430,7 @@ export default async function ConfigPage(props: {
                   </FoldCard>
                 </Reveal>
 
-                <Reveal className="min-w-0" delay={4 * STAGGER_MS}>
+                <Reveal className="min-w-0" delay={6 * STAGGER_MS} id="instalar-app">
                   <FoldCard index={idx()} className="min-w-0">
                     <CardHead icon={Download} title={tConfig("installApp.title")} />
                     <p className="mb-3 text-sm" style={{ color: "var(--color-fg-muted)" }}>

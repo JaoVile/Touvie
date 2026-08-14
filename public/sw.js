@@ -87,3 +87,50 @@ self.addEventListener("fetch", (e) => {
     ),
   );
 });
+
+// ── Notificações próprias (Web Push) ────────────────────────────────────
+// O payload vem de lib/push.ts como JSON { title, body, url, tag? }.
+
+self.addEventListener("push", (e) => {
+  // Sem payload não dá pra mostrar nada útil — mas ignorar em silêncio faria o
+  // Chrome mostrar a notificação genérica dele ("Este site foi atualizado").
+  let data = { title: "Touvie", body: "", url: "/", tag: undefined };
+  try {
+    if (e.data) data = { ...data, ...e.data.json() };
+  } catch {
+    /* payload malformado: cai no default acima */
+  }
+
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      // Agrupa por URL por padrão: dois disparos do mesmo cron de horário não
+      // empilham lixo. Quem manda `tag` próprio é quem PRECISA aparecer em
+      // paralelo — o sweep, onde vários lembretes distintos dividem a mesma
+      // "/notificacoes" e um sobrescreveria o outro na bandeja.
+      tag: data.tag ?? data.url,
+      renotify: true,
+      data: { url: data.url },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = e.notification.data?.url || "/";
+  e.waitUntil(
+    // Reaproveita uma aba do app se já houver uma — abrir uma segunda cópia do
+    // Touvie a cada toque seria irritante.
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((cs) => {
+      for (const c of cs) {
+        if (c.url.includes(self.location.origin) && "focus" in c) {
+          c.navigate(url);
+          return c.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
+});

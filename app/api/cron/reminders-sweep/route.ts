@@ -1,7 +1,8 @@
 import { todayBRT, todayBRTISO } from "@/lib/datetime";
 import { logEvent } from "@/lib/logger";
+import { notifyUser } from "@/lib/notify";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { escapeHtml, sendMessage } from "@/lib/telegram";
+import { escapeHtml } from "@/lib/telegram";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -113,28 +114,17 @@ export async function GET(req: Request) {
 
   const due = ((data ?? []) as Row[]).filter((r) => shouldFire(r, nowMin, weekday, nowMs));
 
-  // chat_id por usuário, com cache (vários lembretes do mesmo dono = 1 query).
-  const chatCache = new Map<string, string | null>();
-  async function chatId(userId: string): Promise<string | null> {
-    const cached = chatCache.get(userId);
-    if (cached !== undefined) return cached;
-    const { data: p } = await admin
-      .from("profiles")
-      .select("telegram_chat_id")
-      .eq("id", userId)
-      .maybeSingle();
-    const id = p?.telegram_chat_id ?? null;
-    chatCache.set(userId, id);
-    return id;
-  }
-
   let sent = 0;
   let failed = 0;
   for (const r of due) {
-    const cid = await chatId(r.user_id);
-    if (!cid) continue;
     try {
-      await sendMessage(cid, `🔔 <b>${escapeHtml(r.message)}</b>`);
+      const res = await notifyUser(admin, r.user_id, {
+        text: `🔔 <b>${escapeHtml(r.message)}</b>`,
+        url: "/notificacoes",
+        // Um tag por lembrete: dois vencidos na mesma varredura são duas
+        // notificações, não uma sobrescrevendo a outra.
+        tag: `reminder:${r.id}`,
+      });
       // 'once' é uma vez só: desativa depois de disparar (não repete nunca mais).
       await admin
         .from("user_reminders")
@@ -143,7 +133,7 @@ export async function GET(req: Request) {
           ...(r.schedule_type === "once" ? { active: false } : {}),
         })
         .eq("id", r.id);
-      sent++;
+      if (res.push > 0 || res.telegram) sent++;
     } catch (err) {
       failed++;
       console.error("reminders-sweep send failed", r.id, err);

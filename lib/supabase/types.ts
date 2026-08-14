@@ -45,8 +45,23 @@ export type Database = {
         focus_quest_enabled: boolean;
         /** Hrefs dos 4 módulos na barra inferior do celular (migration 0040). */
         nav_primary: string[];
+        /** Migration 0041. */
+        notify_push: boolean;
+        /** Migration 0041. */
+        notify_telegram: boolean;
         created_at: Timestamptz;
         updated_at: Timestamptz;
+      }>;
+      /** Migration 0041. Uma linha por aparelho (não por usuário). */
+      push_subscriptions: Table<{
+        id: string;
+        user_id: string;
+        endpoint: string;
+        p256dh: string;
+        auth: string;
+        user_agent: string | null;
+        created_at: Timestamptz;
+        last_ok_at: Timestamptz | null;
       }>;
       toube_messages: Table<{
         id: string;
