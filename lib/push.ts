@@ -18,13 +18,26 @@ export type PushPayload = {
 let configured = false;
 
 /**
- * Guarda de PROCESSO (não por usuário) do aviso de VAPID ausente.
+ * Anti-spam do aviso de VAPID quebrado.
  *
- * Sem ela, um cron que varre N perfis registraria N linhas idênticas em
- * `app_logs` — o log vira spam e some no meio dele mesmo o que importa. Uma vez
- * por processo basta: a env não muda no meio da execução.
+ * Sem ele, um cron que varre N perfis registraria N linhas idênticas em
+ * `app_logs` — o log vira spam e some no meio dele mesmo o que importa.
+ *
+ * Mas "uma vez por processo" era rígido demais e custou caro na hora de
+ * depurar: numa lambda quente, o aviso saía UMA vez e todo teste seguinte
+ * ficava mudo — o mesmo silêncio que esta feature existe pra acabar. Uma
+ * janela curta corta a enxurrada de um cron e ainda deixa a segunda tentativa
+ * de quem está caçando o problema aparecer no log.
  */
-let vapidAvisado = false;
+const AVISO_VAPID_JANELA_MS = 60_000;
+let vapidAvisadoEm = 0;
+
+function deveAvisarVapid(): boolean {
+  const agora = Date.now();
+  if (agora - vapidAvisadoEm < AVISO_VAPID_JANELA_MS) return false;
+  vapidAvisadoEm = agora;
+  return true;
+}
 
 /**
  * Configura o VAPID uma vez. Fora daqui ninguém toca nas chaves.
@@ -50,8 +63,7 @@ function ensureVapid(): boolean {
     // "nenhum aparelho ativo" sem uma linha de log em lugar nenhum.
     webpush.setVapidDetails(normalizado, pub.trim(), priv.trim());
   } catch (err) {
-    if (!vapidAvisado) {
-      vapidAvisado = true;
+    if (deveAvisarVapid()) {
       logEvent({
         eventType: "cron",
         source: "push",
@@ -88,8 +100,7 @@ export async function sendPushToUser(
     // Continua devolvendo 0 e deixando o Telegram entregar — só para de ser
     // mudo. Sem esse registro, três envs digitadas errado na Vercel derrubam
     // 100% do push pra sempre e o único sinal seria `sent: 0`.
-    if (!vapidAvisado) {
-      vapidAvisado = true;
+    if (deveAvisarVapid()) {
       logEvent({
         userId,
         eventType: "cron",

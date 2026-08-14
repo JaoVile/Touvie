@@ -16,7 +16,7 @@
 //     errado". Fora de escopo de propósito.
 //
 // Bump o VERSION pra invalidar tudo de uma vez (o activate limpa os antigos).
-const VERSION = "v2";
+const VERSION = "v3";
 const CACHE = `touvie-${VERSION}`;
 const OFFLINE = "/offline.html";
 
@@ -105,7 +105,7 @@ self.addEventListener("push", (e) => {
     self.registration.showNotification(data.title, {
       body: data.body,
       icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
+      badge: "/icons/badge-96.png",
       // Agrupa por URL por padrão: dois disparos do mesmo cron de horário não
       // empilham lixo. Quem manda `tag` próprio é quem PRECISA aparecer em
       // paralelo — o sweep, onde vários lembretes distintos dividem a mesma
