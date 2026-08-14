@@ -14,8 +14,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const admin = createAdminClient();
 
 const fail = (msg: string): never => {
-  console.error(`FALHOU: ${msg}`);
-  process.exit(1);
+  throw new Error(msg);
 };
 
 const { data: users, error: listErr } = await admin.auth.admin.listUsers({ perPage: 200 });
@@ -57,6 +56,9 @@ try {
   if (entregues !== 0) fail("não deveria entregar");
   if (resta) fail("assinatura morta não foi podada");
   console.log("OK: 0 entregues e assinatura morta removida");
+} catch (err) {
+  console.error(`FALHOU: ${err instanceof Error ? err.message : String(err)}`);
+  process.exitCode = 1;
 } finally {
   // Limpeza defensiva: mesmo se algo acima falhar/lançar, não deixa lixo.
   await cleanup();

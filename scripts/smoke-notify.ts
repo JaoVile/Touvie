@@ -21,6 +21,12 @@
 // smoke. O que este script prova do lado Telegram é só que o log
 // "sem_destino" reflete o estado de notify_telegram/tem_chat_id no momento —
 // não que o envio acontece.
+//
+// fail() LANÇA (não process.exit): assinatura sintética já pode estar
+// inserida no banco real quando um passo do meio falha, e process.exit()
+// não desenrola try/finally — pularia a limpeza e deixaria linha órfã em
+// push_subscriptions. O catch no topo captura, marca a saída como falha
+// (process.exitCode) e deixa o finally rodar de verdade.
 import { createECDH, randomBytes } from "node:crypto";
 import { notifyUser } from "@/lib/notify";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -28,36 +34,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const admin = createAdminClient();
 
 const fail = (msg: string): never => {
-  console.error(`FALHOU: ${msg}`);
-  process.exit(1);
+  throw new Error(msg);
 };
-
-const { data: users, error: listErr } = await admin.auth.admin.listUsers({ perPage: 200 });
-if (listErr) fail(`listUsers: ${listErr.message}`);
-const u = users?.users.find((x) => x.email === "teste@touvie.app");
-if (!u) fail("usuário de teste teste@touvie.app não existe");
-
-const { data: original, error: origErr } = await admin
-  .from("profiles")
-  .select("notify_push, notify_telegram")
-  .eq("id", u!.id)
-  .single();
-if (origErr || !original) fail(`leitura das preferências originais: ${origErr?.message}`);
-
-async function setPrefs(push: boolean, telegram: boolean) {
-  const { error } = await admin
-    .from("profiles")
-    .update({ notify_push: push, notify_telegram: telegram })
-    .eq("id", u!.id);
-  if (error) fail(`update prefs (push=${push}, telegram=${telegram}): ${error.message}`);
-}
-
-async function restaurarPrefs() {
-  await admin
-    .from("profiles")
-    .update({ notify_push: original!.notify_push, notify_telegram: original!.notify_telegram })
-    .eq("id", u!.id);
-}
 
 // Assinatura MORTA: endpoint sintético (sempre 404) + chave P-256 REAL, pra a
 // criptografia do web-push passar e o erro vir da rede (404), não de uma
@@ -73,38 +51,63 @@ function novaAssinaturaMorta() {
   return { endpoint, p256dh, auth };
 }
 
-async function inserirAssinatura(endpoint: string, p256dh: string, auth: string) {
-  const { error } = await admin
-    .from("push_subscriptions")
-    .insert({ user_id: u!.id, endpoint, p256dh, auth, user_agent: "smoke-notify" });
-  if (error) fail(`insert assinatura: ${error.message}`);
-}
-
-async function assinaturaExiste(endpoint: string): Promise<boolean> {
-  const { data, error } = await admin
-    .from("push_subscriptions")
-    .select("id")
-    .eq("endpoint", endpoint)
-    .maybeSingle();
-  if (error) fail(`select assinatura: ${error.message}`);
-  return Boolean(data);
-}
-
 async function limparAssinatura(endpoint: string) {
   await admin.from("push_subscriptions").delete().eq("endpoint", endpoint);
 }
 
 let falhas = 0;
 const assinaturasParaLimpar: string[] = [];
+let userId: string | null = null;
+let original: { notify_push: boolean; notify_telegram: boolean } | null = null;
 
 try {
+  const { data: users, error: listErr } = await admin.auth.admin.listUsers({ perPage: 200 });
+  if (listErr) fail(`listUsers: ${listErr.message}`);
+  const u = users?.users.find((x) => x.email === "teste@touvie.app");
+  if (!u) fail("usuário de teste teste@touvie.app não existe");
+  const uid = u!.id;
+  userId = uid;
+
+  const { data: orig, error: origErr } = await admin
+    .from("profiles")
+    .select("notify_push, notify_telegram")
+    .eq("id", uid)
+    .single();
+  if (origErr || !orig) fail(`leitura das preferências originais: ${origErr?.message}`);
+  original = orig;
+
+  async function setPrefs(push: boolean, telegram: boolean) {
+    const { error } = await admin
+      .from("profiles")
+      .update({ notify_push: push, notify_telegram: telegram })
+      .eq("id", uid);
+    if (error) fail(`update prefs (push=${push}, telegram=${telegram}): ${error.message}`);
+  }
+
+  async function inserirAssinatura(endpoint: string, p256dh: string, auth: string) {
+    const { error } = await admin
+      .from("push_subscriptions")
+      .insert({ user_id: uid, endpoint, p256dh, auth, user_agent: "smoke-notify" });
+    if (error) fail(`insert assinatura: ${error.message}`);
+  }
+
+  async function assinaturaExiste(endpoint: string): Promise<boolean> {
+    const { data, error } = await admin
+      .from("push_subscriptions")
+      .select("id")
+      .eq("endpoint", endpoint)
+      .maybeSingle();
+    if (error) fail(`select assinatura: ${error.message}`);
+    return Boolean(data);
+  }
+
   // Caso A: notify_push=true → push É tentado → 404 sintético → assinatura
   // PODADA. Sumir prova que sendPushToUser rodou.
   const a = novaAssinaturaMorta();
   assinaturasParaLimpar.push(a.endpoint);
   await inserirAssinatura(a.endpoint, a.p256dh, a.auth);
   await setPrefs(true, false);
-  const rA = await notifyUser(admin, u!.id, { text: "smoke-notify-a", url: "/" });
+  const rA = await notifyUser(admin, uid, { text: "smoke-notify-a", url: "/" });
   const podada = !(await assinaturaExiste(a.endpoint));
   const okA = rA.push === 0 && podada;
   if (!okA) falhas++;
@@ -118,7 +121,7 @@ try {
   assinaturasParaLimpar.push(b.endpoint);
   await inserirAssinatura(b.endpoint, b.p256dh, b.auth);
   await setPrefs(false, false);
-  const rB = await notifyUser(admin, u!.id, { text: "smoke-notify-b", url: "/" });
+  const rB = await notifyUser(admin, uid, { text: "smoke-notify-b", url: "/" });
   const sobreviveu = await assinaturaExiste(b.endpoint);
   const okB = rB.push === 0 && sobreviveu;
   if (!okB) falhas++;
@@ -156,18 +159,30 @@ try {
   console.log(
     `log "sem_destino" bate com os 2 casos: ${JSON.stringify(logs)} ${logsOk ? "✓" : "✗"}`,
   );
+} catch (err) {
+  console.error(`FALHOU: ${err instanceof Error ? err.message : String(err)}`);
+  process.exitCode = 1;
 } finally {
   // Limpeza defensiva — roda mesmo se algo acima falhar/lançar — inclusive a
   // restauração das preferências originais, senão o próximo teste herda.
   for (const endpoint of assinaturasParaLimpar) {
     await limparAssinatura(endpoint);
   }
-  await restaurarPrefs();
+  if (userId && original) {
+    await admin
+      .from("profiles")
+      .update({ notify_push: original.notify_push, notify_telegram: original.notify_telegram })
+      .eq("id", userId);
+  }
 }
 
-console.log(
-  falhas === 0
-    ? '\nOK: push respeita notify_push (poda=tentado, sobrevivência=não-tentado); log "sem_destino" bate. Telegram sem cobertura automatizada aqui (ver cabeçalho).'
-    : `\nFALHOU: ${falhas}`,
-);
-process.exit(falhas === 0 ? 0 : 1);
+if (process.exitCode !== 1) {
+  if (falhas === 0) {
+    console.log(
+      '\nOK: push respeita notify_push (poda=tentado, sobrevivência=não-tentado); log "sem_destino" bate. Telegram sem cobertura automatizada aqui (ver cabeçalho).',
+    );
+  } else {
+    console.log(`\nFALHOU: ${falhas}`);
+    process.exitCode = 1;
+  }
+}
