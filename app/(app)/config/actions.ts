@@ -342,8 +342,9 @@ export async function updatePassword(fd: FormData): Promise<{ error?: string; ok
  * Ou seja: reinscrever o MESMO aparelho (o navegador reemite a assinatura
  * sozinho às vezes) falharia sempre, e se o erro fosse ignorado no cliente
  * isso viraria uma falha muda de push. Por isso aqui é delete-then-insert:
- * duas operações, cada uma coberta por uma policy que já existe, sem tocar
- * em UPDATE e sem precisar do admin client pra essa escrita.
+ * duas operações, sem tocar em UPDATE. O insert fica no client de sessão
+ * (coberto pela policy de insert); o delete precisa do admin — veja o
+ * comentário dele abaixo.
  */
 export async function savePushSubscription(sub: {
   endpoint: string;
@@ -357,14 +358,21 @@ export async function savePushSubscription(sub: {
   } = await supabase.auth.getUser();
   if (!user) return { error: "unauthenticated" };
 
-  // Remove uma assinatura anterior do MESMO endpoint (se houver, e se for
-  // deste usuário — o filtro por user_id é defesa em profundidade além do
-  // RLS) antes de inserir de novo.
-  const { error: delError } = await supabase
+  // O delete é GLOBAL (só por endpoint, sem filtro de usuário) porque
+  // `endpoint` é unique na tabela e identifica o NAVEGADOR, não a conta: um
+  // logout seguido de login de outra conta no mesmo navegador reemite o mesmo
+  // endpoint. Filtrando por user_id, o delete não casaria a linha do dono
+  // anterior, o insert bateria no unique (23505) e essa pessoa nunca
+  // conseguiria ativar push nesse aparelho. Por isso o admin client aqui — a
+  // autorização já foi feita pelo getUser() acima, o admin é só transporte,
+  // mesmo argumento do sendTestNotification.
+  //
+  // O insert NÃO usa admin: segue no client de sessão, com `user_id` vindo da
+  // sessão e coberto pela policy de insert — nada de user_id vindo do cliente.
+  const { error: delError } = await createAdminClient()
     .from("push_subscriptions")
     .delete()
-    .eq("endpoint", sub.endpoint)
-    .eq("user_id", user.id);
+    .eq("endpoint", sub.endpoint);
   if (delError) return { error: delError.message };
 
   // `.select("id").single()` devolve o id da linha recém-criada — o client
