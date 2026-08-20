@@ -81,7 +81,7 @@ convenções que o Biome **não** garante:
   inserir. Não "conserte" isso pra `upsert` — não há policy de UPDATE, de propósito.
 - **Toube (assistente IA)** vive em `lib/toube.ts` (prompt+tools+loop de consulta,
   Z.ai glm-4.7-flash), `lib/toube-reads.ts` (consultas RLS), `lib/toube-planos.ts`
-  + `lib/planos-draft.ts` + `lib/planos-source.ts` (modo Plano, Groq llama-3.3),
+  + `lib/planos-draft.ts` + `lib/planos-source.ts` (modo Plano, Groq gpt-oss-120b),
   `lib/groq.ts` (chat/Whisper/visão), UI em `app/(app)/toube/` + o painel flutuante
   `components/FloatingToube.tsx`. Segredos `ZAI_API_KEY` e `GROQ_API_KEY` precisam
   estar **na Vercel** (env local não basta — a IA quebra em prod sem eles).
@@ -89,6 +89,10 @@ convenções que o Biome **não** garante:
   ao testar, só com OK do usuário); regras "ABSOLUTAS" numeradas no prompt são o
   que segura o tool-calling. Smoke de módulos com alias `@/` roda com
   `node --import ./scripts/dev-alias.mjs <script>.ts`.
+  **O Toube fala o idioma do perfil:** `runToubeTurn` lê `profiles.locale` e, se for `en`,
+  cola `TOUBE_SYSTEM_EN_OVERRIDE` no FIM do system prompt (o prompt PT fica: é nele que o
+  tool-calling foi afinado). Vale pro chat, pro modo Plano, pro resumo rolante e pro guarda
+  anti-mentira (`CLAIMS_ACTION_EN`) — se criar texto novo do Toube, localize os DOIS lados.
   **O Diário é INTOCÁVEL pelo Toube** — nenhuma tool/consulta lê `journal_entries`.
 - **Toube no Telegram:** o Toube também conversa pelo bot. A escrita NÃO pode
   depender de cookie de sessão, então cada módulo tem um `app/(app)/<modulo>/core.ts`

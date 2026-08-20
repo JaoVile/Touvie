@@ -1,10 +1,13 @@
 // Cliente fino do Groq (OpenAI-compatível), free tier. Usado pelo Toube Planos
-// (llama-3.3, plano estruturado) e pela transcrição de áudio (Whisper). A key vive
-// só no servidor. (Visão/OCR usa o Gemini free tier em lib/gemini-vision.ts — o
+// (plano estruturado, com tool calling) e pela transcrição de áudio (Whisper). A key
+// vive só no servidor. (Visão/OCR usa o Gemini free tier em lib/gemini-vision.ts — o
 // modelo de visão do Groq foi desativado da conta.)
+// ⚠️ O Groq APOSENTA modelo sem aviso: `llama-3.3-70b-versatile` saiu do catálogo e
+// passou a devolver 404 `model_not_found`, o que matava o modo Plano em silêncio.
+// Se o Plano parar de responder, confira `GET /openai/v1/models` ANTES de caçar bug.
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_TRANSCRIBE_URL = "https://api.groq.com/openai/v1/audio/transcriptions";
-export const GROQ_MODEL = "llama-3.3-70b-versatile";
+export const GROQ_MODEL = "openai/gpt-oss-120b";
 const WHISPER_MODEL = "whisper-large-v3-turbo";
 
 export type GroqResponse = {
@@ -70,7 +73,7 @@ export async function groqTranscribe(file: Blob, filename: string): Promise<stri
 }
 
 // Chat completion com retry + backoff. Além de 429/5xx, repete no `tool_use_failed`
-// (HTTP 400 que a llama-3.3 às vezes emite com tool-call malformado — transitório).
+// (HTTP 400 que o modelo às vezes emite com tool-call malformado — transitório).
 // Outros 400/401 são permanentes e estouram na hora. Todo caller (planos, compact,
 // leitura/ask) herda essa resiliência.
 export async function groqChat(body: Record<string, unknown>): Promise<GroqResponse> {
@@ -79,7 +82,9 @@ export async function groqChat(body: Record<string, unknown>): Promise<GroqRespo
   const init: RequestInit = {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: GROQ_MODEL, ...body }),
+    // `reasoning_effort: "low"` corta o raciocínio longo do gpt-oss (que vem num campo
+    // `reasoning` separado e só gasta tempo/token aqui). Caller pode sobrescrever.
+    body: JSON.stringify({ model: GROQ_MODEL, reasoning_effort: "low", ...body }),
   };
   let lastErr = "";
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
