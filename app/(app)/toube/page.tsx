@@ -4,6 +4,7 @@ import { GradientHeader } from "@/components/glass/GradientHeader";
 import { getUserClaims } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Dumbbell, Sparkles } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { Message } from "./ToubeConversation";
 import { ToubeSessions } from "./ToubeSessions";
@@ -11,6 +12,7 @@ import { ToubeSessions } from "./ToubeSessions";
 export const dynamic = "force-dynamic";
 
 export default async function ToubePage() {
+  const t = await getTranslations("toube");
   const supabase = await createClient();
   const userId = (await getUserClaims())!.sub;
 
@@ -60,9 +62,9 @@ export default async function ToubePage() {
       <Reveal>
         <GradientHeader
           icon={Sparkles}
-          eyebrow="Assistente · IA"
+          eyebrow={t("pageEyebrow")}
           title="Toube"
-          subtitle="Converse, pense em voz alta, peça um empurrão."
+          subtitle={t("pageSubtitle")}
         />
       </Reveal>
 
@@ -79,10 +81,10 @@ export default async function ToubePage() {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold" style={{ color: "var(--color-fg)" }}>
-            Planos de treino
+            {t("planosCardTitle")}
           </span>
           <span className="block truncate text-xs" style={{ color: "var(--color-fg-muted)" }}>
-            Monta teu treino conversando — cola um vídeo ou PDF e ele estrutura tudo
+            {t("planosCardDesc")}
           </span>
         </span>
         <span aria-hidden className="text-lg" style={{ color: "var(--color-accent)" }}>

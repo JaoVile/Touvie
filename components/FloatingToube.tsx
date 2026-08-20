@@ -3,6 +3,7 @@
 import type { Message } from "@/app/(app)/toube/ToubeConversation";
 import { createSession, deleteSession } from "@/app/(app)/toube/sessions-actions";
 import { Dumbbell, MessageSquarePlus, MessagesSquare, Sparkles, Trash2, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -26,6 +27,7 @@ type SessionLite = { id: string; title: string | null };
  * paira sobre o diário).
  */
 export function FloatingToube() {
+  const t = useTranslations("toube");
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[] | null>(null);
@@ -103,7 +105,7 @@ export function FloatingToube() {
   }
 
   async function removeSession(id: string) {
-    if (!confirm("Apagar essa conversa? Não dá pra desfazer.")) return;
+    if (!confirm(t("deleteThisChatConfirm"))) return;
     await deleteSession(id);
     setSessions((s) => s.filter((x) => x.id !== id));
     if (id === sessionId) await loadSession(); // caiu a ativa → recarrega a atual
@@ -115,7 +117,7 @@ export function FloatingToube() {
         <button
           type="button"
           onClick={openPanel}
-          title="Falar com o Toube"
+          title={t("openPanel")}
           className="fixed right-5 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 flex size-13 items-center justify-center rounded-full text-white shadow-lg transition-transform hover:scale-105 sm:bottom-5"
           style={{ background: "var(--gradient-brand)" }}
         >
@@ -134,7 +136,7 @@ export function FloatingToube() {
             <button
               type="button"
               onClick={view === "list" ? () => setView("chat") : openList}
-              title="Conversas"
+              title={t("chats")}
               className="flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-[var(--color-card)]"
               style={{
                 borderColor: "color-mix(in srgb, var(--color-border) 55%, transparent)",
@@ -142,7 +144,7 @@ export function FloatingToube() {
               }}
             >
               <MessagesSquare className="size-3" />
-              Conversas
+              {t("chats")}
             </button>
             <Link
               href="/toube/planos"
@@ -154,12 +156,12 @@ export function FloatingToube() {
               }}
             >
               <Dumbbell className="size-3" />
-              Planos
+              {t("plans")}
             </Link>
             <button
               type="button"
               onClick={closePanel}
-              title="Fechar"
+              title={t("close")}
               className="rounded-lg p-1.5"
               style={{ color: "var(--color-fg-muted)" }}
             >
@@ -177,7 +179,7 @@ export function FloatingToube() {
                   style={{ background: "var(--gradient-brand)" }}
                 >
                   <MessageSquarePlus className="size-4" />
-                  Nova conversa
+                  {t("newChat")}
                 </button>
                 {sessions.map((s) => (
                   <div key={s.id} className="group flex items-center gap-1 rounded-lg px-2 py-1.5">
@@ -187,12 +189,12 @@ export function FloatingToube() {
                       className="min-w-0 flex-1 truncate text-left text-sm"
                       style={{ color: "var(--color-fg-muted)" }}
                     >
-                      {s.title || "Nova conversa"}
+                      {s.title || t("untitled")}
                     </button>
                     <button
                       type="button"
                       onClick={() => removeSession(s.id)}
-                      title="Apagar conversa"
+                      title={t("deleteChatTitle")}
                       className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
                       style={{ color: "var(--color-fg-subtle)" }}
                     >
@@ -205,19 +207,19 @@ export function FloatingToube() {
                     className="px-2 py-4 text-center text-xs"
                     style={{ color: "var(--color-fg-muted)" }}
                   >
-                    Nenhuma conversa ainda.
+                    {t("noChats")}
                   </p>
                 ) : null}
               </div>
             ) : messages === null ? (
               <p className="py-10 text-center text-sm" style={{ color: "var(--color-fg-muted)" }}>
-                Carregando a conversa…
+                {t("loadingChat")}
               </p>
             ) : (
               <>
                 {loadError ? (
                   <p className="px-2 pt-2 text-xs" style={{ color: "var(--color-fg-muted)" }}>
-                    Não carreguei o histórico, mas pode conversar normal.
+                    {t("historyFailed")}
                   </p>
                 ) : null}
                 <ToubeConversation

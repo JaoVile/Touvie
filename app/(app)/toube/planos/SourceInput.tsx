@@ -1,5 +1,6 @@
 "use client";
 import type { Plan } from "@/lib/planos-draft";
+import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
 export function SourceInput({
@@ -11,6 +12,7 @@ export function SourceInput({
   onBusyChange?: (b: boolean) => void;
   disabled?: boolean;
 }) {
+  const t = useTranslations("toube");
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>();
@@ -28,11 +30,11 @@ export function SourceInput({
         body: JSON.stringify({ url: url.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Falha na fonte.");
+      if (!res.ok) throw new Error(data.error ?? t("srcFail"));
       setUrl("");
       onResult(data.reply, data.plan);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Erro.");
+      setErr(e instanceof Error ? e.message : t("errGeneric"));
     } finally {
       setBusy(false);
       onBusyChange?.(false);
@@ -49,10 +51,10 @@ export function SourceInput({
       fd.set("file", file);
       const res = await fetch("/api/toube/planos/fonte", { method: "POST", body: fd });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Falha no PDF.");
+      if (!res.ok) throw new Error(data.error ?? t("srcPdfFail"));
       onResult(data.reply, data.plan);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Erro.");
+      setErr(e instanceof Error ? e.message : t("errGeneric"));
     } finally {
       setBusy(false);
       onBusyChange?.(false);
@@ -66,7 +68,7 @@ export function SourceInput({
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           disabled={busy || disabled}
-          placeholder="Cola um link do YouTube ou site…"
+          placeholder={t("srcPlaceholder")}
           className="flex-1 rounded-lg border bg-transparent px-3 py-1.5 text-sm outline-none disabled:opacity-50"
           style={{ borderColor: "var(--color-border)", color: "var(--color-fg)" }}
         />
@@ -77,7 +79,7 @@ export function SourceInput({
           className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
           style={{ background: "var(--gradient-brand)" }}
         >
-          {busy ? "…" : "Usar"}
+          {busy ? "…" : t("srcUse")}
         </button>
         <button
           type="button"

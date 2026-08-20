@@ -52,58 +52,70 @@ function parseProposals(data: { proposals?: unknown }): Proposal[] | undefined {
     : undefined;
 }
 
-function proposalLabel(p: Proposal): string {
-  const t = String(p.args.title ?? p.args.titulo ?? "");
-  const alvo = t ? ` "${t}"` : "";
+type T = ReturnType<typeof useTranslations>;
+
+function proposalLabel(p: Proposal, t: T): string {
+  const title = String(p.args.title ?? p.args.titulo ?? "");
+  const alvo = title ? ` "${title}"` : "";
   switch (p.action) {
     case "criar_meta":
-      return `Criar meta${alvo}${p.args.target_date ? ` · prazo ${p.args.target_date}` : ""}`;
+      return `${t("prop.createGoal")}${alvo}${p.args.target_date ? t("prop.due", { d: String(p.args.target_date) }) : ""}`;
     case "editar_meta":
-      return `Editar meta${alvo}`;
+      return `${t("prop.editGoal")}${alvo}`;
     case "concluir_meta":
-      return `Concluir meta${alvo}`;
+      return `${t("prop.completeGoal")}${alvo}`;
     case "deletar_meta":
-      return `Apagar meta${alvo}`;
+      return `${t("prop.deleteGoal")}${alvo}`;
     case "criar_tarefa":
-      return `Criar tarefa${alvo}${p.args.due_date ? ` · até ${p.args.due_date}` : ""}`;
+      return `${t("prop.createTask")}${alvo}${p.args.due_date ? t("prop.by", { d: String(p.args.due_date) }) : ""}`;
     case "concluir_tarefa":
-      return `Concluir tarefa${alvo}`;
+      return `${t("prop.completeTask")}${alvo}`;
     case "deletar_tarefa":
-      return `Apagar tarefa${alvo}`;
+      return `${t("prop.deleteTask")}${alvo}`;
     case "lancar_transacao": {
-      const tipo = p.args.kind === "income" ? "Receita" : "Gasto";
-      const desc = p.args.descricao ? ` · ${p.args.descricao}` : "";
-      return `${tipo} de R$ ${String(p.args.valor ?? "")}${desc}`;
+      const tipo = t(p.args.kind === "income" ? "prop.income" : "prop.expense");
+      const desc = p.args.descricao ? ` · ${String(p.args.descricao)}` : "";
+      return `${t("prop.amount", { tipo, valor: String(p.args.valor ?? "") })}${desc}`;
     }
     case "adicionar_bloco_rotina":
-      return `Rotina: "${String(p.args.titulo ?? "")}" às ${String(p.args.hora ?? "")}`;
+      return t("prop.routine", {
+        titulo: String(p.args.titulo ?? ""),
+        hora: String(p.args.hora ?? ""),
+      });
     case "criar_lembrete": {
       const msg = String(p.args.mensagem ?? "");
       const hora = String(p.args.hora ?? "");
       return p.args.recorrente
-        ? `Lembrete diário · "${msg}" todo dia às ${hora}`
+        ? t("prop.reminderDaily", { msg, hora })
         : p.args.data
-          ? `Lembrete · "${msg}" em ${String(p.args.data)} às ${hora}`
-          : `Lembrete · "${msg}" na próxima ${hora} (uma vez)`;
+          ? t("prop.reminderOn", { msg, hora, data: String(p.args.data) })
+          : t("prop.reminderNext", { msg, hora });
     }
     case "criar_nota":
-      return `Nota · "${String(p.args.titulo ?? "")}"`;
-    case "registrar_medida":
-      return `Medida · ${p.args.peso ? `${String(p.args.peso)}kg` : "corpo"}${p.args.cintura_cm ? ` · cintura ${String(p.args.cintura_cm)}cm` : ""}`;
+      return t("prop.note", { titulo: String(p.args.titulo ?? "") });
+    case "registrar_medida": {
+      const corpo = p.args.peso ? `${String(p.args.peso)}kg` : t("prop.body");
+      const cintura = p.args.cintura_cm ? t("prop.waist", { v: String(p.args.cintura_cm) }) : "";
+      return `${t("prop.measure", { corpo })}${cintura}`;
+    }
     case "logar_serie":
-      return `Série · ${String(p.args.exercicio ?? "exercício")} ${String(p.args.carga ?? "")}kg × ${String(p.args.reps ?? "")}${p.args.rpe ? ` @RPE${String(p.args.rpe)}` : ""}`;
+      return `${t("prop.series", {
+        ex: String(p.args.exercicio ?? t("prop.exercise")),
+        carga: String(p.args.carga ?? ""),
+        reps: String(p.args.reps ?? ""),
+      })}${p.args.rpe ? ` @RPE${String(p.args.rpe)}` : ""}`;
   }
 }
 
 // Onde a ação aterrissa — pra confirmação certa depois de executar.
-function doneModule(action: ToubeAction): string {
-  if (action === "lancar_transacao") return "Finanças";
-  if (action === "adicionar_bloco_rotina") return "Rotina";
-  if (action === "criar_lembrete") return "Notificações";
-  if (action === "criar_nota") return "Notas";
-  if (action === "registrar_medida") return "Dieta";
-  if (action === "logar_serie") return "Treino";
-  return "Metas";
+function doneModule(action: ToubeAction, t: T): string {
+  if (action === "lancar_transacao") return t("modules.finances");
+  if (action === "adicionar_bloco_rotina") return t("modules.routine");
+  if (action === "criar_lembrete") return t("modules.notifications");
+  if (action === "criar_nota") return t("modules.notes");
+  if (action === "registrar_medida") return t("modules.diet");
+  if (action === "logar_serie") return t("modules.workout");
+  return t("modules.goals");
 }
 
 /**
@@ -190,7 +202,7 @@ export function ToubeConversation({
     toubeVoice.setEnabled(next);
     setVoiceOn(next);
     // Feedback imediato ao ligar (e destrava o autoplay dentro do gesto do clique).
-    if (next) void toubeVoice.speak("Pronto! A voz do Toube está ativada.");
+    if (next) void toubeVoice.speak(t("voiceOnSpoken"));
   }
 
   async function togglePlanMode() {
@@ -222,12 +234,12 @@ export function ToubeConversation({
     try {
       const res = await criarProgramaCompleto();
       if (res.error) throw new Error(res.error);
-      setPlanDone("✓ Programa criado! Já está no módulo Treino.");
+      setPlanDone(t("planCreated"));
       setPlan(EMPTY_PLAN); // o rascunho fechou; o próximo começa do zero
       setPlanHistory([]);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao criar o programa.");
+      setError(e instanceof Error ? e.message : t("errProgram"));
     } finally {
       setCommitting(false);
     }
@@ -261,7 +273,7 @@ export function ToubeConversation({
     if ((!typed && !attachment) || busy) return;
     // O anexo vira um bloco junto da mensagem — o Toube "vê" o conteúdo extraído.
     const text = attachment
-      ? `${typed || "Dá uma olhada nesse anexo."}\n\n[ANEXO ${attachment.kind} — ${attachment.name}]:\n${attachment.text}`
+      ? `${typed || t("attachDefaultMsg")}\n\n[ANEXO ${attachment.kind} — ${attachment.name}]:\n${attachment.text}`
       : typed;
     setError(undefined);
     setInput("");
@@ -282,7 +294,7 @@ export function ToubeConversation({
           ),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Erro no modo Plano.");
+        if (!res.ok) throw new Error(data.error ?? t("errPlan"));
         setPlan(data.plan);
         setPlanDone(undefined);
         setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
@@ -300,7 +312,7 @@ export function ToubeConversation({
         body: JSON.stringify({ message: text, session_id: sessionId }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erro ao falar com o Toube.");
+      if (!res.ok) throw new Error(data.error ?? t("errTalk"));
       const proposals = parseProposals(data);
       setMessages((m) => {
         const copy = [...m];
@@ -322,7 +334,7 @@ export function ToubeConversation({
       });
       toubeVoice.speak(data.reply);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro inesperado.");
+      setError(e instanceof Error ? e.message : t("errUnexpected"));
     } finally {
       setSending(false);
     }
@@ -354,7 +366,7 @@ export function ToubeConversation({
         body: JSON.stringify({ message: text, session_id: sessionId, edit_message_id: target.id }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erro ao editar a mensagem.");
+      if (!res.ok) throw new Error(data.error ?? t("errEdit"));
       setMessages((m) => [
         ...m,
         {
@@ -366,7 +378,7 @@ export function ToubeConversation({
       ]);
       toubeVoice.speak(data.reply);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro inesperado.");
+      setError(e instanceof Error ? e.message : t("errUnexpected"));
     } finally {
       setSending(false);
     }
@@ -387,7 +399,7 @@ export function ToubeConversation({
         body: JSON.stringify({ session_id: sessionId, regenerate: true }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erro ao regenerar.");
+      if (!res.ok) throw new Error(data.error ?? t("errRegen"));
       setMessages((m) => [
         ...m,
         {
@@ -399,7 +411,7 @@ export function ToubeConversation({
       ]);
       toubeVoice.speak(data.reply);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro inesperado.");
+      setError(e instanceof Error ? e.message : t("errUnexpected"));
     } finally {
       setSending(false);
     }
@@ -429,7 +441,7 @@ export function ToubeConversation({
       // Mudança ao vivo: a página atual re-renderiza com o dado novo.
       if (!res.error) router.refresh();
     } catch {
-      patchProposal(mi, pi, { status: "error", error: "Falha ao executar." });
+      patchProposal(mi, pi, { status: "error", error: t("errExec") });
     }
   }
 
@@ -460,10 +472,10 @@ export function ToubeConversation({
           fd.set("audio", blob, `fala.${ext}`);
           const res = await fetch("/api/toube/transcribe", { method: "POST", body: fd });
           const data = await res.json();
-          if (!res.ok) throw new Error(data.error ?? "Não consegui ouvir.");
+          if (!res.ok) throw new Error(data.error ?? t("errHear"));
           setInput((cur) => (cur ? `${cur} ${data.text}` : data.text));
         } catch (e) {
-          setError(e instanceof Error ? e.message : "Não consegui ouvir o áudio.");
+          setError(e instanceof Error ? e.message : t("errHearAudio"));
         } finally {
           setTranscribing(false);
         }
@@ -475,7 +487,7 @@ export function ToubeConversation({
       stopTimerRef.current = setTimeout(() => stopRecording(), 60_000);
     } catch {
       setMicOk(false);
-      setError("Não consegui acessar o microfone (permissão?).");
+      setError(t("errMic"));
     } finally {
       setStartingRec(false);
     }
@@ -491,7 +503,7 @@ export function ToubeConversation({
     if (busy) return;
     setError(undefined);
     if (file.size > 8 * 1024 * 1024) {
-      setError("Arquivo grande demais (máx 8MB).");
+      setError(t("errTooBig"));
       return;
     }
     setAttaching(true);
@@ -500,10 +512,10 @@ export function ToubeConversation({
       fd.set("file", file);
       const res = await fetch("/api/toube/anexo", { method: "POST", body: fd });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Não consegui ler o anexo.");
+      if (!res.ok) throw new Error(data.error ?? t("errAttach"));
       setAttachment({ kind: data.kind, name: file.name, text: data.text });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Não consegui ler o anexo.");
+      setError(e instanceof Error ? e.message : t("errAttach"));
     } finally {
       setAttaching(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -546,7 +558,7 @@ export function ToubeConversation({
         type="button"
         onClick={() => fileRef.current?.click()}
         disabled={busy || recording}
-        title="Anexar imagem, PDF ou texto"
+        title={t("tAttach")}
         className="rounded-full p-2 transition-colors hover:bg-[var(--color-card)] disabled:opacity-40"
         style={{ color: "var(--color-fg-muted)" }}
       >
@@ -556,7 +568,7 @@ export function ToubeConversation({
         type="button"
         onClick={togglePlanMode}
         disabled={busy || recording}
-        title={planMode ? "Sair do modo Plano" : "Modo Plano de treino"}
+        title={planMode ? t("tPlanOn") : t("tPlanOff")}
         className="rounded-full p-2 transition-colors hover:bg-[var(--color-card)] disabled:opacity-40"
         style={
           planMode
@@ -582,16 +594,16 @@ export function ToubeConversation({
         rows={1}
         placeholder={
           recording
-            ? "Gravando… toca no quadrado pra parar"
+            ? t("phRecording")
             : transcribing
-              ? "Transcrevendo…"
+              ? t("phTranscribing")
               : attaching
-                ? "Lendo o anexo…"
+                ? t("phAttaching")
                 : planMode
-                  ? "Modo Plano — descreve teu treino ou cola um link do YouTube…"
+                  ? t("phPlan")
                   : isPanel
-                    ? "Fala com o Toube…"
-                    : "Escreva ou fale com o Toube…"
+                    ? t("phPanel")
+                    : t("phPage")
         }
         className="max-h-40 flex-1 resize-none overflow-y-hidden bg-transparent px-2 py-1.5 text-sm outline-none"
         style={{ color: "var(--color-fg)" }}
@@ -601,7 +613,7 @@ export function ToubeConversation({
           type="button"
           onClick={recording ? stopRecording : startRecording}
           disabled={busy || startingRec}
-          title={recording ? "Parar gravação" : "Falar com o Toube"}
+          title={recording ? t("tStopRec") : t("tRec")}
           className="rounded-full p-2 transition-colors hover:bg-[var(--color-card)] disabled:opacity-40"
           style={{ color: recording ? "var(--color-danger)" : "var(--color-fg-muted)" }}
         >
@@ -612,7 +624,7 @@ export function ToubeConversation({
         <button
           type="button"
           onClick={toggleVoice}
-          title={voiceOn ? "Desligar a voz do Toube" : "Ligar a voz do Toube (lê as respostas)"}
+          title={voiceOn ? t("tVoiceOff") : t("tVoiceOn")}
           aria-pressed={voiceOn}
           className="rounded-full p-2 transition-colors hover:bg-[var(--color-card)]"
           style={{ color: voiceOn ? "var(--color-accent)" : "var(--color-fg-muted)" }}
@@ -627,7 +639,7 @@ export function ToubeConversation({
         className="rounded-full px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform hover:enabled:scale-[1.03] active:enabled:scale-95 disabled:opacity-40"
         style={{ background: "var(--gradient-brand)" }}
       >
-        Enviar
+        {t("send")}
       </button>
     </div>
   );
@@ -665,10 +677,9 @@ export function ToubeConversation({
             >
               <Sparkles className="size-5" />
             </span>
-            <p className="gradient-text text-base font-semibold">Oi, eu sou o Toube</p>
+            <p className="gradient-text text-base font-semibold">{t("emptyTitle")}</p>
             <p className="max-w-xs text-sm" style={{ color: "var(--color-fg-muted)" }}>
-              Manda a primeira mensagem — tô aqui pra conversar, pensar junto e dar um empurrão no
-              que precisar.
+              {t("emptyBody")}
             </p>
           </div>
         ) : null}
@@ -692,7 +703,7 @@ export function ToubeConversation({
                   <button
                     type="button"
                     onClick={() => setEditingIdx(null)}
-                    title="Cancelar edição"
+                    title={t("tCancelEdit")}
                     className="rounded-full p-1.5 transition-colors hover:bg-white/15"
                   >
                     <X className="size-3.5" />
@@ -701,7 +712,7 @@ export function ToubeConversation({
                     type="button"
                     onClick={confirmEdit}
                     disabled={!editText.trim() || busy}
-                    title="Salvar e reenviar"
+                    title={t("tSaveResend")}
                     className="rounded-full p-1.5 transition-colors hover:bg-white/15 disabled:opacity-40"
                   >
                     <Check className="size-3.5" />
@@ -719,7 +730,7 @@ export function ToubeConversation({
                     type="button"
                     onClick={() => startEdit(i)}
                     disabled={busy || recording}
-                    title="Editar e reenviar"
+                    title={t("tEditResend")}
                     className="shrink-0 rounded-full p-1.5 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-0"
                     style={{ color: "var(--color-fg-subtle)" }}
                   >
@@ -747,7 +758,7 @@ export function ToubeConversation({
                   <button
                     type="button"
                     onClick={() => void toubeVoice.speak(m.content, { force: true })}
-                    title="Ouvir esta resposta"
+                    title={t("tListen")}
                     className="shrink-0 rounded-full p-1.5 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
                     style={{ color: "var(--color-fg-subtle)" }}
                   >
@@ -773,7 +784,7 @@ export function ToubeConversation({
                     style={danger ? { color: "var(--color-danger)" } : undefined}
                   >
                     {danger ? "⚠️ " : ""}
-                    {proposalLabel(p)}
+                    {proposalLabel(p, t)}
                   </p>
                   {p.status === "pending" || p.status === "running" ? (
                     <div className="mt-2 flex gap-2">
@@ -787,10 +798,10 @@ export function ToubeConversation({
                         }}
                       >
                         {p.status === "running"
-                          ? "Fazendo…"
+                          ? t("doing")
                           : danger
-                            ? "Apagar mesmo assim"
-                            : "Confirmar"}
+                            ? t("deleteAnyway")
+                            : t("confirm")}
                       </button>
                       <button
                         type="button"
@@ -802,7 +813,7 @@ export function ToubeConversation({
                           color: "var(--color-fg-muted)",
                         }}
                       >
-                        Cancelar
+                        {t("cancel")}
                       </button>
                     </div>
                   ) : (
@@ -814,10 +825,10 @@ export function ToubeConversation({
                       }}
                     >
                       {p.status === "done"
-                        ? `✓ Feito! Já está no módulo ${doneModule(p.action)}.${p.note ? ` ${p.note}` : ""}`
+                        ? `${t("doneNote", { module: doneModule(p.action, t) })}${p.note ? ` ${p.note}` : ""}`
                         : p.status === "cancelled"
-                          ? "Cancelado."
-                          : `Erro: ${p.error ?? "não deu"}`}
+                          ? t("cancelled")
+                          : t("errorLine", { msg: p.error ?? t("errorFallback") })}
                     </p>
                   )}
                 </div>
@@ -829,12 +840,12 @@ export function ToubeConversation({
                 type="button"
                 onClick={regenerate}
                 disabled={busy || recording}
-                title="Gerar outra resposta no lugar desta"
+                title={t("regenerateTitle")}
                 className="flex items-center gap-1 self-start rounded-full px-2 py-1 text-xs transition-colors hover:bg-[var(--color-card)] disabled:opacity-40"
                 style={{ color: "var(--color-fg-subtle)" }}
               >
                 <RefreshCw className="size-3" />
-                Regenerar
+                {t("regenerate")}
               </button>
             ) : null}
           </div>
@@ -849,7 +860,7 @@ export function ToubeConversation({
               border: "1px solid color-mix(in srgb, var(--color-border) 55%, transparent)",
             }}
           >
-            <span className="toube-typing" aria-label="Toube está digitando">
+            <span className="toube-typing" aria-label={t("typing")}>
               <span />
               <span />
               <span />
@@ -877,7 +888,7 @@ export function ToubeConversation({
               style={{ color: "var(--color-accent)" }}
             >
               <Dumbbell className="size-3.5" />
-              Modo Plano de treino
+              {t("planTitle")}
             </span>
             {plan?.days.length ? (
               <button
@@ -887,14 +898,14 @@ export function ToubeConversation({
                 className="rounded-lg px-3 py-1 text-xs font-semibold text-white disabled:opacity-50"
                 style={{ background: "var(--gradient-brand)" }}
               >
-                {committing ? "Criando…" : "Criar programa completo"}
+                {committing ? t("planCreating") : t("planCreate")}
               </button>
             ) : null}
           </div>
           <div className="max-h-56 overflow-y-auto">
             {plan === null ? (
               <p className="p-3 text-xs" style={{ color: "var(--color-fg-muted)" }}>
-                Carregando o rascunho…
+                {t("planLoading")}
               </p>
             ) : (
               <PlanPreview plan={plan} />
@@ -920,7 +931,7 @@ export function ToubeConversation({
           <button
             type="button"
             onClick={() => setAttachment(undefined)}
-            title="Remover anexo"
+            title={t("tRemoveAttachment")}
             style={{ color: "var(--color-fg-muted)" }}
           >
             <X className="size-3" />

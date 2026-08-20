@@ -1,5 +1,6 @@
 "use client";
 import { EMPTY_PLAN, type Plan } from "@/lib/planos-draft";
+import { useTranslations } from "next-intl";
 import { type KeyboardEvent, useState } from "react";
 import { PlanPreview } from "./PlanPreview";
 import { SourceInput } from "./SourceInput";
@@ -8,6 +9,7 @@ import { criarProgramaCompleto, novoRascunho } from "./actions";
 type Msg = { role: "user" | "assistant"; content: string };
 
 export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
+  const t = useTranslations("toube");
   const [plan, setPlan] = useState<Plan>(initialPlan);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -33,11 +35,11 @@ export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
         body: JSON.stringify({ message: text, history: messages.slice(-24) }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erro.");
+      if (!res.ok) throw new Error(data.error ?? t("errGeneric"));
       setPlan(data.plan);
       setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro.");
+      setError(e instanceof Error ? e.message : t("errGeneric"));
     } finally {
       setSending(false);
     }
@@ -55,9 +57,9 @@ export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
     try {
       const res = await criarProgramaCompleto();
       if (res.error) throw new Error(res.error);
-      setDone("✓ Programa criado! Já está no módulo Treino.");
+      setDone(t("planCreated"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao criar.");
+      setError(e instanceof Error ? e.message : t("errCreate"));
     } finally {
       setCommitting(false);
     }
@@ -73,7 +75,7 @@ export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
       setDone(undefined);
       setError(undefined);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao reiniciar.");
+      setError(e instanceof Error ? e.message : t("errRestart"));
     } finally {
       setCommitting(false);
     }
@@ -106,7 +108,7 @@ export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
             className="mt-3 w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
             style={{ background: "var(--gradient-brand)" }}
           >
-            {committing ? "Criando…" : "Criar programa completo"}
+            {committing ? t("planCreating") : t("planCreate")}
           </button>
         ) : null}
         {done ? (
@@ -121,7 +123,7 @@ export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
               className="mt-2 w-full rounded-xl border px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
               style={{ borderColor: "var(--color-border)", color: "var(--color-fg)" }}
             >
-              Montar outro plano
+              {t("planBuildAnother")}
             </button>
           </>
         ) : null}
@@ -162,7 +164,7 @@ export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
                 border: "1px solid var(--color-border)",
               }}
             >
-              Montando…
+              {t("planBuilding")}
             </div>
           ) : null}
         </div>
@@ -184,7 +186,7 @@ export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
             onKeyDown={onKeyDown}
             rows={1}
             disabled={anyBusy}
-            placeholder="Fala como quer o treino…"
+            placeholder={t("planChatPlaceholder")}
             className="max-h-40 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none disabled:opacity-50"
             style={{ color: "var(--color-fg)" }}
           />
@@ -195,7 +197,7 @@ export function PlanosChat({ initialPlan }: { initialPlan: Plan }) {
             className="rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
             style={{ background: "var(--gradient-brand)" }}
           >
-            Enviar
+            {t("send")}
           </button>
         </div>
       </div>
