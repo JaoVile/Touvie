@@ -67,7 +67,7 @@ Prioridade: **P0** = trava o launch · **P1** = logo depois · **P2** = quando d
   flutuante, histórico por sessão (RLS), **age** nos módulos (finanças, rotina,
   lembretes, notas, dieta, treino), **lê** os dados, monta **planos de treino**,
   transcreve voz (Whisper) e lê imagens (visão). GLM-4.7-Flash (Z.ai) no chat,
-  llama-3.3 (Groq) nos planos. **Diário é intocável pelo Toube.**
+  gpt-oss-120b (Groq) nos planos. **Diário é intocável pelo Toube.**
 - Cadastro `/signup` (email+senha+nome+palavra-chave, sem confirmação de email).
 - Diário **zero-knowledge**: cifra client-side (AES-GCM), DEK trancada por 3
   portas (PIN, palavra-chave, código). Ativar / destrancar / trocar PIN /

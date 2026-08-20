@@ -1,6 +1,7 @@
 "use client";
 
 import { MessageSquarePlus, Pencil, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { type Message, ToubeConversation } from "./ToubeConversation";
 import { createSession, deleteSession, renameSession } from "./sessions-actions";
@@ -23,6 +24,7 @@ export function ToubeSessions({
   initial: Message[];
   initialSummary?: string | null;
 }) {
+  const t = useTranslations("toube");
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
   const [active, setActive] = useState(activeId);
   const [messages, setMessages] = useState<Message[]>(initial);
@@ -59,7 +61,7 @@ export function ToubeSessions({
   }
 
   function rename(s: Session) {
-    const novo = prompt("Renomear conversa:", s.title ?? "")?.trim();
+    const novo = prompt(t("renamePrompt"), s.title ?? "")?.trim();
     if (!novo) return;
     setSessions((list) => list.map((x) => (x.id === s.id ? { ...x, title: novo } : x)));
     start(() => {
@@ -68,7 +70,7 @@ export function ToubeSessions({
   }
 
   function remove(s: Session) {
-    if (!confirm(`Apagar a conversa "${s.title ?? "Nova conversa"}"? Não dá pra desfazer.`)) return;
+    if (!confirm(t("deleteChatConfirm", { title: s.title ?? t("untitled") }))) return;
     const rest = sessions.filter((x) => x.id !== s.id);
     setSessions(rest);
     start(() => {
@@ -92,7 +94,7 @@ export function ToubeSessions({
           style={{ background: "var(--gradient-brand)" }}
         >
           <MessageSquarePlus className="size-4" />
-          Nova conversa
+          {t("newChat")}
         </button>
         <ul className="flex max-h-[60dvh] flex-col gap-1 overflow-y-auto md:max-h-[70dvh]">
           {sessions.map((s) => (
@@ -110,12 +112,12 @@ export function ToubeSessions({
                 className="min-w-0 flex-1 truncate text-left"
                 style={{ color: s.id === active ? "var(--color-fg)" : "var(--color-fg-muted)" }}
               >
-                {s.title || "Nova conversa"}
+                {s.title || t("untitled")}
               </button>
               <button
                 type="button"
                 onClick={() => rename(s)}
-                title="Renomear"
+                title={t("renameTitle")}
                 className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
                 style={{ color: "var(--color-fg-subtle)" }}
               >
@@ -124,7 +126,7 @@ export function ToubeSessions({
               <button
                 type="button"
                 onClick={() => remove(s)}
-                title="Apagar conversa"
+                title={t("deleteChatTitle")}
                 className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
                 style={{ color: "var(--color-fg-subtle)" }}
               >

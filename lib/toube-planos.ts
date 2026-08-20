@@ -1,6 +1,6 @@
 import { groqChat } from "./groq";
 import { PLAN_TOOL_NAMES, type Plan, describePlanForModel } from "./planos-draft";
-import type { ChatMessage } from "./toube";
+import type { ChatMessage, ToubeLocale } from "./toube";
 
 export type PlanosResult = {
   text: string;
@@ -21,6 +21,25 @@ REGRAS:
 1. Uma ferramenta por mudança; pode chamar VÁRIAS no mesmo turno (ex.: montar_do_zero já com todos os dias).
 2. NUNCA invente que "já cadastrei no app" — o cadastro é um passo final separado que a pessoa confirma. Você só mexe no rascunho.
 3. weekday: 0=Dom, 1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex, 6=Sáb.`;
+
+// Mesmo esquema do chat (ver TOUBE_SYSTEM_EN_OVERRIDE): o prompt afinado fica em
+// PT e o inglês entra como última instrução, só trocando o idioma da conversa.
+const PLANOS_SYSTEM_EN_OVERRIDE = `LANGUAGE OVERRIDE — this section wins over every language instruction above.
+
+Write to this person in natural American English only — never in Portuguese. The exercise names you propose go in English too ("Barbell bench press", "Back squat"), EXCEPT names the person wrote themselves, which you keep exactly as they typed them.
+
+Everything else stays identical: the same tools, the same rules, the same weekday numbering (0=Sunday … 6=Saturday). Tool names and argument names are code — never translate them.`;
+
+const PLANOS_FALLBACK = {
+  "pt-BR": {
+    updated: "Atualizei o rascunho aí do lado 👇",
+    ask: "Me conta como quer o treino.",
+  },
+  en: {
+    updated: "I updated the draft over there 👇",
+    ask: "Tell me how you want to train.",
+  },
+} as const;
 
 const TOOLS = [
   {
@@ -167,6 +186,7 @@ export async function planosReply(
   history: ChatMessage[],
   plan: Plan,
   sourceText?: string,
+  locale: ToubeLocale = "pt-BR",
 ): Promise<PlanosResult> {
   const context = sourceText
     ? `${describePlanForModel(plan)}\n\nFONTE (base pro plano — resuma e monte):\n${sourceText.slice(0, 12000)}`
@@ -177,7 +197,16 @@ export async function planosReply(
     tool_choice: "auto",
     temperature: 0.6,
     max_tokens: 1500,
-    messages: [{ role: "system", content: `${PLANOS_SYSTEM}\n\n${context}` }, ...history],
+    messages: [
+      {
+        role: "system",
+        content:
+          locale === "en"
+            ? `${PLANOS_SYSTEM}\n\n${context}\n\n${PLANOS_SYSTEM_EN_OVERRIDE}`
+            : `${PLANOS_SYSTEM}\n\n${context}`,
+      },
+      ...history,
+    ],
   });
 
   const msg = data.choices?.[0]?.message;
@@ -193,8 +222,7 @@ export async function planosReply(
       return { tool: tc.function?.name as string, args };
     });
 
-  const text =
-    msg?.content?.trim() ||
-    (mutations.length ? "Atualizei o rascunho aí do lado 👇" : "Me conta como quer o treino.");
+  const fb = PLANOS_FALLBACK[locale];
+  const text = msg?.content?.trim() || (mutations.length ? fb.updated : fb.ask);
   return { text, mutations };
 }

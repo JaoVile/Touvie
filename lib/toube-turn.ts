@@ -1,4 +1,4 @@
-import { type ChatMessage, type ToubeResult, toubeReply } from "@/lib/toube";
+import { type ChatMessage, type ToubeLocale, type ToubeResult, toubeReply } from "@/lib/toube";
 import { summarizeConversation } from "@/lib/toube-compact";
 import type { ToubeCtx } from "@/lib/toube-ctx";
 import { executeToubeRead } from "@/lib/toube-reads";
@@ -14,7 +14,11 @@ const COMPACT_TRIGGER = 30;
  * rolante e só DEPOIS de salvar poda as cruas. Falha do resumo → não poda nada
  * (nunca perde mensagem por erro do modelo). Devolve o resumo vigente.
  */
-async function compactIfNeeded(ctx: ToubeCtx, sessionId: string): Promise<string | null> {
+async function compactIfNeeded(
+  ctx: ToubeCtx,
+  sessionId: string,
+  locale: ToubeLocale,
+): Promise<string | null> {
   const { data: sRow } = await ctx.supabase
     .from("toube_sessions")
     .select("summary")
@@ -45,6 +49,7 @@ async function compactIfNeeded(ctx: ToubeCtx, sessionId: string): Promise<string
     const newSummary = await summarizeConversation(
       sessionSummary,
       oldest.map((m) => ({ role: m.role, content: m.content })),
+      locale,
     );
     if (newSummary) {
       const { error: upErr } = await ctx.supabase
@@ -74,10 +79,48 @@ async function compactIfNeeded(ctx: ToubeCtx, sessionId: string): Promise<string
  * orientar E pra editar/concluir/deletar (por isso vai o id de cada uma).
  * Limitado e truncado pra segurar tokens e dado enviado ao modelo.
  */
-export async function buildMetasContext(ctx: ToubeCtx): Promise<{
+// Rótulos do contexto. Ficam no idioma da conversa porque prompt bilíngue faz o
+// glm-flash vazar pro outro idioma no meio da resposta — os DADOS (títulos das
+// metas, categorias, exercícios) nunca são traduzidos: são a fala da pessoa.
+const CTX_LABELS = {
+  "pt-BR": {
+    header: (dia: string, data: string, hora: string) =>
+      `Hoje é ${dia}, ${data}, e agora são ${hora} (horário de Brasília).`,
+    goals: "METAS ATIVAS (use o id pra editar/concluir/deletar):",
+    noGoals: "A pessoa ainda não tem metas ativas.",
+    due: (d: string) => ` (prazo: ${d})`,
+    tasks: "TAREFAS ABERTAS (use o id pra concluir/deletar):",
+    taskDue: (d: string) => ` (até ${d})`,
+    cats: "CATEGORIAS DE FINANÇAS (mande o id no lancar_transacao quando a fala casar):",
+    income: "receita",
+    expense: "gasto",
+    exercises: "EXERCÍCIOS DO CATÁLOGO (use o id no logar_serie; só existe o que está aqui):",
+    weekdayLocale: "pt-BR",
+  },
+  en: {
+    header: (dia: string, data: string, hora: string) =>
+      `Today is ${dia}, ${data}, and it is now ${hora} (Brasília time).`,
+    goals: "ACTIVE GOALS (use the id to edit/complete/delete):",
+    noGoals: "This person has no active goals yet.",
+    due: (d: string) => ` (due: ${d})`,
+    tasks: "OPEN TASKS (use the id to complete/delete):",
+    taskDue: (d: string) => ` (by ${d})`,
+    cats: "FINANCE CATEGORIES (send the id in lancar_transacao when the message matches one):",
+    income: "income",
+    expense: "expense",
+    exercises: "EXERCISE CATALOG (use the id in logar_serie; nothing outside this list exists):",
+    weekdayLocale: "en-US",
+  },
+} as const;
+
+export async function buildMetasContext(
+  ctx: ToubeCtx,
+  locale: ToubeLocale = "pt-BR",
+): Promise<{
   metasContext: string;
   exercises: { id: string; name: string; muscle_group: string | null }[];
 }> {
+  const L = CTX_LABELS[locale];
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
   const agora = new Date().toLocaleTimeString("en-GB", {
     timeZone: "America/Sao_Paulo",
@@ -116,39 +159,39 @@ export async function buildMetasContext(ctx: ToubeCtx): Promise<{
 
   const metasBlock =
     goals && goals.length > 0
-      ? `METAS ATIVAS (use o id pra editar/concluir/deletar):\n${goals
+      ? `${L.goals}\n${goals
           .map((g) => {
-            const prazo = g.target_date ? ` (prazo: ${g.target_date})` : "";
+            const prazo = g.target_date ? L.due(g.target_date) : "";
             const desc = g.description ? ` — ${g.description.slice(0, 160)}` : "";
             return `- [id ${g.id}] "${g.title}"${prazo}${desc}`;
           })
           .join("\n")}`
-      : "A pessoa ainda não tem metas ativas.";
+      : L.noGoals;
   const tasksBlock =
     tasks && tasks.length > 0
-      ? `\n\nTAREFAS ABERTAS (use o id pra concluir/deletar):\n${tasks
-          .map((t) => `- [id ${t.id}] "${t.title}"${t.due_date ? ` (até ${t.due_date})` : ""}`)
+      ? `\n\n${L.tasks}\n${tasks
+          .map((t) => `- [id ${t.id}] "${t.title}"${t.due_date ? L.taskDue(t.due_date) : ""}`)
           .join("\n")}`
       : "";
   const catsBlock =
     cats && cats.length > 0
-      ? `\n\nCATEGORIAS DE FINANÇAS (mande o id no lancar_transacao quando a fala casar):\n${cats
-          .map((c) => `- [id ${c.id}] "${c.name}" (${c.kind === "income" ? "receita" : "gasto"})`)
+      ? `\n\n${L.cats}\n${cats
+          .map((c) => `- [id ${c.id}] "${c.name}" (${c.kind === "income" ? L.income : L.expense})`)
           .join("\n")}`
       : "";
   const exercisesBlock =
     exercises && exercises.length > 0
-      ? `\n\nEXERCÍCIOS DO CATÁLOGO (use o id no logar_serie; só existe o que está aqui):\n${exercises
+      ? `\n\n${L.exercises}\n${exercises
           .map((e) => `- [id ${e.id}] "${e.name}"${e.muscle_group ? ` (${e.muscle_group})` : ""}`)
           .join("\n")}`
       : "";
-  const diaSemana = new Date().toLocaleDateString("pt-BR", {
+  const diaSemana = new Date().toLocaleDateString(L.weekdayLocale, {
     timeZone: "America/Sao_Paulo",
     weekday: "long",
   });
 
   return {
-    metasContext: `Hoje é ${diaSemana}, ${today}, e agora são ${agora} (horário de Brasília).\n\n${metasBlock}${tasksBlock}${catsBlock}${exercisesBlock}`,
+    metasContext: `${L.header(diaSemana, today, agora)}\n\n${metasBlock}${tasksBlock}${catsBlock}${exercisesBlock}`,
     exercises: exercises ?? [],
   };
 }
@@ -162,7 +205,16 @@ export async function runToubeTurn(
   ctx: ToubeCtx,
   opts: { sessionId: string },
 ): Promise<{ result: ToubeResult; assistantMessageId: string | null }> {
-  const sessionSummary = await compactIfNeeded(ctx, opts.sessionId);
+  // Idioma da conversa = o mesmo `profiles.locale` que manda no next-intl, então o
+  // Toube fala a língua da interface — inclusive no Telegram, que não tem cookie.
+  const { data: prof } = await ctx.supabase
+    .from("profiles")
+    .select("locale")
+    .eq("id", ctx.userId)
+    .single();
+  const locale: ToubeLocale = prof?.locale === "en" ? "en" : "pt-BR";
+
+  const sessionSummary = await compactIfNeeded(ctx, opts.sessionId, locale);
 
   // Histórico recente DESSA SESSÃO (o modelo só vê a conversa atual — anti-alucinação).
   const { data: rows } = await ctx.supabase
@@ -177,17 +229,29 @@ export async function runToubeTurn(
   // O resumo rolante entra como contexto de sistema ANTES da janela viva, então
   // o modelo mantém o fio mesmo depois da poda.
   const historyForModel: ChatMessage[] = sessionSummary
-    ? [{ role: "system", content: `[Resumo da conversa até aqui]\n${sessionSummary}` }, ...history]
+    ? [
+        {
+          role: "system",
+          content:
+            locale === "en"
+              ? `[Summary of the conversation so far]\n${sessionSummary}`
+              : `[Resumo da conversa até aqui]\n${sessionSummary}`,
+        },
+        ...history,
+      ]
     : history;
 
-  const { metasContext, exercises } = await buildMetasContext(ctx);
+  const { metasContext, exercises } = await buildMetasContext(ctx, locale);
 
   // ATENÇÃO: `ctx.supabase` NÃO é garantidamente o client de cookie. Na web é o
   // de RLS; no webhook do Telegram (que não tem cookie) é o ADMIN, service_role,
   // que bypassa RLS. Por isso toda consulta lá dentro filtra `user_id`
   // explicitamente — o RLS aqui é rede de proteção, não o filtro.
-  const result = await toubeReply(historyForModel, metasContext, (tool, args) =>
-    executeToubeRead(ctx.supabase, ctx.userId, tool, args),
+  const result = await toubeReply(
+    historyForModel,
+    metasContext,
+    (tool, args) => executeToubeRead(ctx.supabase, ctx.userId, tool, args),
+    locale,
   );
 
   // logar_serie: o modelo às vezes casa o exercício ERRADO (chumba um id do
@@ -199,7 +263,9 @@ export async function runToubeTurn(
     for (const p of result.proposals) {
       if (p.action !== "logar_serie") continue;
       const real = exName.get(String(p.args.exercise_id));
-      p.args.exercicio = real ?? "⚠️ exercício fora do catálogo";
+      p.args.exercicio =
+        real ??
+        (locale === "en" ? "⚠️ exercise not in the catalog" : "⚠️ exercício fora do catálogo");
       if (!real) p.args.exercise_id = "";
     }
   }

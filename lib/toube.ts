@@ -54,6 +54,23 @@ REGRAS ABSOLUTAS (não quebre nenhuma):
 
 Pra REGISTRAR refeição/comida na dieta (logar alimento) e pro DIÁRIO — que você ainda NÃO faz — oriente a abrir o módulo. O diário é privado, você nunca acessa. Use SOMENTE os dados passados abaixo; nunca invente metas, categorias, ids, exercícios, prazos ou números.`;
 
+/** Idioma da conversa — espelha `profiles.locale` (o mesmo do next-intl). */
+export type ToubeLocale = "pt-BR" | "en";
+
+// O prompt principal é escrito em PT porque é nele que o tool-calling do glm foi
+// afinado (as REGRAS ABSOLUTAS numeradas). Traduzir tudo quebraria essa afinação,
+// então o inglês entra como OVERRIDE colado no FIM: a última instrução é a que o
+// modelo obedece. Ele só mexe em idioma — nenhuma regra de ferramenta é reescrita.
+export const TOUBE_SYSTEM_EN_OVERRIDE = `LANGUAGE OVERRIDE — this section wins over every language instruction above.
+
+This person uses Touvie in English, so you ALWAYS write in natural American English — warm, direct, like a friend who is rooting for them. The "português do Brasil" rule above does NOT apply to this conversation. Never answer in Portuguese, never mix the two, not even for a single word or a module name.
+
+MODULE NAMES in English: Routine, Goals, Journal, Finances, Workout, Diet, Notes, Reading, Notifications. Say "your Touvie" — never "Life OS". The Journal is still untouchable: you never read it and never write to it; if asked, say kindly that the journal is theirs alone and you have no access.
+
+WHAT STAYS THE SAME: every tool, every ABSOLUTE rule, and when to call each one. Tool NAMES and ARGUMENT names stay exactly as defined (criar_meta, lancar_transacao, hora, mensagem…) — they are code, not words to translate.
+
+DATA IS NOT TRANSLATED: goal, task, category and exercise titles in the context below are the person's own words — quote them EXACTLY as written, in whatever language they are in. Dates stay YYYY-MM-DD, times stay HH:MM (24h), money stays Brazilian reais (R$), weight stays kg.`;
+
 export type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
 /** Ações que o Toube pode PROPOR (a pessoa confirma antes de executar). */
@@ -387,7 +404,7 @@ const READ_NAMES = new Set(READ_TOOLS.map((t) => t.function.name));
 export type ToubeReadTool = (name: string, args: Record<string, unknown>) => Promise<string>;
 
 /** Frase humana de uma proposta (fallback quando o modelo não manda texto). */
-function proposalText(p: ToubeProposal): string {
+function proposalTextPt(p: ToubeProposal): string {
   const t = String(p.args.title ?? p.args.titulo ?? "");
   switch (p.action) {
     case "criar_meta":
@@ -422,6 +439,64 @@ function proposalText(p: ToubeProposal): string {
       return `logar ${p.args.exercicio ?? "exercício"}: ${p.args.carga}kg × ${p.args.reps}${p.args.rpe ? ` @RPE${p.args.rpe}` : ""}`;
   }
 }
+
+// Mesma frase em inglês. Dinheiro segue em R$ e peso em kg — o app é brasileiro,
+// só o idioma muda.
+function proposalTextEn(p: ToubeProposal): string {
+  const t = String(p.args.title ?? p.args.titulo ?? "");
+  switch (p.action) {
+    case "criar_meta":
+      return `create the goal "${t}"${p.args.target_date ? ` (due ${p.args.target_date})` : ""}`;
+    case "editar_meta":
+      return "edit this goal";
+    case "concluir_meta":
+      return `complete the goal "${t}"`;
+    case "deletar_meta":
+      return `delete the goal "${t}"`;
+    case "criar_tarefa":
+      return `create the task "${t}"${p.args.due_date ? ` (by ${p.args.due_date})` : ""}`;
+    case "concluir_tarefa":
+      return `complete the task "${t}"`;
+    case "deletar_tarefa":
+      return `delete the task "${t}"`;
+    case "lancar_transacao":
+      return `log the ${p.args.kind === "income" ? "income" : "expense"} of R$ ${p.args.valor}${p.args.descricao ? ` (${p.args.descricao})` : ""}`;
+    case "adicionar_bloco_rotina":
+      return `add "${p.args.titulo}" to your routine at ${p.args.hora}`;
+    case "criar_lembrete":
+      return p.args.recorrente
+        ? `create a daily reminder: "${p.args.mensagem}" every day at ${p.args.hora}`
+        : p.args.data
+          ? `create a reminder: "${p.args.mensagem}" on ${p.args.data} at ${p.args.hora}`
+          : `create a reminder: "${p.args.mensagem}" at the next ${p.args.hora} (once)`;
+    case "criar_nota":
+      return `create the note "${p.args.titulo}"`;
+    case "registrar_medida":
+      return `log ${p.args.peso ? `${p.args.peso}kg` : "a measurement"}${p.args.data ? ` on ${p.args.data}` : ""}`;
+    case "logar_serie":
+      return `log ${p.args.exercicio ?? "exercise"}: ${p.args.carga}kg × ${p.args.reps}${p.args.rpe ? ` @RPE${p.args.rpe}` : ""}`;
+  }
+}
+
+function proposalText(p: ToubeProposal, locale: ToubeLocale): string {
+  return locale === "en" ? proposalTextEn(p) : proposalTextPt(p);
+}
+
+// Frases fixas que a gente mesmo escreve quando o modelo não devolve texto.
+const FALLBACK = {
+  "pt-BR": {
+    confirm: (list: string) => `Posso ${list} — é só confirmar abaixo. ✅`,
+    joiner: "; e ",
+    cannotAct: "Não consegui fazer isso agora — pode pedir de novo, com o horário?",
+    cannotAnswer: "Não consegui responder isso agora — pode reformular?",
+  },
+  en: {
+    confirm: (list: string) => `I can ${list} — just confirm below. ✅`,
+    joiner: "; and ",
+    cannotAct: "I couldn't do that just now — can you ask again, with the time?",
+    cannotAnswer: "I couldn't answer that just now — mind rephrasing?",
+  },
+} as const;
 
 // Mensagem "de fio" da API (inclui os formatos de tool-calling OpenAI que não
 // cabem no ChatMessage público: assistant com tool_calls e o resultado role:"tool").
@@ -482,13 +557,28 @@ async function zaiChat(messages: WireMessage[], toolChoice: "auto" | "required" 
 export const CLAIMS_ACTION =
   /\b(criei|marquei|agendei|registrei|lancei|anotei|adicionei|apaguei|deletei|conclu[ií]|salvei|programei)\b|\bvou (marcar|criar|agendar|registrar|lan[çc]ar|anotar|adicionar|apagar|deletar|salvar|programar)\b|vai (chegar|receber|te avisar)|est[áa] (agendad|marcad|criad|salv)|deixei (marcad|agendad|anotad)/i;
 
+// Mesmo guarda em inglês. Sem ele a mentira do glm passava batido no idioma EN —
+// "I've created the reminder" não casava com NENHUM verbo da regex PT, então a
+// pessoa ficava esperando um lembrete que nunca existiu.
+export const CLAIMS_ACTION_EN =
+  /\b(created|scheduled|logged|recorded|added|saved|deleted|removed|completed|marked|set up|noted down)\b|\bi(?:'ll| will) (create|schedule|log|record|add|save|delete|remove|complete|mark|set up)\b|\b(?:is|has been|have been) (created|scheduled|logged|added|saved|deleted|removed|completed|set)\b|\byou(?:'ll| will) (get|receive) (a|the|your)\b/i;
+
+/** O texto AFIRMA ter agido? (regex do idioma da conversa) */
+function claimsAction(text: string, locale: ToubeLocale): boolean {
+  return locale === "en" ? CLAIMS_ACTION_EN.test(text) : CLAIMS_ACTION.test(text);
+}
+
 export async function toubeReply(
   history: ChatMessage[],
   metasContext?: string,
   readTool?: ToubeReadTool,
+  locale: ToubeLocale = "pt-BR",
 ): Promise<ToubeResult> {
   // O contexto das metas ativas entra no system prompt (montado pelo route handler).
-  const system = metasContext ? `${TOUBE_SYSTEM}\n\n${metasContext}` : TOUBE_SYSTEM;
+  // O override de idioma vai POR ÚLTIMO, depois do contexto — última instrução vence.
+  const base = metasContext ? `${TOUBE_SYSTEM}\n\n${metasContext}` : TOUBE_SYSTEM;
+  const system = locale === "en" ? `${base}\n\n${TOUBE_SYSTEM_EN_OVERRIDE}` : base;
+  const fb = FALLBACK[locale];
   let messages: WireMessage[] = [{ role: "system", content: system }, ...history];
 
   // Até 2 chamadas: se a 1ª pedir CONSULTA, executamos e devolvemos o resultado
@@ -553,7 +643,7 @@ export async function toubeReply(
     if (proposals.length) {
       const text =
         msg?.content?.trim() ||
-        `Posso ${proposals.map(proposalText).join("; e ")} — é só confirmar abaixo. ✅`;
+        fb.confirm(proposals.map((x) => proposalText(x, locale)).join(fb.joiner));
       return { kind: "proposals", text, proposals };
     }
 
@@ -562,7 +652,7 @@ export async function toubeReply(
     // Texto que AFIRMA ter agido, sem nenhuma ferramenta emitida: é a mentira
     // do glm. Não dá pra deixar passar — a pessoa fica esperando um lembrete
     // que nunca foi criado. Uma segunda chance, agora obrigando a ferramenta.
-    if (text && CLAIMS_ACTION.test(text)) {
+    if (text && claimsAction(text, locale)) {
       const forced = await zaiChat(messages, "required").catch(() => null);
       const forcedProposals: ToubeProposal[] = (forced?.tool_calls ?? [])
         .filter((t) => ACTION_NAMES.includes(t.function?.name as ToubeAction))
@@ -581,7 +671,7 @@ export async function toubeReply(
           kind: "proposals",
           text:
             forced?.content?.trim() ||
-            `Posso ${forcedProposals.map(proposalText).join("; e ")} — é só confirmar abaixo. ✅`,
+            fb.confirm(forcedProposals.map((x) => proposalText(x, locale)).join(fb.joiner)),
           proposals: forcedProposals,
         };
       }
@@ -590,14 +680,14 @@ export async function toubeReply(
       // repassar a afirmação falsa: quem lê "pronto!" não confere o app depois.
       return {
         kind: "text",
-        text: "Não consegui fazer isso agora — pode pedir de novo, com o horário?",
+        text: fb.cannotAct,
       };
     }
 
     if (text) return { kind: "text", text };
     // Sem texto e sem proposta (ex.: modelo repetiu uma consulta na rodada 1):
     // resposta amigável em vez de estourar 502.
-    return { kind: "text", text: "Não consegui responder isso agora — pode reformular?" };
+    return { kind: "text", text: fb.cannotAnswer };
   }
-  return { kind: "text", text: "Não consegui responder isso agora — pode reformular?" };
+  return { kind: "text", text: fb.cannotAnswer };
 }

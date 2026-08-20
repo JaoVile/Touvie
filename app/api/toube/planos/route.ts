@@ -3,6 +3,7 @@ import { applyMutation } from "@/lib/planos-draft";
 import { createClient } from "@/lib/supabase/server";
 import type { ChatMessage } from "@/lib/toube";
 import { planosReply } from "@/lib/toube-planos";
+import { getLocale } from "next-intl/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -47,7 +48,12 @@ export async function POST(req: Request) {
 
   let result: Awaited<ReturnType<typeof planosReply>>;
   try {
-    result = await planosReply(history, plan);
+    result = await planosReply(
+      history,
+      plan,
+      undefined,
+      (await getLocale()) === "en" ? "en" : "pt-BR",
+    );
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Erro ao falar com o Toube Planos." },

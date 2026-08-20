@@ -1,21 +1,22 @@
 "use client";
 import type { Plan } from "@/lib/planos-draft";
-
-const WD = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+import { useTranslations } from "next-intl";
 
 export function PlanPreview({ plan }: { plan: Plan }) {
+  const t = useTranslations("toube");
+  const WD = t.raw("weekdays") as string[];
+
   if (!plan.days.length) {
     return (
       <p className="p-4 text-sm" style={{ color: "var(--color-fg-muted)" }}>
-        O plano aparece aqui conforme você e o Toube montam. Manda um "monta um ABC 3x" ou cola um
-        link/PDF.
+        {t("planEmpty")}
       </p>
     );
   }
   return (
     <div className="flex flex-col gap-3 p-1">
       <h2 className="text-base font-semibold" style={{ color: "var(--color-fg)" }}>
-        {plan.name || "Plano sem nome"}
+        {plan.name || t("planUnnamed")}
       </h2>
       {plan.days.map((d, i) => (
         <div
@@ -40,7 +41,7 @@ export function PlanPreview({ plan }: { plan: Plan }) {
             ))}
             {!d.exercises.length ? (
               <li className="text-xs" style={{ color: "var(--color-fg-muted)" }}>
-                (sem exercícios ainda)
+                {t("planNoExercises")}
               </li>
             ) : null}
           </ul>

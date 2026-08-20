@@ -3,6 +3,7 @@ import { applyMutation } from "@/lib/planos-draft";
 import { extractFromPdf, extractFromUrl } from "@/lib/planos-source";
 import { createClient } from "@/lib/supabase/server";
 import { planosReply } from "@/lib/toube-planos";
+import { getLocale } from "next-intl/server";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -36,10 +37,20 @@ export async function POST(req: Request) {
   const { id, plan } = await getOrCreateDraft();
   let result: Awaited<ReturnType<typeof planosReply>>;
   try {
+    const locale = (await getLocale()) === "en" ? "en" : "pt-BR";
     result = await planosReply(
-      [{ role: "user", content: "Monta um plano de treino com base nessa fonte." }],
+      [
+        {
+          role: "user",
+          content:
+            locale === "en"
+              ? "Build a workout plan based on this source."
+              : "Monta um plano de treino com base nessa fonte.",
+        },
+      ],
       plan,
       source.text,
+      locale,
     );
   } catch (e) {
     return NextResponse.json(
