@@ -1,3 +1,5 @@
+[![CI](https://github.com/JaoVile/Touvie/actions/workflows/ci.yml/badge.svg)](https://github.com/JaoVile/Touvie/actions/workflows/ci.yml)
+
 <div align="center">
 
 <img src="./public/brand/touvie-og.png" alt="Touvie" width="640" />
